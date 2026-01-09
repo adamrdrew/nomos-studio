@@ -1,0 +1,189 @@
+phase:
+  id: 0002
+  slug: data-loading-settings-model
+  title: Data Loading, Settings, and Data Model
+  status: complete
+
+steps:
+  - id: S001
+    title: Define settings + document domain models
+    implemented: true
+    reviewed: true
+    notes: "Added pure domain model + result/error types under src/shared/domain with no Electron/FS/process imports."
+    touched:
+      - src/shared/domain/models.ts
+      - src/shared/domain/results.ts
+
+  - id: S002
+    title: Implement settings persistence (infrastructure + application service)
+    implemented: true
+    reviewed: true
+    notes: "Implemented JSON settings repository stored under userData (atomic temp+rename) and an app-layer SettingsService; added unit tests for success/failure paths."
+    touched:
+      - src/main/infrastructure/settings/fileSystem.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.test.ts
+      - src/main/application/settings/SettingsService.ts
+      - src/main/application/settings/SettingsService.test.ts
+
+  - id: S003
+    title: Expose minimal preload IPC for privileged operations
+    implemented: true
+    reviewed: true
+    notes: "Added typed IPC channels + preload bridge for settings/dialogs/assets/map ops via invoke/handle; wired main-process handler registration and added a unit test for channel registration."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/infrastructure/settings/nodeFileSystem.ts
+      - src/main/main.ts
+
+  - id: S004
+    title: Build Settings dialog UI
+    implemented: true
+    reviewed: true
+    notes: "Implemented renderer Settings dialog (Blueprint) with browse buttons and persistence via preload Settings APIs; added main→renderer event hook for menu-triggered opening."
+    touched:
+      - src/renderer/renderer.tsx
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/shared/ipc/nomosIpc.ts
+
+  - id: S005
+    title: Create Asset index builder + store integration
+    implemented: true
+    reviewed: true
+    notes: "Implemented recursive asset indexer (relative posix paths + counts) plus AppStore integration via AssetIndexService; wired refresh + auto-index-on-settings-change. Added unit tests for indexer and service success/failure."
+    touched:
+      - src/main/infrastructure/assets/directoryReader.ts
+      - src/main/infrastructure/assets/nodeDirectoryReader.ts
+      - src/main/infrastructure/assets/AssetIndexer.ts
+      - src/main/infrastructure/assets/AssetIndexer.test.ts
+      - src/main/application/store/AppStore.ts
+      - src/main/application/assets/AssetIndexService.ts
+      - src/main/application/assets/AssetIndexService.test.ts
+      - src/main/main.ts
+
+  - id: S006
+    title: Add File menu actions (Open/Save/Refresh Index/Settings)
+    implemented: true
+    reviewed: true
+    notes: "Added application menu with Settings/Open/Save/Refresh actions; Save enabled state reflects whether a document is loaded; Settings triggers renderer dialog via main→renderer IPC event; Refresh shows success/failure message boxes."
+    touched:
+      - src/main/main.ts
+      - src/shared/ipc/nomosIpc.ts
+
+  - id: S007
+    title: Implement validation runner (subprocess adapter)
+    implemented: true
+    reviewed: true
+    notes: "Implemented DI-friendly subprocess runner and MapValidationService that runs <gameExe> --validate-map <absoluteMapPath>, capturing stdout/stderr and pretty-printing JSON reports on failure. Added unit tests covering exit-code and report parsing branches."
+    touched:
+      - src/main/infrastructure/process/ProcessRunner.ts
+      - src/main/infrastructure/process/NodeProcessRunner.ts
+      - src/main/application/maps/MapValidationService.ts
+      - src/main/application/maps/MapValidationService.test.ts
+      - src/main/main.ts
+
+  - id: S008
+    title: Implement open-map pipeline (gate → validate → load → store)
+    implemented: true
+    reviewed: true
+    notes: "Implemented OpenMapService: gates on settings, validates first, loads/parses JSON on success, stores MapDocument, and shows GUI errors with JSON report pretty-print fallback. Added unit tests for gate/validation/parse branches."
+    touched:
+      - src/main/application/ui/UserNotifier.ts
+      - src/main/application/maps/OpenMapService.ts
+      - src/main/application/maps/OpenMapService.test.ts
+      - src/main/main.ts
+
+  - id: S009
+    title: Implement save pipeline
+    implemented: true
+    reviewed: true
+    notes: "Implemented SaveMapService: pretty-prints JSON and atomically writes temp+rename (with Windows fallback), errors when no document, and clears dirty flag on success. Wired to IPC and menu. Added unit tests for success/failure paths."
+    touched:
+      - src/main/application/maps/SaveMapService.ts
+      - src/main/application/maps/SaveMapService.test.ts
+      - src/main/main.ts
+
+  - id: S010
+    title: Central store wiring and selectors
+    implemented: true
+    reviewed: true
+    notes: "Added a minimal renderer Zustand store slice for settings/assetIndex/mapDocument, initialized via preload state snapshot so renderer can access app state without Node access."
+    touched:
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/renderer.tsx
+
+  - id: S011
+    title: Unit tests for all public APIs and conditional paths
+    implemented: true
+    reviewed: true
+    notes: "Complete: unit tests now cover public APIs and the previously-missed conditional branches; suite passes with coverage enabled and `npm run typecheck` is green."
+    touched:
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.test.ts
+      - src/main/application/settings/SettingsService.test.ts
+      - src/main/infrastructure/assets/AssetIndexer.test.ts
+      - src/main/application/assets/AssetIndexService.test.ts
+      - src/main/application/maps/MapValidationService.test.ts
+      - src/main/application/maps/OpenMapService.test.ts
+      - src/main/application/maps/SaveMapService.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/infrastructure/settings/nodeFileSystem.ts
+      - src/main/application/store/AppStore.test.ts
+      - src/main/infrastructure/process/NodeProcessRunner.test.ts
+      - src/main/infrastructure/assets/nodeDirectoryReader.test.ts
+      - src/main/infrastructure/settings/nodeFileSystem.test.ts
+
+  - id: S012
+    title: Manual verification checklist update
+    implemented: true
+    reviewed: true
+    notes: "Added a manual verification checklist covering settings, index refresh, open/validate flows, invalid map UX, and save behavior."
+    touched:
+      - .ushabti/phases/0002-data-loading-settings-model/manual-checklist.md
+
+  - id: S013
+    title: Fill L04 test gaps for public APIs and remaining conditional branches
+    implemented: true
+    reviewed: true
+    notes: "Added tests for AppStore and Node adapters; expanded service tests to cover missing settings permutations, Save rename fallback, and MapValidation stderr/empty-output branches."
+    touched:
+      - src/main/application/store/AppStore.test.ts
+      - src/main/infrastructure/process/NodeProcessRunner.test.ts
+      - src/main/infrastructure/assets/nodeDirectoryReader.test.ts
+      - src/main/infrastructure/settings/nodeFileSystem.test.ts
+      - src/main/application/maps/OpenMapService.test.ts
+      - src/main/application/maps/SaveMapService.test.ts
+      - src/main/application/maps/MapValidationService.test.ts
+
+  - id: S014
+    title: Make unit tests cross-platform (Windows-safe paths)
+    implemented: true
+    reviewed: true
+    notes: "Updated AssetIndexer unit tests to build paths using node:path helpers and avoid hard-coded POSIX absolute paths; expected to pass on Windows/macOS/Linux."
+    touched:
+      - src/main/infrastructure/assets/AssetIndexer.test.ts
+
+  - id: S015
+    title: Ensure deterministic temp-file cleanup and safe replace semantics (L05/L06)
+    implemented: true
+    reviewed: true
+    notes: "Implemented backup/restore safe-replace semantics and deterministic *.tmp cleanup for map saves and settings saves; updated unit tests for Windows-style rename fallback, tmp cleanup on unhandled rename codes, and destination restore on retry failure. Verified green: `npm run typecheck` and `npm test --coverage`."
+    touched:
+      - src/main/application/maps/SaveMapService.ts
+      - src/main/application/maps/SaveMapService.test.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.test.ts
+
+  - id: S016
+    title: Close remaining L04 branch gaps in safe-replace helpers (backup collisions + cleanup failures)
+    implemented: true
+    reviewed: true
+    notes: "Added unit tests through public save APIs for safe-replace edge branches (backup collision, cleanup failure best-effort, exhaustion, non-EEXIST backup move failure, restore failure best-effort, tmp-cleanup failure best-effort). Added missing public-API branch tests for SaveMapService JSON serialization failure and JsonFileSettingsRepository loadSettings (non-object JSON, read-failed, non-string fields → null, and fileName override path selection). Simplified JsonFileSettingsRepository settingsFilePath helper to remove an unreachable `?? DEFAULT_FILE_NAME` branch (behavior unchanged). Verified green: `npm run typecheck` and `npm test --coverage`; `JsonFileSettingsRepository.ts` now reports 100% lines/branches in the coverage table."
+    touched:
+      - src/main/application/maps/SaveMapService.test.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.test.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.ts

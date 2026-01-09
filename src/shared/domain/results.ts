@@ -1,0 +1,45 @@
+export type Result<Ok, Err> =
+  | Readonly<{ ok: true; value: Ok }>
+  | Readonly<{ ok: false; error: Err }>;
+
+export type SettingsError = Readonly<{
+  kind: 'settings-error';
+  code:
+    | 'settings/read-failed'
+    | 'settings/write-failed'
+    | 'settings/parse-failed';
+  message: string;
+}>;
+
+export type AssetIndexError = Readonly<{
+  kind: 'asset-index-error';
+  code: 'asset-index/missing-base-dir' | 'asset-index/read-failed';
+  message: string;
+}>;
+
+export type MapValidationErrorReport = Readonly<{
+  kind: 'map-validation-error-report';
+  prettyText: string;
+  rawText: string;
+}>;
+
+export type MapValidationError = Readonly<{
+  kind: 'map-validation-error';
+  code:
+    | 'map-validation/missing-settings'
+    | 'map-validation/runner-failed'
+    | 'map-validation/invalid-map';
+  message: string;
+  report?: MapValidationErrorReport;
+}>;
+
+export type MapIoError = Readonly<{
+  kind: 'map-io-error';
+  code:
+    | 'map-io/open-cancelled'
+    | 'map-io/read-failed'
+    | 'map-io/parse-failed'
+    | 'map-io/no-document'
+    | 'map-io/write-failed';
+  message: string;
+}>;
