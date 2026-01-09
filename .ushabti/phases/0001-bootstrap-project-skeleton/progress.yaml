@@ -1,0 +1,149 @@
+phase:
+  id: 0001
+  slug: bootstrap-project-skeleton
+  title: Bootstrap Project Skeleton
+  status: complete
+
+steps:
+  - id: S001
+    title: Select toolchain and repository layout
+    implemented: true
+    reviewed: true
+    notes: "Documented the chosen Forge+Webpack toolchain and created the planned src/ layout."
+    touched:
+      - README.md
+
+  - id: S002
+    title: Scaffold Electron + React + TypeScript skeleton
+    implemented: true
+    reviewed: true
+    notes: "Added Electron Forge + Webpack + React + TS skeleton (config, entrypoints, scripts). Follow-up: main bundle output set to index.js so Electron can resolve package.json main (.webpack/main)."
+    touched:
+      - package.json
+      - forge.config.ts
+      - webpack.main.config.js
+      - webpack.renderer.config.js
+      - tsconfig.json
+      - jest.config.cjs
+      - .eslintrc.cjs
+      - .gitignore
+      - src/main/main.ts
+      - src/main/windows/createMainWindow.ts
+      - src/main/windows/createMainWindowWebPreferences.ts
+      - src/main/windows/forge-env.d.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/renderer/index.html
+      - src/renderer/renderer.tsx
+
+  - id: S003
+    title: Add UI stack dependencies (compile-time proof)
+    implemented: true
+    reviewed: true
+    notes: "Added Blueprint.js, DockView, Zustand, and react-konva deps and rendered a minimal visible UI shell proving wiring."
+    touched:
+      - package.json
+      - src/renderer/renderer.tsx
+
+  - id: S004
+    title: Establish Electron security baseline
+    implemented: true
+    reviewed: true
+    notes: "Set explicit secure BrowserWindow webPreferences (contextIsolation, no Node integration, sandbox, etc.) and kept preload API minimal."
+    touched:
+      - src/main/windows/createMainWindowWebPreferences.ts
+
+  - id: S005
+    title: Strict TypeScript configuration
+    implemented: true
+    reviewed: true
+    notes: "Enabled strict TypeScript baseline with additional safety options (unchecked access, exact optional types, etc.)."
+    touched:
+      - tsconfig.json
+
+  - id: S006
+    title: Add unit test harness (no framework behavior tests)
+    implemented: true
+    reviewed: true
+    notes: "Jest + ts-jest configured; npm test runs with coverage by default; user confirmed npm test passes and produces a coverage report."
+    touched:
+      - package.json
+      - jest.config.cjs
+      - tsconfig.json
+
+  - id: S007
+    title: Add minimal unit tests for bootstrap/config seams
+    implemented: true
+    reviewed: true
+    notes: "Refactored webPreferences creation for dependency injection and added unit tests covering dev/prod conditional paths without asserting Electron internals."
+    touched:
+      - src/main/windows/createMainWindow.ts
+      - src/main/windows/createMainWindowWebPreferences.ts
+      - src/main/windows/createMainWindowWebPreferences.test.ts
+
+  - id: S008
+    title: Add linting/formatting and repo scripts
+    implemented: true
+    reviewed: true
+    notes: "Added npm scripts for dev/build/typecheck/test/lint and ESLint configuration without shell-specific assumptions."
+    touched:
+      - package.json
+      - .eslintrc.cjs
+
+  - id: S009
+    title: CI matrix on macOS/Windows/Linux
+    implemented: true
+    reviewed: true
+    notes: "Added GitHub Actions CI running typecheck + unit tests on macOS/Windows/Linux. Uses npm install until a lockfile is generated."
+    touched:
+      - .github/workflows/ci.yml
+
+  - id: S010
+    title: Manual verification checklist (developer-facing)
+    implemented: true
+    reviewed: true
+    notes: "Documented reproducible manual commands and expected bootstrap UI behavior, including offline run verification."
+    touched:
+      - .ushabti/phases/0001-bootstrap-project-skeleton/manual-checklist.md
+
+  - id: S011
+    title: CI uses reproducible installs (`npm ci`)
+    implemented: true
+    reviewed: true
+    notes: "Switched GitHub Actions workflow to use npm ci (lockfile-based, deterministic)."
+    touched:
+      - .github/workflows/ci.yml
+
+  - id: S012
+    title: Remove deprecated Forge config file
+    implemented: true
+    reviewed: true
+    notes: "Attempted to delete forge.config.ts but deletion is blocked by the editing tool; neutralized it so it cannot be used and kept Forge configured via forge.config.js."
+    touched:
+      - forge.config.ts
+
+  - id: S013
+    title: Re-verify acceptance criteria after fixes
+    implemented: true
+    reviewed: true
+    notes: "User reports npm run typecheck/test/build/dev all pass; offline dev run also confirmed. Results recorded in review.md."
+    touched:
+      - .ushabti/phases/0001-bootstrap-project-skeleton/review.md
+
+  - id: S014
+    title: Add unit test coverage for `createMainWindow` public API
+    implemented: true
+    reviewed: true
+    notes: "Added createMainWindow() unit test using module mocks to assert our integration contract (BrowserWindow ctor options, ready-to-show handler registration, loadURL call). User confirmed npm test passes including this test."
+    touched:
+      - src/main/windows/createMainWindow.ts
+      - src/main/windows/createMainWindow.test.ts
+
+  - id: S015
+    title: Ensure `npm test` produces coverage output by default
+    implemented: true
+    reviewed: true
+    notes: "Updated npm test script to run jest with --coverage so coverage is emitted on a standard run; user confirmed it produces a coverage report."
+    touched:
+      - package.json
+      - jest.config.cjs
