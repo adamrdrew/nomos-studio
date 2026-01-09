@@ -2,7 +2,6 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import {
   NOMOS_IPC_CHANNELS,
-  NOMOS_IPC_EVENTS,
   type OpenMapDialogResponse,
   type OpenMapResponse,
   type PickDirectoryResponse,
@@ -13,12 +12,11 @@ import {
   type SettingsUpdateRequest,
   type SettingsUpdateResponse,
   type StateGetResponse,
-  type Unsubscribe,
   type ValidateMapRequest,
   type ValidateMapResponse
 } from '../shared/ipc/nomosIpc';
 
-contextBridge.exposeInMainWorld('nomos', {
+const exposedNomosApi = {
   version: '0.0.0',
   settings: {
     get: async (): Promise<SettingsGetResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.settingsGet),
@@ -44,16 +42,12 @@ contextBridge.exposeInMainWorld('nomos', {
   },
   state: {
     getSnapshot: async (): Promise<StateGetResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.stateGet)
-  },
-  events: {
-    onOpenSettings: (listener: () => void): Unsubscribe => {
-      const handler = (): void => {
-        listener();
-      };
-      ipcRenderer.on(NOMOS_IPC_EVENTS.uiOpenSettings, handler);
-      return () => {
-        ipcRenderer.removeListener(NOMOS_IPC_EVENTS.uiOpenSettings, handler);
-      };
-    }
   }
-});
+} as const;
+
+try {
+  contextBridge.exposeInMainWorld('nomos', exposedNomosApi);
+} catch (error: unknown) {
+  // eslint-disable-next-line no-console
+  console.error('[preload] exposeInMainWorld failed:', error);
+}

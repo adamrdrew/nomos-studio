@@ -1,5 +1,6 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { createMainWindow } from './windows/createMainWindow';
+import { createSettingsWindow } from './windows/createSettingsWindow';
 
 import { SettingsService } from './application/settings/SettingsService';
 import { AssetIndexService } from './application/assets/AssetIndexService';
@@ -7,7 +8,7 @@ import { AppStore } from './application/store/AppStore';
 import { JsonFileSettingsRepository } from './infrastructure/settings/JsonFileSettingsRepository';
 import { nodeFileSystem } from './infrastructure/settings/nodeFileSystem';
 import { registerNomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
-import { NOMOS_IPC_CHANNELS, NOMOS_IPC_EVENTS } from '../shared/ipc/nomosIpc';
+import { NOMOS_IPC_CHANNELS } from '../shared/ipc/nomosIpc';
 import { AssetIndexer } from './infrastructure/assets/AssetIndexer';
 import { nodeDirectoryReader } from './infrastructure/assets/nodeDirectoryReader';
 import { nodeProcessRunner } from './infrastructure/process/NodeProcessRunner';
@@ -16,8 +17,10 @@ import { OpenMapService } from './application/maps/OpenMapService';
 import type { UserNotifier } from './application/ui/UserNotifier';
 import { SaveMapService } from './application/maps/SaveMapService';
 import type { NomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
+import { createApplicationMenuTemplate } from './infrastructure/menu/createApplicationMenuTemplate';
 
 let mainWindow: BrowserWindow | null = null;
+let settingsWindow: BrowserWindow | null = null;
 
 const setApplicationMenu = (
   options: Readonly<{
@@ -30,42 +33,27 @@ const setApplicationMenu = (
 ): void => {
   const canSave = options.store.getState().mapDocument !== null;
 
-  const fileMenu: MenuItemConstructorOptions = {
-    label: 'File',
-    submenu: [
-      { label: 'Open Map…', click: () => void options.onOpenMap() },
-      { label: 'Save', enabled: canSave, click: () => void options.onSave() },
-      { type: 'separator' },
-      { label: 'Refresh Assets Index', click: () => void options.onRefreshAssetsIndex() }
-    ]
-  };
-
-  const template: MenuItemConstructorOptions[] = [];
-  if (process.platform === 'darwin') {
-    template.push({
-      label: app.name,
-      submenu: [
-        { label: 'Settings…', click: options.onOpenSettings },
-        { type: 'separator' },
-        { role: 'quit' }
-      ]
-    });
-  }
-
-  template.push(fileMenu);
-
-  if (process.platform !== 'darwin') {
-    template.push({
-      label: 'Edit',
-      submenu: [
-        { label: 'Settings…', click: options.onOpenSettings },
-        { type: 'separator' },
-        { role: 'quit' }
-      ]
-    });
-  }
+  const template = createApplicationMenuTemplate({
+    appName: app.name,
+    platform: process.platform,
+    canSave,
+    onOpenSettings: options.onOpenSettings,
+    onOpenMap: () => void options.onOpenMap(),
+    onSave: () => void options.onSave(),
+    onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex()
+  });
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+
+  // Debug: helps confirm menu is actually being installed.
+  // Safe to keep: logs only labels and platform.
+  try {
+    const topLabels = template.map((item) => item.label ?? '<no-label>');
+    // eslint-disable-next-line no-console
+    console.log('[nomos] menu installed', { platform: process.platform, topLabels });
+  } catch (_error: unknown) {
+    // Best effort.
+  }
 };
 
 const createWindowOnceReady = async (): Promise<void> => {
@@ -75,8 +63,32 @@ const createWindowOnceReady = async (): Promise<void> => {
 
   mainWindow = await createMainWindow();
 
+  if (!app.isPackaged) {
+    mainWindow.webContents.on('console-message', (_event, _level, message) => {
+      // eslint-disable-next-line no-console
+      console.log('[renderer:console]', message);
+    });
+
+    mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+      // eslint-disable-next-line no-console
+      console.log('[renderer:did-fail-load]', { errorCode, errorDescription, validatedURL });
+    });
+  }
+
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+};
+
+const createSettingsWindowOnceReady = async (): Promise<void> => {
+  if (settingsWindow !== null) {
+    return;
+  }
+
+  settingsWindow = await createSettingsWindow();
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
   });
 };
 
@@ -219,10 +231,15 @@ app.on('ready', () => {
   void createWindowOnceReady();
 
   const openSettings = (): void => {
-    if (mainWindow === null) {
-      return;
-    }
-    mainWindow.webContents.send(NOMOS_IPC_EVENTS.uiOpenSettings);
+    void (async () => {
+      await createSettingsWindowOnceReady();
+      if (settingsWindow === null) {
+        return;
+      }
+
+      settingsWindow.show();
+      settingsWindow.focus();
+    })();
   };
 
   const openMap = async (): Promise<void> => {

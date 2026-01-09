@@ -20,10 +20,6 @@ export const NOMOS_IPC_CHANNELS = {
   stateGet: 'nomos:state:get'
 } as const;
 
-export const NOMOS_IPC_EVENTS = {
-  uiOpenSettings: 'nomos:ui:open-settings'
-} as const;
-
 export type AppStateSnapshot = Readonly<{
   settings: EditorSettings;
   assetIndex: AssetIndex | null;
@@ -49,5 +45,3 @@ export type OpenMapResponse = Result<MapDocument, MapIoError | MapValidationErro
 export type SaveMapResponse = Result<MapDocument, MapIoError>;
 
 export type StateGetResponse = Result<AppStateSnapshot, { message: string }>;
-
-export type Unsubscribe = () => void;

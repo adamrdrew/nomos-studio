@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { EditorSettings } from '../../../shared/domain/models';
 import type { Result, SettingsError } from '../../../shared/domain/results';
 import type { FileSystem } from './fileSystem';
+import { decodeSettingsFile, encodeSettingsFile } from './settingsCodec';
 
 export type JsonFileSettingsRepositoryDependencies = Readonly<{
   fs: FileSystem;
@@ -106,41 +107,17 @@ export class JsonFileSettingsRepository {
     try {
       const raw = await this.fs.readFile(filePath, 'utf8');
 
-      const parsed = JSON.parse(raw) as unknown;
-      if (typeof parsed !== 'object' || parsed === null) {
-        return {
-          ok: false,
-          error: toSettingsError('settings/parse-failed', 'Settings file is not a JSON object')
-        };
+      const decoded = decodeSettingsFile(raw);
+      if (!decoded.ok) {
+        return decoded;
       }
 
-      const record = parsed as Record<string, unknown>;
-
-      const assetsDirPath =
-        typeof record['assetsDirPath'] === 'string' ? record['assetsDirPath'] : null;
-      const gameExecutablePath =
-        typeof record['gameExecutablePath'] === 'string' ? record['gameExecutablePath'] : null;
-
-      return {
-        ok: true,
-        value: {
-          assetsDirPath,
-          gameExecutablePath
-        }
-      };
+      return { ok: true, value: decoded.value.settings };
     } catch (error: unknown) {
       const nodeError = error as NodeJS.ErrnoException;
       if (nodeError.code === 'ENOENT') {
         return { ok: true, value: defaultSettings() };
       }
-
-      if (error instanceof SyntaxError) {
-        return {
-          ok: false,
-          error: toSettingsError('settings/parse-failed', 'Settings file contains invalid JSON')
-        };
-      }
-
       return {
         ok: false,
         error: toSettingsError('settings/read-failed', 'Failed to read settings')
@@ -159,7 +136,27 @@ export class JsonFileSettingsRepository {
 
     try {
       await this.fs.mkdir(this.userDataDirPath, { recursive: true });
-      const json = JSON.stringify(settings, null, 2);
+
+      let unknownFields: Record<string, unknown> = {};
+      let existingVersion: number | null = null;
+      try {
+        const existingRaw = await this.fs.readFile(filePath, 'utf8');
+        const decodedExisting = decodeSettingsFile(existingRaw);
+        if (decodedExisting.ok) {
+          unknownFields = { ...(decodedExisting.value.unknownFields as Record<string, unknown>) };
+          existingVersion = decodedExisting.value.version;
+        }
+      } catch (_readExistingError: unknown) {
+        // Best effort: if we can't read/parse an existing file, we still allow saving.
+      }
+
+      const fileObject = encodeSettingsFile({
+        version: existingVersion,
+        settings,
+        unknownFields
+      });
+
+      const json = JSON.stringify(fileObject, null, 2);
 
       await this.fs.writeFile(tmpPath, json, 'utf8');
       wroteTmpFile = true;

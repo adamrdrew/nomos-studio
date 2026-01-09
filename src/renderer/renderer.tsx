@@ -35,19 +35,34 @@ const useAppStore = create<AppStoreState>((set) => ({
   }
 }));
 
-function SettingsDialog(): JSX.Element {
-  const isOpen = useAppStore((state) => state.isSettingsDialogOpen);
-  const close = useAppStore((state) => state.closeSettingsDialog);
+function isSettingsMode(): boolean {
+  try {
+    const search = new URLSearchParams(window.location.search);
+    const fromSearch = search.get('nomosSettings');
+    if (fromSearch === '1' || fromSearch === 'true') {
+      return true;
+    }
 
+    const hash = window.location.hash;
+    const queryStart = hash.indexOf('?');
+    if (queryStart >= 0) {
+      const hashQuery = new URLSearchParams(hash.slice(queryStart + 1));
+      const fromHash = hashQuery.get('nomosSettings');
+      return fromHash === '1' || fromHash === 'true';
+    }
+
+    return false;
+  } catch (_error: unknown) {
+    return false;
+  }
+}
+
+function SettingsPanel(props: { onDone: () => void; onCancel: () => void }): JSX.Element {
   const [assetsDirPath, setAssetsDirPath] = React.useState<string>('');
   const [gameExecutablePath, setGameExecutablePath] = React.useState<string>('');
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
     let isCancelled = false;
     setErrorMessage(null);
 
@@ -69,7 +84,7 @@ function SettingsDialog(): JSX.Element {
     return () => {
       isCancelled = true;
     };
-  }, [isOpen]);
+  }, []);
 
   const browseAssets = async (): Promise<void> => {
     setErrorMessage(null);
@@ -107,55 +122,64 @@ function SettingsDialog(): JSX.Element {
       return;
     }
 
-    close();
+    props.onDone();
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={close} title="Settings" canOutsideClickClose={true}>
-      <div style={{ padding: 16, width: 620 }}>
-        {errorMessage !== null ? (
-          <Callout intent="danger" style={{ marginBottom: 12 }}>
-            {errorMessage}
-          </Callout>
-        ) : null}
+    <div style={{ padding: 16, width: 620 }}>
+      {errorMessage !== null ? (
+        <Callout intent="danger" style={{ marginBottom: 12 }}>
+          {errorMessage}
+        </Callout>
+      ) : null}
 
-        <FormGroup
-          label="Assets directory"
-          helperText={assetsDirPath.trim().length === 0 ? 'Path not set' : undefined}
-        >
-          <div style={{ display: 'flex', gap: 8 }}>
-            <InputGroup
-              value={assetsDirPath}
-              onChange={(event) => setAssetsDirPath(event.currentTarget.value)}
-              placeholder="Select an assets directory"
-              fill={true}
-            />
-            <Button onClick={browseAssets}>Browse…</Button>
-          </div>
-        </FormGroup>
-
-        <FormGroup
-          label="Game executable"
-          helperText={gameExecutablePath.trim().length === 0 ? 'Path not set' : undefined}
-        >
-          <div style={{ display: 'flex', gap: 8 }}>
-            <InputGroup
-              value={gameExecutablePath}
-              onChange={(event) => setGameExecutablePath(event.currentTarget.value)}
-              placeholder="Select the game executable"
-              fill={true}
-            />
-            <Button onClick={browseGameExecutable}>Browse…</Button>
-          </div>
-        </FormGroup>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-          <Button onClick={close}>Cancel</Button>
-          <Button intent="primary" onClick={save}>
-            Save
-          </Button>
+      <FormGroup
+        label="Assets directory"
+        helperText={assetsDirPath.trim().length === 0 ? 'Path not set' : undefined}
+      >
+        <div style={{ display: 'flex', gap: 8 }}>
+          <InputGroup
+            value={assetsDirPath}
+            onChange={(event) => setAssetsDirPath(event.currentTarget.value)}
+            placeholder="Select an assets directory"
+            fill={true}
+          />
+          <Button onClick={browseAssets}>Browse…</Button>
         </div>
+      </FormGroup>
+
+      <FormGroup
+        label="Game executable"
+        helperText={gameExecutablePath.trim().length === 0 ? 'Path not set' : undefined}
+      >
+        <div style={{ display: 'flex', gap: 8 }}>
+          <InputGroup
+            value={gameExecutablePath}
+            onChange={(event) => setGameExecutablePath(event.currentTarget.value)}
+            placeholder="Select the game executable"
+            fill={true}
+          />
+          <Button onClick={browseGameExecutable}>Browse…</Button>
+        </div>
+      </FormGroup>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+        <Button onClick={props.onCancel}>Cancel</Button>
+        <Button intent="primary" onClick={save}>
+          Save
+        </Button>
       </div>
+    </div>
+  );
+}
+
+function SettingsDialog(): JSX.Element {
+  const isOpen = useAppStore((state) => state.isSettingsDialogOpen);
+  const close = useAppStore((state) => state.closeSettingsDialog);
+
+  return (
+    <Dialog isOpen={isOpen} onClose={close} title="Settings" canOutsideClickClose={true}>
+      {isOpen ? <SettingsPanel onDone={close} onCancel={close} /> : null}
     </Dialog>
   );
 }
@@ -174,20 +198,20 @@ function DockPanel(): JSX.Element {
 }
 
 function App(): JSX.Element {
+  const settingsMode = isSettingsMode();
+
+  if (settingsMode) {
+    return (
+      <div style={{ padding: 16, height: '100vh', boxSizing: 'border-box' }}>
+        <H1>Settings</H1>
+        <SettingsPanel onDone={() => window.close()} onCancel={() => window.close()} />
+      </div>
+    );
+  }
+
   const title = useAppStore((state) => state.title);
   const clickCount = useAppStore((state) => state.clickCount);
   const incrementClickCount = useAppStore((state) => state.incrementClickCount);
-  const openSettingsDialog = useAppStore((state) => state.openSettingsDialog);
-
-  React.useEffect(() => {
-    const unsubscribe = window.nomos.events.onOpenSettings(() => {
-      openSettingsDialog();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [openSettingsDialog]);
 
   React.useEffect(() => {
     void useNomosStore.getState().refreshFromMain();

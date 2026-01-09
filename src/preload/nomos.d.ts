@@ -11,7 +11,6 @@ import type {
   SettingsUpdateRequest,
   SettingsUpdateResponse,
   StateGetResponse,
-  Unsubscribe,
   ValidateMapRequest,
   ValidateMapResponse
 } from '../shared/ipc/nomosIpc';
@@ -39,9 +38,6 @@ declare global {
       };
       state: {
         getSnapshot: () => Promise<StateGetResponse>;
-      };
-      events: {
-        onOpenSettings: (listener: () => void) => Unsubscribe;
       };
     };
   }

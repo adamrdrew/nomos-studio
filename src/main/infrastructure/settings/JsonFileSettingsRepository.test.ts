@@ -216,7 +216,9 @@ describe('JsonFileSettingsRepository', () => {
     expect(saveResult.ok).toBe(true);
     expect(state.files.has(tmpPath)).toBe(false);
     expect(state.files.has(backupPath)).toBe(false);
-    expect(state.files.get(filePath)).toBe(JSON.stringify({ assetsDirPath: '/assets', gameExecutablePath: null }, null, 2));
+    expect(state.files.get(filePath)).toBe(
+      JSON.stringify({ version: 1, assetsDirPath: '/assets', gameExecutablePath: null }, null, 2)
+    );
   });
 
   it('cleans up tmp file when rename fails with an unhandled code', async () => {
@@ -285,7 +287,9 @@ describe('JsonFileSettingsRepository', () => {
     expect(saveResult.ok).toBe(true);
     expect(state.files.has(tmpPath)).toBe(false);
     expect(state.files.has(backupPath1)).toBe(false);
-    expect(state.files.get(filePath)).toBe(JSON.stringify({ assetsDirPath: '/assets', gameExecutablePath: null }, null, 2));
+    expect(state.files.get(filePath)).toBe(
+      JSON.stringify({ version: 1, assetsDirPath: '/assets', gameExecutablePath: null }, null, 2)
+    );
   });
 
   it('ignores backup cleanup failures and still succeeds', async () => {
@@ -324,7 +328,46 @@ describe('JsonFileSettingsRepository', () => {
     expect(saveResult.ok).toBe(true);
     expect(state.files.has(tmpPath)).toBe(false);
     expect(state.files.has(backupPath)).toBe(true);
-    expect(state.files.get(filePath)).toBe(JSON.stringify({ assetsDirPath: '/assets', gameExecutablePath: null }, null, 2));
+    expect(state.files.get(filePath)).toBe(
+      JSON.stringify({ version: 1, assetsDirPath: '/assets', gameExecutablePath: null }, null, 2)
+    );
+  });
+
+  it('preserves unknown keys when updating settings', async () => {
+    const state: InMemoryFsState = {
+      files: new Map([
+        [
+          filePath,
+          JSON.stringify({
+            version: 1,
+            assetsDirPath: '/old',
+            gameExecutablePath: '/old-engine',
+            extra: 123,
+            future: { enabled: true }
+          })
+        ]
+      ])
+    };
+
+    const fs = createInMemoryFileSystem(state);
+    const repository = new JsonFileSettingsRepository({ fs, userDataDirPath });
+
+    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+
+    expect(saveResult.ok).toBe(true);
+
+    const updatedText = state.files.get(filePath);
+    expect(updatedText).toBeDefined();
+    if (updatedText === undefined) {
+      throw new Error('Expected settings file to exist');
+    }
+
+    const updated = JSON.parse(updatedText) as Record<string, unknown>;
+    expect(updated['version']).toBe(1);
+    expect(updated['assetsDirPath']).toBe('/assets');
+    expect(updated['gameExecutablePath']).toBeNull();
+    expect(updated['extra']).toBe(123);
+    expect(updated['future']).toEqual({ enabled: true });
   });
 
   it('fails when all backup candidates already exist and cleans up tmp', async () => {
