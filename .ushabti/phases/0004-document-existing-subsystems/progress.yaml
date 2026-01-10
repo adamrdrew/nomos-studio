@@ -1,0 +1,132 @@
+phase:
+  id: 0004
+  slug: document-existing-subsystems
+  title: Document Existing Subsystems
+  status: complete
+
+steps:
+  - id: S001
+    title: Inventory subsystems and confirm doc targets
+    implemented: true
+    reviewed: true
+    notes: "Inventoried src/main (application/infrastructure/ipc/windows), src/preload, src/renderer, and src/shared. Confirmed all planned subsystems exist as real modules (settings/assets/maps/store/ipc/windowing/menu/process/renderer UI/shared domain) and the doc target filenames in phase.md remain valid; process subsystem is implemented via ProcessRunner/NodeProcessRunner."
+    touched:
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S002
+    title: Create `docs/` and scaffold one doc per subsystem
+    implemented: true
+    reviewed: true
+    notes: "Created repo-root docs/ directory and scaffolded one markdown doc per subsystem with consistent required headings (overview, architecture, public API/entrypoints, data shapes, boundaries & invariants, extension guidance, testing notes)."
+    touched:
+      - docs/settings-system.md
+      - docs/assets-system.md
+      - docs/maps-system.md
+      - docs/app-store-system.md
+      - docs/ipc-system.md
+      - docs/windowing-system.md
+      - docs/menu-system.md
+      - docs/process-system.md
+      - docs/renderer-ui-system.md
+      - docs/shared-domain-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S003
+    title: Document Settings subsystem
+    implemented: true
+    reviewed: true
+    notes: "Documented current settings architecture (service/repository/codec), on-disk JSON format + unknown-field preservation, preload/IPC surface, Settings window settings-mode routing, and safe extension/testing guidance."
+    touched:
+      - docs/settings-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S004
+    title: Document Assets subsystem
+    implemented: true
+    reviewed: true
+    notes: "Documented asset indexing responsibilities, main/preload/renderer entrypoints, IPC channel + response types, AssetIndex/AssetIndexError shapes, path normalization invariants, and safe extension/testing guidance."
+    touched:
+      - docs/assets-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S005
+    title: Document Maps subsystem
+    implemented: true
+    reviewed: true
+    notes: "Filled maps subsystem doc with architecture, APIs, IPC/preload contract, data shapes, invariants, and extension/testing guidance."
+    touched:
+      - docs/maps-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S006
+    title: Document Store subsystem(s)
+    implemented: true
+    reviewed: true
+    notes: "Documented main-process AppStore, renderer Zustand store, IPC snapshot contract, state shapes, invariants, and safe extension guidance."
+    touched:
+      - docs/app-store-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S007
+    title: Document IPC subsystem
+    implemented: true
+    reviewed: true
+    notes: "Documented shared IPC contract, channel list and payload shapes, main registration, preload exposure, security boundaries, and safe extension/testing guidance."
+    touched:
+      - docs/ipc-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S008
+    title: Document Windowing subsystem
+    implemented: true
+    reviewed: true
+    notes: "Documented main/settings window creation, shared secure webPreferences, lifecycle ownership, settings-mode routing, and testing entrypoints."
+    touched:
+      - docs/windowing-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S009
+    title: Document Menu subsystem
+    implemented: true
+    reviewed: true
+    notes: "Documented menu template factory, platform-specific Preferences/Settings entrypoints, Save enablement via AppStore, wiring in main, and tests."
+    touched:
+      - docs/menu-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S010
+    title: Document Process subsystem
+    implemented: true
+    reviewed: true
+    notes: "Documented ProcessRunner abstraction, NodeProcessRunner implementation, usage in map validation, safety constraints, and tests."
+    touched:
+      - docs/process-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S011
+    title: Document Renderer UI subsystem
+    implemented: true
+    reviewed: true
+    notes: "Documented renderer entrypoints, settings-mode routing, renderer state stores, preload/IPC integration points, boundaries, and extension guidance."
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S012
+    title: Document Shared Domain subsystem
+    implemented: true
+    reviewed: true
+    notes: "Documented shared domain models/results patterns, exported API surface, purity/invariant expectations, and AsyncSignal testing notes."
+    touched:
+      - docs/shared-domain-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml
+
+  - id: S013
+    title: Consistency pass and compliance check
+    implemented: true
+    reviewed: true
+    notes: "Verified each doc contains required sections and aligns with current code/IPC types; removed leftover duplicate headings in maps doc and corrected AppStore doc statement about MapValidationService not mutating store. Change set remains documentation-only."
+    touched:
+      - docs/maps-system.md
+      - docs/app-store-system.md
+      - .ushabti/phases/0004-document-existing-subsystems/progress.yaml

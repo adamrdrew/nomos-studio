@@ -1,0 +1,127 @@
+# Assets System
+
+## Overview
+Nomos Studio maintains an in-memory index of files found under the configured Assets directory. The index is built in the main process and stored in the main-process `AppStore`. The renderer can trigger a refresh via a preload-exposed IPC call.
+
+The assets index currently represents:
+- the configured base directory path
+- a sorted list of relative file paths (POSIX-style separators)
+- basic stats (`fileCount`)
+- the build timestamp
+
+## Architecture
+The assets system is split across the standard boundaries:
+
+- **Shared domain types**
+	- `AssetIndex` and `AssetIndexError` live under `src/shared/domain/`.
+
+- **Application layer (main process, orchestration)**
+	- `AssetIndexService` is the application entrypoint to refresh the index.
+	- It reads `assetsDirPath` from `AppStore.state.settings`.
+	- It writes either `assetIndex` or `assetIndexError` into `AppStore`.
+
+- **Infrastructure layer (side effects)**
+	- `AssetIndexer` performs filesystem traversal via an injected `DirectoryReader` adapter.
+	- `nodeDirectoryReader` implements `DirectoryReader` using Node’s `fs.promises.readdir` with `withFileTypes: true`.
+
+- **IPC / preload surface**
+	- The renderer can call `window.nomos.assets.refreshIndex()`.
+	- The main process handles that via the `nomos:assets:refresh-index` channel, which delegates to `AssetIndexService.refreshIndex()`.
+
+## Public API / entrypoints
+
+### Application API (main)
+- `AssetIndexService`
+	- `refreshIndex(): Promise<Result<AssetIndex, AssetIndexError>>`
+
+### Infrastructure API (main)
+- `AssetIndexer`
+	- `buildIndex(baseDir: string): Promise<Result<AssetIndex, AssetIndexError>>`
+
+### Filesystem seam
+- `DirectoryReader` (interface)
+	- `readDir(dirPath: string): Promise<readonly { name: string; isDirectory: boolean }[]>`
+
+### Preload API (renderer-facing)
+- `window.nomos.assets.refreshIndex(): Promise<RefreshAssetIndexResponse>`
+
+### IPC contract
+Defined in `src/shared/ipc/nomosIpc.ts`:
+- Channel: `nomos:assets:refresh-index`
+- Response type: `RefreshAssetIndexResponse = Result<AssetIndex, AssetIndexError>`
+
+## Data shapes
+
+### In-memory types
+`AssetIndex`:
+```ts
+type AssetIndex = Readonly<{
+	baseDir: string;
+	entries: readonly string[];
+	stats: Readonly<{ fileCount: number }>;
+	builtAtIso: string;
+}>;
+```
+
+`AssetIndexError`:
+```ts
+type AssetIndexError = Readonly<{
+	kind: 'asset-index-error';
+	code: 'asset-index/missing-base-dir' | 'asset-index/read-failed';
+	message: string;
+}>;
+```
+
+### Path conventions
+- `AssetIndex.entries` are **relative** to `AssetIndex.baseDir`.
+- Entries are normalized to **POSIX separators** (`/`) regardless of OS. (Implementation converts from `path.sep` to `path.posix.sep`.)
+
+## Boundaries & invariants
+
+### Security boundary (L03)
+- Directory traversal and indexing run in the **main process**.
+- The renderer must not traverse the filesystem; it can only request refresh through preload/IPC.
+
+### Settings dependency
+- Indexing depends on `EditorSettings.assetsDirPath`.
+- If `assetsDirPath` is `null` or only whitespace:
+	- `AssetIndexService.refreshIndex()` returns `asset-index/missing-base-dir` and stores the error in `AppStore`.
+
+### Traversal behavior
+- `AssetIndexer` performs a recursive directory walk starting at `baseDir`.
+- All non-directory children are recorded as entries.
+- Entries are sorted lexicographically before returning.
+
+### Failure behavior
+- If directory traversal fails for any reason, `AssetIndexer.buildIndex` returns `asset-index/read-failed`.
+
+### Resource usage (L05)
+- The index is stored in memory; there is no on-disk cache at present.
+- The index size grows with the number of files under the assets directory.
+
+## How to extend safely
+
+### Adding richer asset metadata
+If future work needs metadata per entry (size, mtime, type detection):
+1. Extend `AssetIndex` in `src/shared/domain/models.ts` (prefer additive fields).
+2. Update `AssetIndexer` to gather metadata via injected adapters (do not import Node fs directly into application/domain layers).
+3. Keep POSIX normalization consistent so renderer/UI code does not become OS-dependent.
+4. Extend `AssetIndexService.refreshIndex` only as needed; keep it as orchestration around `AppStore`.
+5. Add/extend unit tests covering conditional paths.
+
+### Filtering or ignoring files
+- Introduce filtering rules in `AssetIndexer` (e.g., ignore dotfiles) and test them.
+- Keep rules explicit and deterministic.
+
+### Avoid widening the renderer API
+- Prefer keeping large data processing in main.
+- If the renderer needs subsets or queries, add explicit IPC methods rather than exposing the entire store.
+
+## Testing notes
+Existing unit tests cover the main branches:
+- `src/main/application/assets/AssetIndexService.test.ts`
+- `src/main/infrastructure/assets/AssetIndexer.test.ts`
+- `src/main/infrastructure/assets/nodeDirectoryReader.test.ts`
+
+Test seams:
+- `AssetIndexer` depends on `DirectoryReader` and `nowIso`, allowing deterministic tests.

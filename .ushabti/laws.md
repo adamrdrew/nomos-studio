@@ -82,3 +82,15 @@ These laws describe the project’s non-negotiable invariants. Every review MUST
   - Behavior changes MUST update any relevant comments and tests.
 - **Scope:** Entire codebase.
 - **Exceptions:** None.
+
+### L09 — Subsystem Documentation Is Required and Kept Current
+- **Rule:** Every subsystem MUST have clear, developer-level documentation that describes its design/architecture, public API surface area, expected data shapes, and key invariants/constraints. Documentation MUST live under `docs/` with one document per subsystem, and MUST be consulted and updated as subsystems change.
+- **Rationale:** Extensibility and long-term quality depend on shared, accurate system knowledge.
+- **Enforcement:**
+  - Any change that introduces a new subsystem MUST add a corresponding `docs/<subsystem>.md` document.
+  - Any change that modifies a subsystem’s behavior, API surface, or data shapes MUST update its corresponding doc in the same change.
+  - Planner agents MUST read relevant subsystem docs when planning work that uses or changes those subsystems, and MUST base planning decisions on those docs.
+  - Developer agents MUST read and consult relevant subsystem docs when implementing or extending those subsystems, and MUST close the loop by updating docs to match the implementation.
+  - Overseer agents MUST verify that subsystem docs accurately match the implementation and are updated when implementations change.
+- **Scope:** Entire codebase; all subsystems (e.g., settings, assets, maps, IPC, windows, store).
+- **Exceptions:** None.
