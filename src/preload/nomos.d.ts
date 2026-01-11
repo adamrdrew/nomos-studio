@@ -1,6 +1,8 @@
 export {};
 
 import type {
+  OpenAssetRequest,
+  OpenAssetResponse,
   OpenMapDialogResponse,
   OpenMapResponse,
   PickDirectoryResponse,
@@ -30,6 +32,7 @@ declare global {
       };
       assets: {
         refreshIndex: () => Promise<RefreshAssetIndexResponse>;
+        open: (request: OpenAssetRequest) => Promise<OpenAssetResponse>;
       };
       map: {
         validate: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;

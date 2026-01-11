@@ -4,7 +4,7 @@
 The renderer UI subsystem contains the React UI that runs in Electron renderer processes.
 
 Current responsibilities:
-- Render the main “editor shell” UI (currently a bootstrap shell).
+- Render the main “editor shell” UI (DockView layout) including the Map Editor surface and Inspector panels.
 - Render Settings UI in two contexts:
 	- As a modal dialog inside the main window.
 	- As a dedicated Settings window when launched in “settings mode”.
@@ -19,24 +19,36 @@ Current responsibilities:
 - `src/renderer/renderer.tsx`
 	- React entrypoint.
 	- Implements settings-mode routing via URL query.
-	- Contains the Settings UI (`SettingsPanel`) and the bootstrap shell UI.
+	- Contains the Settings UI (`SettingsPanel`) and renders the editor shell in normal mode.
+
+- `src/renderer/ui/editor/EditorShell.tsx`
+	- DockView-based editor shell.
+	- Creates the main DockView panels:
+		- Map Editor (center)
+		- Inspector (right)
+	- Refreshes the renderer snapshot on mount.
 
 ### State management
-There are two stores in the renderer:
+Renderer state is intentionally small:
 
 - `src/renderer/store/nomosStore.ts` (`useNomosStore`)
 	- Zustand store that caches a snapshot of main state.
 	- Populated by calling `refreshFromMain()` which invokes `window.nomos.state.getSnapshot()`.
 
-- Local UI state store inside `renderer.tsx` (`useAppStore`)
-	- Holds UI-only state such as click count and whether the Settings dialog is open.
-
 ### Preload/IPC integration
 Renderer code calls the typed preload surface `window.nomos.*` for privileged operations:
 - Settings read/write: `window.nomos.settings.get()` and `window.nomos.settings.update(...)`
 - File/directory dialogs: `window.nomos.dialogs.*`
+- Open asset in OS: `window.nomos.assets.open({ relativePath })`
 - Map operations: `window.nomos.map.*`
 - State snapshot: `window.nomos.state.getSnapshot()`
+
+## Editor UI (normal mode)
+
+The editor UI is organized like a traditional creative tool:
+- **Map Editor** panel (center): a React Konva surface (`Stage`/`Layer`) that renders a graph-paper grid and supports pan/zoom.
+- **Tool palette** (left overlay within the Map Editor): Select / Zoom / Pan tool modes. Pan and zoom interactions are gated by the selected tool.
+- **Inspector** panel (right): contains collapsible sections, currently Asset Browser and Properties.
 
 ## Public API / entrypoints
 

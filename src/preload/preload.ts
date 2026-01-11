@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import {
   NOMOS_IPC_CHANNELS,
+  type OpenAssetRequest,
+  type OpenAssetResponse,
   type OpenMapDialogResponse,
   type OpenMapResponse,
   type PickDirectoryResponse,
@@ -31,7 +33,9 @@ const exposedNomosApi = {
   },
   assets: {
     refreshIndex: async (): Promise<RefreshAssetIndexResponse> =>
-      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsRefreshIndex)
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsRefreshIndex),
+    open: async (request: OpenAssetRequest): Promise<OpenAssetResponse> =>
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsOpen, request)
   },
   map: {
     validate: async (request: ValidateMapRequest): Promise<ValidateMapResponse> =>

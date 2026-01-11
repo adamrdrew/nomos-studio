@@ -39,6 +39,7 @@ The renderer must only use the preload API:
 - `window.nomos.settings.get()` / `window.nomos.settings.update(updates)`
 - `window.nomos.dialogs.pickDirectory()` / `pickFile()` / `openMap()`
 - `window.nomos.assets.refreshIndex()`
+- `window.nomos.assets.open({ relativePath })`
 - `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()`
 - `window.nomos.state.getSnapshot()`
 
@@ -50,6 +51,7 @@ Channels (canonical):
 - `nomos:dialogs:pick-file`
 - `nomos:dialogs:open-map`
 - `nomos:assets:refresh-index`
+- `nomos:assets:open`
 - `nomos:map:validate`
 - `nomos:map:open`
 - `nomos:map:save`
@@ -79,6 +81,8 @@ type Result<TValue, TError> =
 
 ### Assets
 - `RefreshAssetIndexResponse = Result<AssetIndex, AssetIndexError>`
+- `OpenAssetRequest = Readonly<{ relativePath: string }>`
+- `OpenAssetResponse = Result<null, OpenAssetError>`
 
 ### Maps
 - `ValidateMapRequest = Readonly<{ mapPath: string }>`

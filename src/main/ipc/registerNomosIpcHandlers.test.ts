@@ -25,6 +25,14 @@ describe('registerNomosIpcHandlers', () => {
           ok: false,
           error: { kind: 'asset-index-error', code: 'asset-index/read-failed', message: 'nope' }
         }),
+        openAsset: async () => ({
+          ok: false,
+          error: {
+            kind: 'open-asset-error',
+            code: 'open-asset/open-failed',
+            message: 'nope'
+          }
+        }),
         validateMap: async () => ({
           ok: false,
           error: { kind: 'map-validation-error', code: 'map-validation/runner-failed', message: 'nope' }
@@ -45,6 +53,7 @@ describe('registerNomosIpcHandlers', () => {
       channels.dialogsPickFile,
       channels.dialogsOpenMap,
       channels.assetsRefreshIndex,
+      channels.assetsOpen,
       channels.mapValidate,
       channels.mapOpen,
       channels.mapSave,

@@ -1,39 +1,12 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Callout, Card, Dialog, FormGroup, H1, InputGroup } from '@blueprintjs/core';
-import { DockviewReact, type DockviewReadyEvent } from 'dockview';
-import { create } from 'zustand';
-import { Layer, Rect, Stage } from 'react-konva';
+import { Button, Callout, FormGroup, H1, InputGroup } from '@blueprintjs/core';
 
-import { useNomosStore } from './store/nomosStore';
+import { EditorShell } from './ui/editor/EditorShell';
 
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
 import 'dockview/dist/styles/dockview.css';
-
-type AppStoreState = {
-  title: string;
-  incrementClickCount: () => void;
-  clickCount: number;
-  isSettingsDialogOpen: boolean;
-  openSettingsDialog: () => void;
-  closeSettingsDialog: () => void;
-};
-
-const useAppStore = create<AppStoreState>((set) => ({
-  title: 'Nomos Studio',
-  clickCount: 0,
-  incrementClickCount: () => {
-    set((currentState) => ({ clickCount: currentState.clickCount + 1 }));
-  },
-  isSettingsDialogOpen: false,
-  openSettingsDialog: () => {
-    set({ isSettingsDialogOpen: true });
-  },
-  closeSettingsDialog: () => {
-    set({ isSettingsDialogOpen: false });
-  }
-}));
 
 function isSettingsMode(): boolean {
   try {
@@ -173,30 +146,6 @@ function SettingsPanel(props: { onDone: () => void; onCancel: () => void }): JSX
   );
 }
 
-function SettingsDialog(): JSX.Element {
-  const isOpen = useAppStore((state) => state.isSettingsDialogOpen);
-  const close = useAppStore((state) => state.closeSettingsDialog);
-
-  return (
-    <Dialog isOpen={isOpen} onClose={close} title="Settings" canOutsideClickClose={true}>
-      {isOpen ? <SettingsPanel onDone={close} onCancel={close} /> : null}
-    </Dialog>
-  );
-}
-
-function DockPanel(): JSX.Element {
-  return (
-    <div style={{ padding: 12 }}>
-      <p>DockView panel (bootstrap only)</p>
-      <Stage width={260} height={140}>
-        <Layer>
-          <Rect x={20} y={20} width={120} height={80} fill="#d9822b" cornerRadius={6} />
-        </Layer>
-      </Stage>
-    </div>
-  );
-}
-
 function App(): JSX.Element {
   const settingsMode = isSettingsMode();
 
@@ -209,39 +158,7 @@ function App(): JSX.Element {
     );
   }
 
-  const title = useAppStore((state) => state.title);
-  const clickCount = useAppStore((state) => state.clickCount);
-  const incrementClickCount = useAppStore((state) => state.incrementClickCount);
-
-  React.useEffect(() => {
-    void useNomosStore.getState().refreshFromMain();
-  }, []);
-
-  const onDockReady = (event: DockviewReadyEvent): void => {
-    event.api.addPanel({
-      id: 'bootstrap-panel',
-      title: 'Bootstrap Panel',
-      component: 'dockPanel'
-    });
-  };
-
-  return (
-    <div style={{ padding: 16, height: '100vh', boxSizing: 'border-box' }}>
-      <H1>{title}</H1>
-      <SettingsDialog />
-      <Card style={{ marginBottom: 12 }}>
-        <p>Bootstrap phase: window + UI shell only.</p>
-        <Button onClick={incrementClickCount}>Clicks: {clickCount}</Button>
-      </Card>
-
-      <div style={{ height: 'calc(100% - 140px)' }}>
-        <DockviewReact
-          onReady={onDockReady}
-          components={{ dockPanel: DockPanel }}
-        />
-      </div>
-    </div>
-  );
+  return <EditorShell />;
 }
 
 const rootElement = document.getElementById('root');

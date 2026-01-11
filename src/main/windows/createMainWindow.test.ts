@@ -16,7 +16,10 @@ jest.mock('electron', () => {
         onceHandlers.set(eventName, handler);
       }),
       show: jest.fn(),
-      loadURL: jest.fn(async (_url: string) => undefined)
+      loadURL: jest.fn(async (url: string) => {
+        void url;
+        return undefined;
+      })
     };
 
     lastInstance = instance;

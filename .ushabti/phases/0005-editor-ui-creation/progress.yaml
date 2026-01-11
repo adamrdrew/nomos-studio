@@ -1,0 +1,131 @@
+phase:
+  id: 0005
+  slug: editor-ui-creation
+  title: Begin Editor UI Creation
+  status: complete
+
+steps:
+  - id: S001
+    title: Confirm UI structure and assumptions
+    implemented: true
+    reviewed: true
+    notes: "Confirmed DockView layout (Map Editor center, Inspector right) and that the tool palette will be a left-anchored overlay within the Map Editor panel; Select may be no-op while Pan/Zoom must function."
+    touched:
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S002
+    title: Replace bootstrap DockView with editor layout shell
+    implemented: true
+    reviewed: true
+    notes: "Replaced bootstrap UI with a DockView editor shell: Map Editor panel and right-side Inspector panel; preserved Settings Mode routing."
+    touched:
+      - src/renderer/renderer.tsx
+      - src/renderer/ui/editor/EditorShell.tsx
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S003
+    title: Implement Map Editor canvas with grid + view transform
+    implemented: true
+    reviewed: true
+    notes: "Implemented a React Konva Map Editor canvas that renders a graph-paper grid and supports wheel zoom + drag pan via a view transform state."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S004
+    title: Add tool palette and wire interaction modes
+    implemented: true
+    reviewed: true
+    notes: "Added left overlay tool palette (Select/Zoom/Pan) and gated pan-drag + wheel-zoom behavior based on the selected tool."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S005
+    title: Implement Inspector panel with collapsible sections
+    implemented: true
+    reviewed: true
+    notes: "Implemented right-side Inspector panel with collapsible Asset Browser and Properties sections (Properties is a placeholder)."
+    touched:
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S006
+    title: Build Asset Browser tree view from asset index
+    implemented: true
+    reviewed: true
+    notes: "Implemented a VS Code-like hierarchical Asset Browser derived from AssetIndex.entries; shows configuration prompt when assetsDirPath is unset and triggers an index refresh when needed."
+    touched:
+      - src/renderer/ui/editor/inspector/AssetBrowser.tsx
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S007
+    title: Add IPC + preload operation to open an asset in the OS
+    implemented: true
+    reviewed: true
+    notes: "Added typed IPC/preload operation to open an asset via OS default handler; implemented OpenAssetService with safety checks (assets configured + path within base dir) and injected shell/path adapters."
+    touched:
+      - src/shared/domain/results.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/application/assets/OpenAssetService.ts
+      - src/main/infrastructure/path/nodePathService.ts
+      - src/main/infrastructure/shell/nodeShellOpener.ts
+      - src/main/main.ts
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S008
+    title: Wire Asset Browser double-click to open asset
+    implemented: true
+    reviewed: true
+    notes: "Connected file-node double-click in Asset Browser to window.nomos.assets.open, delegating to the main process to open via OS default handler."
+    touched:
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S009
+    title: Unit tests for new public APIs
+    implemented: true
+    reviewed: true
+    notes: "Added unit tests covering all conditional paths in OpenAssetService.openAsset and updated IPC handler registration tests to include the new assetsOpen channel."
+    touched:
+      - src/main/application/assets/OpenAssetService.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S010
+    title: Update subsystem documentation
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer UI, IPC, and assets subsystem documentation to include the editor layout, Asset Browser behavior, and the new assets.open IPC/preload operation."
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/ipc-system.md
+      - docs/assets-system.md
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S011
+    title: Verification checklist + quality gates
+    implemented: true
+    reviewed: true
+    notes: "Checklist is in review.md. Confirmed by user output: `npm run lint` passes (with @typescript-eslint TS version support warning only), `npm run typecheck` passes, and `npm run test --coverage` passes."
+    touched:
+      - .ushabti/phases/0005-editor-ui-creation/review.md
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml
+
+  - id: S012
+    title: Fix OpenAssetService base-dir validation edge cases
+    implemented: true
+    reviewed: true
+    notes: "Trim assetsDirPath before resolve/relative and tighten outside-base-dir detection to only reject '..', '../*', or '..\\*' traversal. Added tests for allowing '..foo' and trimming base dir whitespace."
+    touched:
+      - src/main/application/assets/OpenAssetService.ts
+      - src/main/application/assets/OpenAssetService.test.ts
+      - .ushabti/phases/0005-editor-ui-creation/progress.yaml

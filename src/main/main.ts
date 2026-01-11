@@ -4,6 +4,7 @@ import { createSettingsWindow } from './windows/createSettingsWindow';
 
 import { SettingsService } from './application/settings/SettingsService';
 import { AssetIndexService } from './application/assets/AssetIndexService';
+import { OpenAssetService } from './application/assets/OpenAssetService';
 import { AppStore } from './application/store/AppStore';
 import { JsonFileSettingsRepository } from './infrastructure/settings/JsonFileSettingsRepository';
 import { nodeFileSystem } from './infrastructure/settings/nodeFileSystem';
@@ -11,7 +12,9 @@ import { registerNomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
 import { NOMOS_IPC_CHANNELS } from '../shared/ipc/nomosIpc';
 import { AssetIndexer } from './infrastructure/assets/AssetIndexer';
 import { nodeDirectoryReader } from './infrastructure/assets/nodeDirectoryReader';
+import { nodePathService } from './infrastructure/path/nodePathService';
 import { nodeProcessRunner } from './infrastructure/process/NodeProcessRunner';
+import { nodeShellOpener } from './infrastructure/shell/nodeShellOpener';
 import { MapValidationService } from './application/maps/MapValidationService';
 import { OpenMapService } from './application/maps/OpenMapService';
 import type { UserNotifier } from './application/ui/UserNotifier';
@@ -106,6 +109,7 @@ app.on('ready', () => {
     nowIso: () => new Date().toISOString()
   });
   const assetIndexService = new AssetIndexService(store, assetIndexer);
+  const openAssetService = new OpenAssetService(store, nodePathService, nodeShellOpener);
 
   const mapValidationService = new MapValidationService(store, nodeProcessRunner, () => new Date().toISOString());
 
@@ -203,6 +207,7 @@ app.on('ready', () => {
     },
 
     refreshAssetIndex: async () => assetIndexService.refreshIndex(),
+    openAsset: async (request) => openAssetService.openAsset(request.relativePath),
 
     validateMap: async (request) => {
       const result = await mapValidationService.validateMap(request.mapPath);

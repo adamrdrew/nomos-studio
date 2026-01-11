@@ -2,6 +2,8 @@ import type { IpcMainInvokeEvent } from 'electron';
 
 import type { NOMOS_IPC_CHANNELS } from '../../shared/ipc/nomosIpc';
 import type {
+  OpenAssetRequest,
+  OpenAssetResponse,
   OpenMapDialogResponse,
   OpenMapRequest,
   OpenMapResponse,
@@ -33,6 +35,7 @@ export type NomosIpcHandlers = Readonly<{
   openMapDialog: () => Promise<OpenMapDialogResponse>;
 
   refreshAssetIndex: () => Promise<RefreshAssetIndexResponse>;
+  openAsset: (request: OpenAssetRequest) => Promise<OpenAssetResponse>;
 
   validateMap: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
   openMap: (request: OpenMapRequest) => Promise<OpenMapResponse>;
@@ -56,6 +59,9 @@ export function registerNomosIpcHandlers(
   ipcMain.handle(channels.dialogsOpenMap, async () => handlers.openMapDialog());
 
   ipcMain.handle(channels.assetsRefreshIndex, async () => handlers.refreshAssetIndex());
+  ipcMain.handle(channels.assetsOpen, async (_event, request: unknown) =>
+    handlers.openAsset(request as OpenAssetRequest)
+  );
 
   ipcMain.handle(channels.mapValidate, async (_event, request: unknown) =>
     handlers.validateMap(request as ValidateMapRequest)

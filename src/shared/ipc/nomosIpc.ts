@@ -3,6 +3,7 @@ import type {
   AssetIndexError,
   MapIoError,
   MapValidationError,
+  OpenAssetError,
   Result,
   SettingsError
 } from '../domain/results';
@@ -14,6 +15,7 @@ export const NOMOS_IPC_CHANNELS = {
   dialogsPickFile: 'nomos:dialogs:pick-file',
   dialogsOpenMap: 'nomos:dialogs:open-map',
   assetsRefreshIndex: 'nomos:assets:refresh-index',
+  assetsOpen: 'nomos:assets:open',
   mapValidate: 'nomos:map:validate',
   mapOpen: 'nomos:map:open',
   mapSave: 'nomos:map:save',
@@ -35,6 +37,9 @@ export type PickFileResponse = Result<string | null, { message: string }>;
 export type OpenMapDialogResponse = Result<string | null, { message: string }>;
 
 export type RefreshAssetIndexResponse = Result<AssetIndex, AssetIndexError>;
+
+export type OpenAssetRequest = Readonly<{ relativePath: string }>;
+export type OpenAssetResponse = Result<null, OpenAssetError>;
 
 export type ValidateMapRequest = Readonly<{ mapPath: string }>;
 export type ValidateMapResponse = Result<null, MapValidationError>;

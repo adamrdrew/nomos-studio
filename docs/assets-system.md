@@ -27,12 +27,17 @@ The assets system is split across the standard boundaries:
 - **IPC / preload surface**
 	- The renderer can call `window.nomos.assets.refreshIndex()`.
 	- The main process handles that via the `nomos:assets:refresh-index` channel, which delegates to `AssetIndexService.refreshIndex()`.
+	- The renderer can call `window.nomos.assets.open({ relativePath })` to open an asset using the OS default handler.
+	- The main process handles that via the `nomos:assets:open` channel, which delegates to `OpenAssetService.openAsset(relativePath)`.
 
 ## Public API / entrypoints
 
 ### Application API (main)
 - `AssetIndexService`
 	- `refreshIndex(): Promise<Result<AssetIndex, AssetIndexError>>`
+
+- `OpenAssetService`
+	- `openAsset(relativePath: string): Promise<Result<null, OpenAssetError>>`
 
 ### Infrastructure API (main)
 - `AssetIndexer`
@@ -44,11 +49,17 @@ The assets system is split across the standard boundaries:
 
 ### Preload API (renderer-facing)
 - `window.nomos.assets.refreshIndex(): Promise<RefreshAssetIndexResponse>`
+- `window.nomos.assets.open(request: { relativePath: string }): Promise<OpenAssetResponse>`
 
 ### IPC contract
 Defined in `src/shared/ipc/nomosIpc.ts`:
 - Channel: `nomos:assets:refresh-index`
 - Response type: `RefreshAssetIndexResponse = Result<AssetIndex, AssetIndexError>`
+
+Open in OS:
+- Channel: `nomos:assets:open`
+- Request type: `OpenAssetRequest = Readonly<{ relativePath: string }>`
+- Response type: `OpenAssetResponse = Result<null, OpenAssetError>`
 
 ## Data shapes
 
@@ -81,6 +92,13 @@ type AssetIndexError = Readonly<{
 ### Security boundary (L03)
 - Directory traversal and indexing run in the **main process**.
 - The renderer must not traverse the filesystem; it can only request refresh through preload/IPC.
+
+### System safety for open-asset (L06)
+- The renderer sends a *relative* asset path.
+- The main process validates:
+	- assets are configured (`settings.assetsDirPath`)
+	- the resolved absolute path is within the assets base directory
+- Only then does the main process invoke the OS handler to open the file.
 
 ### Settings dependency
 - Indexing depends on `EditorSettings.assetsDirPath`.

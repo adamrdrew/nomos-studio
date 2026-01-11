@@ -43,3 +43,13 @@ export type MapIoError = Readonly<{
     | 'map-io/write-failed';
   message: string;
 }>;
+
+export type OpenAssetError = Readonly<{
+  kind: 'open-asset-error';
+  code:
+    | 'open-asset/missing-settings'
+    | 'open-asset/invalid-relative-path'
+    | 'open-asset/outside-base-dir'
+    | 'open-asset/open-failed';
+  message: string;
+}>;

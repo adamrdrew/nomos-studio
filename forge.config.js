@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 const { MakerDeb } = require('@electron-forge/maker-deb');
 const { MakerRpm } = require('@electron-forge/maker-rpm');
 const { MakerSquirrel } = require('@electron-forge/maker-squirrel');
