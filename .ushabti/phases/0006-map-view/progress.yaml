@@ -1,0 +1,90 @@
+phase:
+  id: 0006
+  slug: map-view
+  title: Map View
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm map JSON fields and texture/asset conventions
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Add a narrow main→renderer “state changed” signal
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Add map render mode state + View menu items
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Create a typed renderer map view model + decoder
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Render wireframe geometry (sectors/walls/doors)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Render entity/emitter markers (and light radius)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Implement hit-testing + selection state
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Populate the Properties panel from selection
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Implement textured rendering (floors + walls) with safe asset reads
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Ensure validation failure messaging matches requirements
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Update subsystem docs (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S012
+    title: Tests and quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
