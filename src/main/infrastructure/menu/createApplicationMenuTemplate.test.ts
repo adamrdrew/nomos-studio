@@ -7,11 +7,15 @@ describe('createApplicationMenuTemplate', () => {
       platform: 'darwin',
       canSave: false,
       mapRenderMode: 'wireframe',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
       onRefreshAssetsIndex: () => {},
-      onSetMapRenderMode: () => {}
+      onSetMapRenderMode: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
     });
 
     expect(template[0]?.label).toBe('Nomos Studio');
@@ -36,11 +40,15 @@ describe('createApplicationMenuTemplate', () => {
       platform: 'win32',
       canSave: false,
       mapRenderMode: 'wireframe',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
       onRefreshAssetsIndex: () => {},
-      onSetMapRenderMode: () => {}
+      onSetMapRenderMode: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
     });
 
     expect(template.some((item) => item.label === 'Edit')).toBe(true);
@@ -64,11 +72,15 @@ describe('createApplicationMenuTemplate', () => {
       platform: 'darwin',
       canSave: true,
       mapRenderMode: 'wireframe',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
       onRefreshAssetsIndex: () => {},
-      onSetMapRenderMode: () => {}
+      onSetMapRenderMode: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
     });
 
     const fileMenu = template.find((item) => item.label === 'File');
@@ -89,11 +101,15 @@ describe('createApplicationMenuTemplate', () => {
       platform: 'darwin',
       canSave: false,
       mapRenderMode: 'wireframe',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
       onRefreshAssetsIndex: () => {},
-      onSetMapRenderMode: () => {}
+      onSetMapRenderMode: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
     });
 
     const fileMenu = template.find((item) => item.label === 'File');
@@ -114,11 +130,15 @@ describe('createApplicationMenuTemplate', () => {
       platform: 'darwin',
       canSave: false,
       mapRenderMode: 'textured',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
       onRefreshAssetsIndex: () => {},
-      onSetMapRenderMode: () => {}
+      onSetMapRenderMode: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
     });
 
     const viewMenu = template.find((item) => item.label === 'View');
@@ -140,5 +160,108 @@ describe('createApplicationMenuTemplate', () => {
 
     expect(wireframeItem?.checked).toBe(false);
     expect(texturedItem?.checked).toBe(true);
+  });
+
+  it('includes View grid items and Toggle Grid checked reflects state', () => {
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      mapRenderMode: 'wireframe',
+      mapGridSettings: { isGridVisible: false, gridOpacity: 0.35 },
+      onOpenSettings: () => {},
+      onOpenMap: () => {},
+      onSave: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const viewMenu = template.find((item) => item.label === 'View');
+    if (viewMenu === undefined || viewMenu.submenu === undefined || !Array.isArray(viewMenu.submenu)) {
+      throw new Error('Expected View menu submenu');
+    }
+
+    const toggleGridItem = viewMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Toggle Grid'
+    ) as { checked?: boolean; type?: string } | undefined;
+
+    const increaseOpacityItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Increase Grid Opacity'
+    ) as { label?: string } | undefined;
+
+    const decreaseOpacityItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Decrease Grid Opacity'
+    ) as { label?: string } | undefined;
+
+    expect(toggleGridItem?.type).toBe('checkbox');
+    expect(toggleGridItem?.checked).toBe(false);
+    expect(increaseOpacityItem).toBeDefined();
+    expect(decreaseOpacityItem).toBeDefined();
+  });
+
+  it('wires View grid menu item clicks to the provided callbacks', () => {
+    const onToggleMapGrid = jest.fn();
+    const onIncreaseMapGridOpacity = jest.fn();
+    const onDecreaseMapGridOpacity = jest.fn();
+
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      mapRenderMode: 'wireframe',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 },
+      onOpenSettings: () => {},
+      onOpenMap: () => {},
+      onSave: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onToggleMapGrid,
+      onIncreaseMapGridOpacity,
+      onDecreaseMapGridOpacity
+    });
+
+    const viewMenu = template.find((item) => item.label === 'View');
+    if (viewMenu === undefined || viewMenu.submenu === undefined || !Array.isArray(viewMenu.submenu)) {
+      throw new Error('Expected View menu submenu');
+    }
+
+    const toggleGridItem = viewMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Toggle Grid'
+    ) as { click?: () => void } | undefined;
+
+    const increaseOpacityItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Increase Grid Opacity'
+    ) as { click?: () => void } | undefined;
+
+    const decreaseOpacityItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Decrease Grid Opacity'
+    ) as { click?: () => void } | undefined;
+
+    toggleGridItem?.click?.();
+    increaseOpacityItem?.click?.();
+    decreaseOpacityItem?.click?.();
+
+    expect(onToggleMapGrid).toHaveBeenCalledTimes(1);
+    expect(onIncreaseMapGridOpacity).toHaveBeenCalledTimes(1);
+    expect(onDecreaseMapGridOpacity).toHaveBeenCalledTimes(1);
   });
 });

@@ -36,21 +36,29 @@ const setApplicationMenu = (
     onSave: () => Promise<void>;
     onRefreshAssetsIndex: () => Promise<void>;
     onSetMapRenderMode: (mode: MapRenderMode) => void;
+    onToggleMapGrid: () => void;
+    onIncreaseMapGridOpacity: () => void;
+    onDecreaseMapGridOpacity: () => void;
   }>
 ): void => {
   const canSave = options.store.getState().mapDocument !== null;
   const mapRenderMode = options.store.getState().mapRenderMode;
+  const mapGridSettings = options.store.getState().mapGridSettings;
 
   const template = createApplicationMenuTemplate({
     appName: app.name,
     platform: process.platform,
     canSave,
     mapRenderMode,
+    mapGridSettings,
     onOpenSettings: options.onOpenSettings,
     onOpenMap: () => void options.onOpenMap(),
     onSave: () => void options.onSave(),
     onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex(),
-    onSetMapRenderMode: (mode) => options.onSetMapRenderMode(mode)
+    onSetMapRenderMode: (mode) => options.onSetMapRenderMode(mode),
+    onToggleMapGrid: () => options.onToggleMapGrid(),
+    onIncreaseMapGridOpacity: () => options.onIncreaseMapGridOpacity(),
+    onDecreaseMapGridOpacity: () => options.onDecreaseMapGridOpacity()
   });
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -104,6 +112,9 @@ const createSettingsWindowOnceReady = async (): Promise<void> => {
 
 app.on('ready', () => {
   const store = new AppStore();
+
+  const GRID_OPACITY_STEP = 0.1;
+  const roundToTenth = (value: number): number => Math.round(value * 10) / 10;
 
   const settingsRepository = new JsonFileSettingsRepository({
     fs: nodeFileSystem,
@@ -235,7 +246,8 @@ app.on('ready', () => {
           settings: store.getState().settings,
           assetIndex: store.getState().assetIndex,
           mapDocument: store.getState().mapDocument,
-          mapRenderMode: store.getState().mapRenderMode
+          mapRenderMode: store.getState().mapRenderMode,
+          mapGridSettings: store.getState().mapGridSettings
         }
       };
     }
@@ -310,7 +322,12 @@ app.on('ready', () => {
     onOpenMap: openMap,
     onSave: save,
     onRefreshAssetsIndex: refreshAssetsIndex,
-    onSetMapRenderMode: (mode) => store.setMapRenderMode(mode)
+    onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
+    onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
+    onIncreaseMapGridOpacity: () =>
+      store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity + GRID_OPACITY_STEP)),
+    onDecreaseMapGridOpacity: () =>
+      store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity - GRID_OPACITY_STEP))
   });
 
   store.subscribe(() => {
@@ -320,7 +337,12 @@ app.on('ready', () => {
       onOpenMap: openMap,
       onSave: save,
       onRefreshAssetsIndex: refreshAssetsIndex,
-      onSetMapRenderMode: (mode) => store.setMapRenderMode(mode)
+      onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
+      onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
+      onIncreaseMapGridOpacity: () =>
+        store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity + GRID_OPACITY_STEP)),
+      onDecreaseMapGridOpacity: () =>
+        store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity - GRID_OPACITY_STEP))
     });
 
     if (mainWindow !== null) {

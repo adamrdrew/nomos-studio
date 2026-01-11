@@ -53,7 +53,8 @@ describe('registerNomosIpcHandlers', () => {
             settings: { assetsDirPath: null, gameExecutablePath: null },
             assetIndex: null,
             mapDocument: null,
-            mapRenderMode: 'wireframe'
+            mapRenderMode: 'wireframe',
+            mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 }
           }
         })
       }

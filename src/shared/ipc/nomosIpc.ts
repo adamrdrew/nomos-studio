@@ -1,4 +1,4 @@
-import type { AssetIndex, EditorSettings, MapDocument, MapRenderMode } from '../domain/models';
+import type { AssetIndex, EditorSettings, MapDocument, MapGridSettings, MapRenderMode } from '../domain/models';
 import type {
   AssetIndexError,
   MapIoError,
@@ -30,6 +30,7 @@ export type AppStateSnapshot = Readonly<{
   assetIndex: AssetIndex | null;
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
+  mapGridSettings: MapGridSettings;
 }>;
 
 export type SettingsGetResponse = Result<EditorSettings, SettingsError>;

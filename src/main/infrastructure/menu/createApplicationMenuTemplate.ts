@@ -1,17 +1,21 @@
 import type { MenuItemConstructorOptions } from 'electron';
 
-import type { MapRenderMode } from '../../../shared/domain/models';
+import type { MapGridSettings, MapRenderMode } from '../../../shared/domain/models';
 
 export type CreateApplicationMenuTemplateOptions = Readonly<{
   appName: string;
   platform: NodeJS.Platform;
   canSave: boolean;
   mapRenderMode: MapRenderMode;
+  mapGridSettings: MapGridSettings;
   onOpenSettings: () => void;
   onOpenMap: () => void;
   onSave: () => void;
   onRefreshAssetsIndex: () => void;
   onSetMapRenderMode: (mode: MapRenderMode) => void;
+  onToggleMapGrid: () => void;
+  onIncreaseMapGridOpacity: () => void;
+  onDecreaseMapGridOpacity: () => void;
 }>;
 
 export function createApplicationMenuTemplate(
@@ -60,6 +64,21 @@ export function createApplicationMenuTemplate(
         type: 'radio',
         checked: options.mapRenderMode === 'textured',
         click: () => options.onSetMapRenderMode('textured')
+      },
+      { type: 'separator' },
+      {
+        label: 'Toggle Grid',
+        type: 'checkbox',
+        checked: options.mapGridSettings.isGridVisible,
+        click: () => options.onToggleMapGrid()
+      },
+      {
+        label: 'Increase Grid Opacity',
+        click: () => options.onIncreaseMapGridOpacity()
+      },
+      {
+        label: 'Decrease Grid Opacity',
+        click: () => options.onDecreaseMapGridOpacity()
       }
     ]
   });

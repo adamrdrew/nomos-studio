@@ -4,7 +4,9 @@
 Nomos Studio has two related “stores”:
 
 - **Main-process `AppStore`**: the source of truth for application state that is mutated by main-process services (settings load/update, assets indexing, map open/save/validate).
-- **Renderer `useNomosStore` (Zustand)**: a lightweight, renderer-local cache that pulls a snapshot from main via IPC. It does not currently receive push updates.
+- **Renderer `useNomosStore` (Zustand)**: a lightweight, renderer-local cache that pulls a snapshot from main via IPC and refreshes when main emits a narrow change signal.
+
+The renderer uses a narrow push signal (`nomos:state:changed`) to know when to refresh its snapshot (it still pulls the full snapshot on each refresh).
 
 The renderer uses a narrow push signal (`nomos:state:changed`) to know when to refresh its snapshot.
 
@@ -23,6 +25,8 @@ The store subsystem is intentionally small and synchronous, designed to keep app
 		- `setAssetIndexError(error)`
 		- `setMapDocument(mapDocumentOrNull)`
 		- `setMapRenderMode(mapRenderMode)`
+		- `setMapGridIsVisible(isGridVisible)`
+		- `setMapGridOpacity(gridOpacity)` (clamped)
 
 Main-process services depend on `AppStore` (injected), not on Electron globals:
 - `AssetIndexService` reads settings from `store.getState()` and writes `setAssetIndex` / `setAssetIndexError`.
@@ -62,6 +66,8 @@ The Electron main entrypoint (`src/main/main.ts`) creates one `AppStore` instanc
 	- `setAssetIndexError(error: AssetIndexError): void`
 	- `setMapDocument(mapDocument: MapDocument | null): void`
 	- `setMapRenderMode(mapRenderMode: MapRenderMode): void`
+	- `setMapGridIsVisible(isGridVisible: boolean): void`
+	- `setMapGridOpacity(gridOpacity: number): void`
 
 ### Renderer API
 - `useNomosStore` (Zustand hook)
@@ -84,6 +90,7 @@ type AppState = Readonly<{
 	assetIndexError: AssetIndexError | null;
 	mapDocument: MapDocument | null;
 	mapRenderMode: MapRenderMode;
+	mapGridSettings: MapGridSettings;
 }>;
 ```
 
@@ -95,6 +102,7 @@ type AppStateSnapshot = Readonly<{
 	assetIndex: AssetIndex | null;
 	mapDocument: MapDocument | null;
 	mapRenderMode: MapRenderMode;
+	mapGridSettings: MapGridSettings;
 }>;
 
 type StateGetResponse = Result<AppStateSnapshot, { message: string }>;

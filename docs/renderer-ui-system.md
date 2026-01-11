@@ -78,10 +78,17 @@ The editor UI is organized like a traditional creative tool:
 	- On map open, the view is initialized so the viewport center corresponds to world-space `(0,0)` and the map is framed to be visible immediately.
 		- To achieve this for arbitrary authored coordinates, the renderer may apply a render-only origin offset derived from decoded map bounds; this does not mutate `MapDocument.json`.
 	- The editor grid adapts its spacing to zoom so line density stays readable.
+	- Grid visibility and opacity are controlled by main-process state (`mapGridSettings`) and updated via the View menu.
 	- Object markers (doors/entities/emitters) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
-- **Tool palette** (left overlay within the Map Editor): Select / Zoom / Pan tool modes. Pan and zoom interactions are gated by the selected tool.
+- **Toolbox** (left overlay within the Map Editor): Select / Zoom / Pan tool modes.
+	- Buttons are icon-based with tooltips and do not stretch to fill the vertical space.
+	- The toolbox is a compact, scrollable column so additional tools can be added without odd stretching.
 - **Inspector** panel (right): contains collapsible sections, currently Asset Browser and Properties.
 	- Properties shows the selected map object (read-only) when Select tool chooses something.
+	- On initial app open, Inspector starts at approximately 20% of the window width.
+
+### Non-closable core panels
+- The Map Editor and Inspector DockView panels are treated as “core” panels and are not closeable via the DockView tab UI.
 
 ## Public API / entrypoints
 

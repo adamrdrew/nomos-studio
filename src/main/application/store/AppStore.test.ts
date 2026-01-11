@@ -14,6 +14,7 @@ describe('AppStore', () => {
     expect(state.assetIndexError).toBeNull();
     expect(state.mapDocument).toBeNull();
     expect(state.mapRenderMode).toBe('wireframe');
+    expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.35 });
   });
 
   it('notifies subscribers on state changes and unsubscribe stops notifications', () => {
@@ -113,5 +114,34 @@ describe('AppStore', () => {
 
     store.setMapRenderMode('textured');
     expect(store.getState().mapRenderMode).toBe('textured');
+  });
+
+  it('setMapGridIsVisible stores visibility and preserves opacity', () => {
+    const store = new AppStore();
+
+    store.setMapGridOpacity(0.6);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.6 });
+
+    store.setMapGridIsVisible(false);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.6 });
+  });
+
+  it('setMapGridOpacity clamps opacity and preserves visibility', () => {
+    const store = new AppStore();
+
+    store.setMapGridIsVisible(false);
+    expect(store.getState().mapGridSettings.isGridVisible).toBe(false);
+
+    store.setMapGridOpacity(0.5);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.5 });
+
+    store.setMapGridOpacity(0.01);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.1 });
+
+    store.setMapGridOpacity(10);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.8 });
+
+    store.setMapGridOpacity(Number.NaN);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.1 });
   });
 });

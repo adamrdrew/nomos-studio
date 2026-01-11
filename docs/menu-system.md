@@ -7,7 +7,7 @@ Current responsibilities:
 - Define the top-level menu structure (File + platform-specific Settings/Preferences entrypoint).
 - Bind menu items to main-process callbacks (open map, save, refresh assets index, open settings).
 - Enable/disable Save based on whether a map document is currently loaded.
-- Provide a View menu to switch map render mode.
+- Provide a View menu to switch map render mode and control map grid display.
 
 ## Architecture
 
@@ -37,6 +37,9 @@ Current responsibilities:
 - View menu:
 	- Wireframe
 	- Textured
+	- Toggle Grid
+	- Increase Grid Opacity
+	- Decrease Grid Opacity
 
 - Settings entrypoint:
 	- macOS: App menu → Preferences… (`CommandOrControl+,`)
@@ -51,11 +54,15 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	platform: NodeJS.Platform;
 	canSave: boolean;
 	mapRenderMode: MapRenderMode;
+	mapGridSettings: MapGridSettings;
 	onOpenSettings: () => void;
 	onOpenMap: () => void;
 	onSave: () => void;
 	onRefreshAssetsIndex: () => void;
 	onSetMapRenderMode: (mode: MapRenderMode) => void;
+	onToggleMapGrid: () => void;
+	onIncreaseMapGridOpacity: () => void;
+	onDecreaseMapGridOpacity: () => void;
 }>;
 ```
 
@@ -72,6 +79,10 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 ### Save enablement depends on store state
 - `canSave` is derived from whether `AppStore` currently has a `mapDocument`.
 - The main process re-installs the menu on store changes so Save enablement stays accurate.
+
+### Grid menu items reflect store state
+- The View menu includes a Toggle Grid checkbox whose checked state reflects `mapGridSettings.isGridVisible`.
+- The Increase/Decrease Grid Opacity items adjust `mapGridSettings.gridOpacity` in bounded steps.
 
 ## How to extend safely
 

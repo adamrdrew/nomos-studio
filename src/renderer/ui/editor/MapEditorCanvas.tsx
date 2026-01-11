@@ -304,6 +304,7 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
 
   const mapDocument = useNomosStore((state) => state.mapDocument);
   const mapRenderMode = useNomosStore((state) => state.mapRenderMode);
+  const mapGridSettings = useNomosStore((state) => state.mapGridSettings);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
 
   const mapFilePath = mapDocument?.filePath ?? null;
@@ -675,7 +676,7 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
   const verticalLines: JSX.Element[] = [];
   const horizontalLines: JSX.Element[] = [];
 
-  if (minorGridScreenSpacing >= 6) {
+  if (mapGridSettings.isGridVisible && minorGridScreenSpacing >= 6) {
     const startX = modulo(view.offsetX, minorGridScreenSpacing);
     for (let screenX = startX; screenX <= size.width; screenX += minorGridScreenSpacing) {
       const worldColumn = Math.round((screenX - view.offsetX) / minorGridScreenSpacing);
@@ -966,10 +967,12 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
         <Layer listening={false}>
           <Rect x={0} y={0} width={size.width} height={size.height} fill={backgroundFill} />
         </Layer>
-        <Layer listening={false}>
-          {verticalLines}
-          {horizontalLines}
-        </Layer>
+        {mapGridSettings.isGridVisible ? (
+          <Layer listening={false} opacity={mapGridSettings.gridOpacity}>
+            {verticalLines}
+            {horizontalLines}
+          </Layer>
+        ) : null}
         <Layer
           listening={false}
           x={view.offsetX}

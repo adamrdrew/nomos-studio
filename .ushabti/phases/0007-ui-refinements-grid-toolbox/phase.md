@@ -68,9 +68,14 @@ This Phase exists now because Phase 0005/0006 established the editor shell and m
   - **Increase Grid Opacity**
   - **Decrease Grid Opacity**
 - Grid opacity adjustments respect bounds:
-  - **Assumption (can be changed):** opacity is clamped to $[0.10, 0.80]$ in increments of $0.10$.
+  - Opacity is clamped to $[0.10, 0.80]$ in increments of $0.10$.
   - Repeated “increase” at max does not exceed max.
   - Repeated “decrease” at min does not go below min.
+
+### Phase decisions (S001)
+- Grid opacity updates are allowed even when the grid is hidden.
+- Toolbox layout is a single compact vertical column; if tools overflow, the toolbox scrolls.
+- Toolbox icons (Blueprint): Select=`select`, Pan=`hand`, Zoom=`zoom-in`.
 
 ### Grid rendering behavior
 - When grid is toggled off, the grid is not visible in the Map Editor.

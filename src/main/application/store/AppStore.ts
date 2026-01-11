@@ -1,4 +1,4 @@
-import type { AssetIndex, EditorSettings, MapDocument, MapRenderMode } from '../../../shared/domain/models';
+import type { AssetIndex, EditorSettings, MapDocument, MapGridSettings, MapRenderMode } from '../../../shared/domain/models';
 import type { AssetIndexError } from '../../../shared/domain/results';
 
 export type AppState = Readonly<{
@@ -7,6 +7,7 @@ export type AppState = Readonly<{
   assetIndexError: AssetIndexError | null;
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
+  mapGridSettings: MapGridSettings;
 }>;
 
 export type AppStoreListener = (state: AppState) => void;
@@ -15,13 +16,32 @@ function defaultSettings(): EditorSettings {
   return { assetsDirPath: null, gameExecutablePath: null };
 }
 
+const MIN_GRID_OPACITY = 0.1;
+const MAX_GRID_OPACITY = 0.8;
+
+function clampGridOpacity(opacity: number): number {
+  if (!Number.isFinite(opacity)) {
+    return MIN_GRID_OPACITY;
+  }
+
+  return Math.min(MAX_GRID_OPACITY, Math.max(MIN_GRID_OPACITY, opacity));
+}
+
+function defaultMapGridSettings(): MapGridSettings {
+  return {
+    isGridVisible: true,
+    gridOpacity: 0.35
+  };
+}
+
 export class AppStore {
   private state: AppState = {
     settings: defaultSettings(),
     assetIndex: null,
     assetIndexError: null,
     mapDocument: null,
-    mapRenderMode: 'wireframe'
+    mapRenderMode: 'wireframe',
+    mapGridSettings: defaultMapGridSettings()
   };
 
   private readonly listeners = new Set<AppStoreListener>();
@@ -59,6 +79,22 @@ export class AppStore {
 
   public setMapRenderMode(mapRenderMode: MapRenderMode): void {
     this.state = { ...this.state, mapRenderMode };
+    this.emit();
+  }
+
+  public setMapGridIsVisible(isGridVisible: boolean): void {
+    this.state = {
+      ...this.state,
+      mapGridSettings: { ...this.state.mapGridSettings, isGridVisible }
+    };
+    this.emit();
+  }
+
+  public setMapGridOpacity(gridOpacity: number): void {
+    this.state = {
+      ...this.state,
+      mapGridSettings: { ...this.state.mapGridSettings, gridOpacity: clampGridOpacity(gridOpacity) }
+    };
     this.emit();
   }
 

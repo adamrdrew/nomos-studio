@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, ButtonGroup } from '@blueprintjs/core';
+import { Button, Tooltip } from '@blueprintjs/core';
 import { Colors } from '@blueprintjs/core';
 
 import { MapEditorCanvas } from '../MapEditorCanvas';
@@ -7,6 +7,8 @@ import type { MapEditorInteractionMode } from '../MapEditorCanvas';
 
 export function MapEditorDockPanel(): JSX.Element {
   const [tool, setTool] = React.useState<MapEditorInteractionMode>('select');
+
+  const toolButtonHeightPx = 34;
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
@@ -18,26 +20,46 @@ export function MapEditorDockPanel(): JSX.Element {
           left: 8,
           top: 8,
           bottom: 8,
-          width: 44,
+          width: 56,
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
+          gap: 6,
           padding: 6,
           boxSizing: 'border-box',
           background: Colors.DARK_GRAY3,
-          borderRadius: 4
+          borderRadius: 4,
+          overflowY: 'auto'
         }}
       >
-        <ButtonGroup vertical={true} fill={true}>
+        <Tooltip content="Select" placement="right">
           <Button
-            title="Select"
-            text="S"
+            icon="select"
+            minimal={true}
             active={tool === 'select'}
+            style={{ height: toolButtonHeightPx }}
             onClick={() => setTool('select')}
           />
-          <Button title="Zoom" text="Z" active={tool === 'zoom'} onClick={() => setTool('zoom')} />
-          <Button title="Pan" text="P" active={tool === 'pan'} onClick={() => setTool('pan')} />
-        </ButtonGroup>
+        </Tooltip>
+
+        <Tooltip content="Zoom" placement="right">
+          <Button
+            icon="zoom-in"
+            minimal={true}
+            active={tool === 'zoom'}
+            style={{ height: toolButtonHeightPx }}
+            onClick={() => setTool('zoom')}
+          />
+        </Tooltip>
+
+        <Tooltip content="Pan" placement="right">
+          <Button
+            icon="hand"
+            minimal={true}
+            active={tool === 'pan'}
+            style={{ height: toolButtonHeightPx }}
+            onClick={() => setTool('pan')}
+          />
+        </Tooltip>
       </div>
     </div>
   );
