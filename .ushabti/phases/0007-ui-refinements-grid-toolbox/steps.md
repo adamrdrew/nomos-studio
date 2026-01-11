@@ -96,3 +96,16 @@
 - **Intent:** Ensure repository remains green.
 - **Work:** Run `npm test`, `npm run typecheck`, `npm run lint`.
 - **Done when:** All gates pass.
+
+## S012 — Make grid opacity increments consistent with acceptance criteria
+- **Intent:** Ensure opacity changes are in exact $0.10$ steps as specified.
+- **Work:**
+  - Align the default `gridOpacity` to a tenth-step value.
+  - Ensure the authoritative setter that persists opacity (preferred: `AppStore.setMapGridOpacity`) clamps to $[0.10, 0.80]$ *and* quantizes to tenths so the first increase/decrease is a true $0.10$ step.
+  - Update any impacted unit tests/fixtures that currently assume `0.35`.
+- **Done when:** Starting from a fresh app state, repeated View menu increases/decreases always move by exactly $0.10$ and never go out of bounds.
+
+## S013 — Doc polish: remove duplicated store refresh sentence
+- **Intent:** Keep subsystem docs clean and unambiguous.
+- **Work:** Remove the duplicated sentence about the `nomos:state:changed` refresh signal in `docs/app-store-system.md`.
+- **Done when:** The doc contains the statement only once and remains accurate.

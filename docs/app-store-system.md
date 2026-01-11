@@ -8,8 +8,6 @@ Nomos Studio has two related “stores”:
 
 The renderer uses a narrow push signal (`nomos:state:changed`) to know when to refresh its snapshot (it still pulls the full snapshot on each refresh).
 
-The renderer uses a narrow push signal (`nomos:state:changed`) to know when to refresh its snapshot.
-
 The store subsystem is intentionally small and synchronous, designed to keep application services decoupled from Electron/UI primitives while still providing shared state (e.g., enabling/disabling menu items based on whether a document is loaded).
 
 ## Architecture
@@ -26,7 +24,7 @@ The store subsystem is intentionally small and synchronous, designed to keep app
 		- `setMapDocument(mapDocumentOrNull)`
 		- `setMapRenderMode(mapRenderMode)`
 		- `setMapGridIsVisible(isGridVisible)`
-		- `setMapGridOpacity(gridOpacity)` (clamped)
+		- `setMapGridOpacity(gridOpacity)` (clamped and quantized to tenths)
 
 Main-process services depend on `AppStore` (injected), not on Electron globals:
 - `AssetIndexService` reads settings from `store.getState()` and writes `setAssetIndex` / `setAssetIndexError`.

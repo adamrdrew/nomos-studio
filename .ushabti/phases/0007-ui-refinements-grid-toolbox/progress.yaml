@@ -2,13 +2,13 @@ phase:
   id: 0007
   slug: ui-refinements-grid-toolbox
   title: UI Refinements (Grid + Toolbox)
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Confirm UI constants and icon mapping
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Recorded grid opacity bounds (0.10–0.80 step 0.10), confirmed opacity updates apply even when grid hidden, set toolbox layout to a scrollable vertical column, and selected Blueprint icons (select/hand/zoom-in)."
     touched:
       - .ushabti/phases/0007-ui-refinements-grid-toolbox/phase.md
@@ -17,7 +17,7 @@ steps:
   - id: S002
     title: Add grid settings to the main renderer snapshot (state shape)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added shared MapGridSettings type and plumbed mapGridSettings through AppStore → IPC snapshot → preload → renderer store; clamp behavior for opacity is centralized in AppStore."
     touched:
       - src/shared/domain/models.ts
@@ -30,7 +30,7 @@ steps:
   - id: S003
     title: Extend View menu template with grid controls
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended createApplicationMenuTemplate to include Toggle Grid (checkbox) and opacity increase/decrease items, threading typed mapGridSettings + callbacks through options; updated existing menu template tests for the new signature."
     touched:
       - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
@@ -40,7 +40,7 @@ steps:
   - id: S004
     title: Wire menu callbacks in main to update store and notify renderer
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Wired View menu callbacks in main to toggle grid visibility and adjust grid opacity by 0.1 steps (rounded to tenths) using AppStore clamping; existing store subscription continues to refresh the menu and emit nomos:state:changed for the renderer." 
     touched:
       - src/main/main.ts
@@ -49,7 +49,7 @@ steps:
   - id: S005
     title: Make Map Editor grid respect visibility + opacity settings
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated MapEditorCanvas to conditionally render the grid layer based on mapGridSettings.isGridVisible and apply opacity via mapGridSettings.gridOpacity." 
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -58,7 +58,7 @@ steps:
   - id: S006
     title: Set initial Inspector width to ~20% on app open
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Set DockView Inspector panel initialWidth to ~20% of window.innerWidth at layout creation time." 
     touched:
       - src/renderer/ui/editor/EditorShell.tsx
@@ -67,7 +67,7 @@ steps:
   - id: S007
     title: Prevent closing Map Editor and Inspector panels
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Made Map Editor and Inspector tabs non-closable by using a custom DockView tab component with hideClose=true; added a defensive onDidRemovePanel handler that re-adds missing core panels." 
     touched:
       - src/renderer/ui/editor/EditorShell.tsx
@@ -76,7 +76,7 @@ steps:
   - id: S008
     title: Redesign the left tool UI into a toolbox (icons + tooltips + non-stretch layout)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Replaced the stretched vertical ButtonGroup with a compact scrollable toolbox: fixed-height icon buttons (Blueprint icons) and Blueprint tooltips; widened the toolbox slightly to support the new layout." 
     touched:
       - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
@@ -85,7 +85,7 @@ steps:
   - id: S009
     title: Update subsystem docs (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated menu, renderer UI, and app store subsystem docs to reflect grid View menu items, mapGridSettings state shape, toolbox behavior, non-closable core panels, and Inspector default width." 
     touched:
       - docs/menu-system.md
@@ -96,7 +96,7 @@ steps:
   - id: S010
     title: Unit tests for new/changed public APIs (L04)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added unit tests for AppStore mapGridSettings setters (visibility + opacity clamping including non-finite inputs) and expanded menu template tests to cover View grid items (presence, checked state, click wiring). Updated IPC handler registration test stub to include mapGridSettings in snapshot response." 
     touched:
       - src/main/application/store/AppStore.test.ts
@@ -107,7 +107,30 @@ steps:
   - id: S011
     title: Quality gates
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Ran `npm test`, `npm run typecheck`, and `npm run lint` successfully. Lint prints a @typescript-eslint warning about the installed TypeScript version (5.9.3) being outside the officially supported range, but it does not fail the lint run." 
     touched:
+      - .ushabti/phases/0007-ui-refinements-grid-toolbox/progress.yaml
+
+  - id: S012
+    title: Make grid opacity increments consistent with acceptance criteria
+    implemented: true
+    reviewed: true
+    notes: "Aligned default gridOpacity to a tenth-step value (0.3) and made AppStore.setMapGridOpacity clamp and quantize to tenths. Updated unit tests and fixtures that previously used 0.35, and aligned docs to match." 
+    touched:
+      - src/main/application/store/AppStore.ts
+      - src/main/application/store/AppStore.test.ts
+      - src/renderer/store/nomosStore.ts
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - docs/app-store-system.md
+      - .ushabti/phases/0007-ui-refinements-grid-toolbox/progress.yaml
+
+  - id: S013
+    title: Doc polish: remove duplicated store refresh sentence
+    implemented: true
+    reviewed: true
+    notes: "Removed the duplicated `nomos:state:changed` refresh-signal sentence from the App Store subsystem doc." 
+    touched:
+      - docs/app-store-system.md
       - .ushabti/phases/0007-ui-refinements-grid-toolbox/progress.yaml

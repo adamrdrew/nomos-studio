@@ -24,7 +24,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   assetIndex: null,
   mapDocument: null,
   mapRenderMode: 'wireframe',
-  mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 },
+  mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
   mapSelection: null,
   refreshFromMain: async () => {
     const snapshotResult = await window.nomos.state.getSnapshot();

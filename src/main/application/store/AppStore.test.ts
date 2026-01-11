@@ -14,7 +14,7 @@ describe('AppStore', () => {
     expect(state.assetIndexError).toBeNull();
     expect(state.mapDocument).toBeNull();
     expect(state.mapRenderMode).toBe('wireframe');
-    expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.35 });
+    expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.3 });
   });
 
   it('notifies subscribers on state changes and unsubscribe stops notifications', () => {
@@ -143,5 +143,8 @@ describe('AppStore', () => {
 
     store.setMapGridOpacity(Number.NaN);
     expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.1 });
+
+    store.setMapGridOpacity(0.36);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.4 });
   });
 });

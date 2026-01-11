@@ -19,6 +19,10 @@ function defaultSettings(): EditorSettings {
 const MIN_GRID_OPACITY = 0.1;
 const MAX_GRID_OPACITY = 0.8;
 
+function roundToTenth(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
 function clampGridOpacity(opacity: number): number {
   if (!Number.isFinite(opacity)) {
     return MIN_GRID_OPACITY;
@@ -30,7 +34,7 @@ function clampGridOpacity(opacity: number): number {
 function defaultMapGridSettings(): MapGridSettings {
   return {
     isGridVisible: true,
-    gridOpacity: 0.35
+    gridOpacity: 0.3
   };
 }
 
@@ -93,7 +97,10 @@ export class AppStore {
   public setMapGridOpacity(gridOpacity: number): void {
     this.state = {
       ...this.state,
-      mapGridSettings: { ...this.state.mapGridSettings, gridOpacity: clampGridOpacity(gridOpacity) }
+      mapGridSettings: {
+        ...this.state.mapGridSettings,
+        gridOpacity: roundToTenth(clampGridOpacity(gridOpacity))
+      }
     };
     this.emit();
   }

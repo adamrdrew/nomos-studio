@@ -54,7 +54,7 @@ describe('registerNomosIpcHandlers', () => {
             assetIndex: null,
             mapDocument: null,
             mapRenderMode: 'wireframe',
-            mapGridSettings: { isGridVisible: true, gridOpacity: 0.35 }
+            mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 }
           }
         })
       }
