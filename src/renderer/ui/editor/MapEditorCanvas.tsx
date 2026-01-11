@@ -209,7 +209,8 @@ function hitTestSelection(worldPoint: Point, view: ViewTransform, map: MapViewMo
     }
   }
 
-  const wallHitThresholdScreen = 6;
+  // Keep wall hit-testing intuitive even when walls are rendered thicker in textured mode.
+  const wallHitThresholdScreen = 10;
   const wallHitThresholdWorld = wallHitThresholdScreen / view.scale;
   let bestWallIndex: number | null = null;
   let bestWallDistance = Number.POSITIVE_INFINITY;
@@ -374,10 +375,14 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
 
     const needed = new Set<string>();
     for (const sector of decodedMap.value.sectors) {
-      needed.add(sector.floorTex);
+      if (sector.floorTex.trim().length > 0) {
+        needed.add(sector.floorTex);
+      }
     }
     for (const wall of decodedMap.value.walls) {
-      needed.add(wall.tex);
+      if (wall.tex.trim().length > 0) {
+        needed.add(wall.tex);
+      }
     }
 
     let cancelled = false;
@@ -665,9 +670,7 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
   const particleMarkerSizePx = 12;
   const entityMarkerSizePx = 14;
 
-  const texturedFloorFallbackFill = Colors.DARK_GRAY3;
-  const texturedWallFallbackFill = Colors.GRAY1;
-  const texturedWallThickness = 10;
+  const texturedWallThicknessPx = 12;
 
   const verticalLines: JSX.Element[] = [];
   const horizontalLines: JSX.Element[] = [];
@@ -719,6 +722,7 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
 
     // Marker sizes are defined in screen pixels and converted to world units.
     const safeScale = Math.max(0.0001, view.scale);
+    const texturedWallThicknessWorld = texturedWallThicknessPx / safeScale;
     const doorMarkerSizeWorld = doorMarkerSizePx / safeScale;
     const lightMarkerRadiusWorld = lightMarkerRadiusPx / safeScale;
     const particleMarkerSizeWorld = particleMarkerSizePx / safeScale;
@@ -745,14 +749,18 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
         }
 
         const image = textureImages[sector.floorTex];
+        if (!image) {
+          // While textures are loading (or missing), avoid drawing large fallback fills.
+          // Walls still render below, keeping the view usable.
+          continue;
+        }
         texturedFloors.push(
           <Line
             key={`floor-${sector.id}`}
             points={points}
             closed={true}
-            {...(image
-              ? { fillPatternImage: image, fillPatternRepeat: 'repeat' }
-              : { fill: texturedFloorFallbackFill })}
+            fillPatternImage={image}
+            fillPatternRepeat="repeat"
             strokeEnabled={false}
           />
         );
@@ -777,6 +785,20 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
         const midY = toRenderY((v0.y + v1.y) / 2);
 
         const image = textureImages[wall.tex];
+        if (!image) {
+          // While textures are loading (or missing), fall back to the wireframe segment.
+          texturedWalls.push(
+            <Line
+              key={`wall-tex-fallback-${wall.index}`}
+              points={[toRenderX(v0.x), toRenderY(v0.y), toRenderX(v1.x), toRenderY(v1.y)]}
+              stroke={wallStroke}
+              strokeWidth={wallStrokeWidth}
+              strokeScaleEnabled={false}
+              lineCap="round"
+            />
+          );
+          continue;
+        }
 
         texturedWalls.push(
           <Rect
@@ -784,15 +806,15 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
             x={midX}
             y={midY}
             width={length}
-            height={texturedWallThickness}
+            height={texturedWallThicknessWorld}
             offsetX={length / 2}
-            offsetY={texturedWallThickness / 2}
+            offsetY={texturedWallThicknessWorld / 2}
             rotation={angleDeg}
-            {...(image
-              ? { fillPatternImage: image, fillPatternRepeat: 'repeat' }
-              : { fill: texturedWallFallbackFill })}
+            fillPatternImage={image}
+            fillPatternRepeat="repeat"
             stroke={Colors.BLACK}
             strokeWidth={1}
+            strokeScaleEnabled={false}
           />
         );
       }
@@ -812,6 +834,7 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
             points={[toRenderX(v0.x), toRenderY(v0.y), toRenderX(v1.x), toRenderY(v1.y)]}
             stroke={wallStroke}
             strokeWidth={wallStrokeWidth}
+            strokeScaleEnabled={false}
             lineCap="round"
           />
         );

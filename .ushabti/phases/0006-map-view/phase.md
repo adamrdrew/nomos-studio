@@ -5,6 +5,8 @@ Implement the first functional **map viewer** inside the existing Map Editor pan
 
 Refine the viewer UX so that newly-opened maps reliably appear **centered** (not off-screen), at a **workable default scale**, with object markers that remain **readable at any zoom**.
 
+Fix the remaining “Map View” gaps so **Textured** mode correctly displays floor/wall textures under the app’s **Content Security Policy (CSP)** (no blocked `blob:` images / grey placeholder boxes), and ensure **wall thickness** is tuned per render mode (thin in wireframe; appropriately visible in textured).
+
 This Phase exists now because Phase 0005 established the editor shell and Konva canvas; Phase 0006 turns that shell into a usable viewer and sets up the minimal state + IPC wiring needed for future editing workflows.
 
 ## Scope
@@ -42,6 +44,14 @@ This Phase exists now because Phase 0005 established the editor shell and Konva 
     - sector floor textures
     - wall textures
     - (ceil textures are not required to be visualized in top-down view)
+
+- **Textured rendering must work under CSP**
+  - The renderer must be able to display textures without CSP violations.
+  - If the current texture pipeline relies on `blob:` URLs (e.g., via `URL.createObjectURL`), the CSP must explicitly allow them via a narrowly-scoped `img-src` directive (do not broaden `default-src`).
+
+- **Wall thickness tuning (wireframe vs textured)**
+  - Wireframe walls must be drawn thin and readable.
+  - Textured walls must be thick enough to show textures painting/repeating, without obscuring the map.
 
 - **View menu items: Textured / Wireframe**
   - Add a **View** menu with items:
@@ -133,6 +143,16 @@ This Phase exists now because Phase 0005 established the editor shell and Konva 
   - Textured mode is available.
   - Floors render using the sector’s `floor_tex`.
   - Walls render using each wall’s `tex`.
+
+- **Textured rendering is not blocked by CSP**
+  - In Textured mode, textures load and render (no “grey box” placeholders).
+  - Renderer console logs do not contain CSP violations blocking texture loads (e.g., refused `blob:` image loads).
+  - The CSP change (if any) is narrowly scoped and does not relax script or remote-code restrictions.
+
+- **Walls are appropriately thin/thick per mode**
+  - In Wireframe mode, wall strokes appear thin and do not dominate the view.
+  - In Textured mode, walls are thick enough to perceive the texture fill/repetition.
+  - Selection/hit-testing for walls remains intuitive after thickness changes.
 
 - **View menu toggles mode**
   - The application menu has a **View** menu with **Wireframe** and **Textured**.

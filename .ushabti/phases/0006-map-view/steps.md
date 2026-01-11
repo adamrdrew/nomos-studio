@@ -157,3 +157,54 @@
   - Add/update unit tests for any new/changed public methods introduced by these refinements.
   - Run `npm test`, `npm run typecheck`, `npm run lint`.
 - **Done when:** All quality gates pass.
+
+## S018 — Fix CSP so textured images can render (blob URLs)
+- **Intent:** Eliminate CSP-blocked texture loads that produce grey placeholder boxes.
+- **Work:**
+  - Reproduce the current renderer console errors (CSP refusing `blob:` image loads).
+  - Identify where textures are converted into renderer-consumable image sources (e.g., `URL.createObjectURL(new Blob(...))`).
+  - Update the renderer CSP to explicitly allow the required image sources via `img-src` (at minimum: `'self'`, `data:`, and `blob:`).
+    - Do **not** relax `script-src` or broaden `default-src` beyond what’s necessary for images.
+  - Verify behavior in both dev and packaged builds if CSP is defined in multiple places.
+- **Done when:** Textured mode no longer logs CSP image refusal errors and images are allowed by policy.
+
+## S019 — Make textured rendering match wireframe geometry (floors + walls)
+- **Intent:** Ensure textured mode looks like wireframe + correct textures, not a field of incorrect rectangles.
+- **Work:**
+  - Validate that sector floor textures render in the correct sectors (match wireframe boundaries).
+  - Validate that wall textures render on the correct wall segments (match wireframe wall placement and orientation).
+  - Confirm missing textures fail gracefully (clear fallback, no crashes), and do not regress the bounded cache / URL revocation behavior.
+- **Done when:** Textured mode visually matches wireframe geometry, with the correct floor/wall textures applied.
+
+## S020 — Retune wall thickness per render mode (thin wireframe, visible textured)
+- **Intent:** Fix overly-thick walls so wireframe reads cleanly while textured mode remains legible.
+- **Work:**
+  - Define explicit thickness rules for:
+    - Wireframe walls (thin strokes)
+    - Textured walls (thickness sufficient to see texture fill/repetition)
+  - Ensure thickness remains visually stable across zoom as appropriate (e.g., use non-scaling strokes for wireframe; pick a coherent approach for textured walls).
+  - Verify wall hit-testing and selection thresholds remain intuitive after thickness adjustments.
+- **Done when:** Walls look appropriately thin in wireframe and appropriately visible in textured mode; selection still feels correct.
+
+## S021 — Update docs (L09) for CSP + textured rendering constraints
+- **Intent:** Keep subsystem docs accurate after CSP/texture pipeline changes.
+- **Work:**
+  - Update `docs/renderer-ui-system.md` to document:
+    - textured image source strategy (e.g., `blob:` vs `data:`)
+    - CSP requirements for texture rendering
+    - wall thickness rules per render mode
+- **Done when:** Docs clearly describe the constraints and expected behavior.
+
+## S022 — Re-run quality gates after textured/CSP + wall thickness fixes
+- **Intent:** Ensure the new fixes don’t regress tests/lint/typecheck.
+- **Work:**
+  - Add/update unit tests for any new/changed public methods.
+  - Run `npm test`, `npm run typecheck`, `npm run lint`.
+- **Done when:** All quality gates pass.
+
+## S023 — Fix MapEditorCanvas formatting regression (style)
+- **Intent:** Keep renderer code readable and consistent with repository style.
+- **Work:**
+  - Fix the mis-indented `texturedWallThicknessWorld` declaration in `MapEditorCanvas.tsx` (introduced during S020).
+  - Confirm `npm run lint` still passes after the change.
+- **Done when:** The renderer code is correctly formatted and the lint gate remains green.

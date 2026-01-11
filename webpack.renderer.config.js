@@ -8,7 +8,7 @@ function rendererContentSecurityPolicy(isDev) {
       "default-src 'self'",
       "script-src 'self' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data:",
+      "img-src 'self' data: blob:",
       "font-src 'self' data:",
       "connect-src 'self' http: https: ws:"
     ].join('; ');
@@ -18,7 +18,7 @@ function rendererContentSecurityPolicy(isDev) {
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
+    "img-src 'self' data: blob:",
     "font-src 'self' data:"
   ].join('; ');
 }

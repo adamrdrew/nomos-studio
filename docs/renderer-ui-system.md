@@ -17,6 +17,7 @@ Current responsibilities:
 ### Entry points
 - `src/renderer/index.html`
 	- Defines the root element and sets a CSP meta tag from Webpack configuration.
+	- **CSP note (textures):** textured rendering currently loads images from in-memory bytes using `URL.createObjectURL(...)`, which produces `blob:` image URLs. The effective CSP must therefore include `img-src 'self' data: blob:`.
 
 - `src/renderer/renderer.tsx`
 	- React entrypoint.
@@ -38,6 +39,13 @@ Current responsibilities:
 		- textured floors + walls (best-effort)
 		- entity/emitter markers
 	- Implements Select-mode hit-testing and updates the selection state.
+	- **Textured rendering + CSP constraints:**
+		- The renderer requests texture bytes via `window.nomos.assets.readFileBytes({ relativePath })`.
+		- Bytes are converted to an image by creating a `blob:` object URL and loading it into an `HTMLImageElement`.
+		- The renderer CSP must allow `blob:` image URLs via `img-src`.
+		- While textures are loading (or when a texture is missing), the viewer avoids large placeholder fills:
+			- floors are not filled until the texture image is available
+			- walls fall back to a wireframe segment until the wall texture image is available
 
 ### State management
 Renderer state is intentionally small:
@@ -64,6 +72,9 @@ The editor UI is organized like a traditional creative tool:
 - **Map Editor** panel (center): a React Konva surface (`Stage`/`Layer`) that renders a graph-paper grid and supports pan/zoom.
 	- When a map is open, `MapEditorCanvas` decodes `mapDocument.json` and renders the map.
 	- Rendering style is controlled by `mapRenderMode` (`wireframe` / `textured`).
+		- **Wall thickness rules:**
+			- Wireframe walls use non-scaling strokes (thin at any zoom).
+			- Textured walls use a screen-space thickness (approximately constant pixels on screen) so textures are visible without walls becoming enormous at high zoom.
 	- On map open, the view is initialized so the viewport center corresponds to world-space `(0,0)` and the map is framed to be visible immediately.
 		- To achieve this for arbitrary authored coordinates, the renderer may apply a render-only origin offset derived from decoded map bounds; this does not mutate `MapDocument.json`.
 	- The editor grid adapts its spacing to zoom so line density stays readable.

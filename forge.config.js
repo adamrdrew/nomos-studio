@@ -13,6 +13,23 @@ module.exports = {
   makers: [new MakerSquirrel({}), new MakerZIP({}, ['darwin']), new MakerRpm({}), new MakerDeb({})],
   plugins: [
     new WebpackPlugin({
+      // Renderer textures currently load via `blob:` URLs created from IPC-provided bytes.
+      // Keep CSP narrowly scoped: relax image sources only, without widening default/script sources.
+      devContentSecurityPolicy: [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self' http: https: ws:"
+      ].join('; '),
+      contentSecurityPolicy: [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:"
+      ].join('; '),
       mainConfig: './webpack.main.config.js',
       renderer: {
         config: './webpack.renderer.config.js',
