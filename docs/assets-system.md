@@ -29,6 +29,8 @@ The assets system is split across the standard boundaries:
 	- The main process handles that via the `nomos:assets:refresh-index` channel, which delegates to `AssetIndexService.refreshIndex()`.
 	- The renderer can call `window.nomos.assets.open({ relativePath })` to open an asset using the OS default handler.
 	- The main process handles that via the `nomos:assets:open` channel, which delegates to `OpenAssetService.openAsset(relativePath)`.
+	- The renderer can call `window.nomos.assets.readFileBytes({ relativePath })` to read asset bytes (e.g., for rendering textures).
+	- The main process handles that via the `nomos:assets:read-file-bytes` channel, which delegates to `ReadAssetFileBytesService.readFileBytes(relativePath)`.
 
 ## Public API / entrypoints
 
@@ -38,6 +40,9 @@ The assets system is split across the standard boundaries:
 
 - `OpenAssetService`
 	- `openAsset(relativePath: string): Promise<Result<null, OpenAssetError>>`
+
+- `ReadAssetFileBytesService`
+	- `readFileBytes(relativePath: string): Promise<Result<Uint8Array, ReadAssetError>>`
 
 ### Infrastructure API (main)
 - `AssetIndexer`
@@ -50,6 +55,7 @@ The assets system is split across the standard boundaries:
 ### Preload API (renderer-facing)
 - `window.nomos.assets.refreshIndex(): Promise<RefreshAssetIndexResponse>`
 - `window.nomos.assets.open(request: { relativePath: string }): Promise<OpenAssetResponse>`
+- `window.nomos.assets.readFileBytes(request: { relativePath: string }): Promise<ReadAssetFileBytesResponse>`
 
 ### IPC contract
 Defined in `src/shared/ipc/nomosIpc.ts`:
@@ -60,6 +66,11 @@ Open in OS:
 - Channel: `nomos:assets:open`
 - Request type: `OpenAssetRequest = Readonly<{ relativePath: string }>`
 - Response type: `OpenAssetResponse = Result<null, OpenAssetError>`
+
+Read file bytes:
+- Channel: `nomos:assets:read-file-bytes`
+- Request type: `ReadAssetFileBytesRequest = Readonly<{ relativePath: string }>`
+- Response type: `ReadAssetFileBytesResponse = Result<Uint8Array, ReadAssetError>`
 
 ## Data shapes
 
@@ -99,6 +110,15 @@ type AssetIndexError = Readonly<{
 	- assets are configured (`settings.assetsDirPath`)
 	- the resolved absolute path is within the assets base directory
 - Only then does the main process invoke the OS handler to open the file.
+
+### System safety for read-file-bytes (L06)
+- The renderer sends a *relative* asset path.
+- The main process rejects:
+	- missing settings
+	- empty paths
+	- absolute paths
+	- null bytes
+	- paths that resolve outside the configured assets directory
 
 ### Settings dependency
 - Indexing depends on `EditorSettings.assetsDirPath`.

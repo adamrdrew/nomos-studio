@@ -7,6 +7,8 @@ The current map model is intentionally minimal:
 - A map is a JSON file loaded into memory as `unknown`.
 - The app tracks the current open document (file path, JSON payload, dirty flag, and last validation record).
 
+Renderer-side rendering/hit-testing builds a typed view model from `MapDocument.json` after validation succeeds, but `MapDocument.json` remains `unknown` within the maps subsystem to preserve round-tripping.
+
 ## Architecture
 The maps system spans application services, infrastructure seams for filesystem/process execution, and a small preload/IPC API.
 
@@ -143,6 +145,11 @@ type MapValidationError = Readonly<{
 ### Open behavior
 - A map is validated before being read and parsed.
 - When open succeeds, `AppStore.mapDocument` is set with `dirty: false` and `lastValidation` set to the validation record.
+
+If validation fails with `code: 'map-validation/invalid-map'`:
+- the map is not loaded
+- an error dialog is shown with title and message exactly `Map validation failed`
+- the dialog detail contains the validator report pretty text (JSON pretty print when parseable; otherwise raw text)
 
 ### Save behavior (L06)
 - Save writes to `<file>.tmp` and then atomically replaces the destination using a Windows-safe rename strategy.

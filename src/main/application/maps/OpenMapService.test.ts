@@ -155,13 +155,17 @@ describe('OpenMapService', () => {
 
   it('does not load document when validation fails', async () => {
     let setDocumentCalls = 0;
+    let lastErrorTitle: string | null = null;
+    let lastErrorMessage: string | null = null;
+    let lastErrorDetail: string | undefined = undefined;
 
     const store: AppStore = {
       getState: () => ({
         settings: { assetsDirPath: '/assets', gameExecutablePath: '/game' },
         assetIndex: null,
         assetIndexError: null,
-        mapDocument: null
+        mapDocument: null,
+        mapRenderMode: 'wireframe'
       }),
       subscribe: () => () => {},
       setSettings: () => {},
@@ -193,7 +197,11 @@ describe('OpenMapService', () => {
     };
 
     const notifier: UserNotifier = {
-      showError: async () => {},
+      showError: async (title, message, detail) => {
+        lastErrorTitle = title;
+        lastErrorMessage = message;
+        lastErrorDetail = detail;
+      },
       showInfo: async () => {}
     };
 
@@ -203,6 +211,9 @@ describe('OpenMapService', () => {
 
     expect(result.ok).toBe(false);
     expect(setDocumentCalls).toBe(0);
+    expect(lastErrorTitle).toBe('Map validation failed');
+    expect(lastErrorMessage).toBe('Map validation failed');
+    expect(lastErrorDetail).toBe('pretty');
   });
 
   it('loads and stores document on validation success', async () => {
@@ -213,7 +224,8 @@ describe('OpenMapService', () => {
         settings: { assetsDirPath: '/assets', gameExecutablePath: '/game' },
         assetIndex: null,
         assetIndexError: null,
-        mapDocument: null
+        mapDocument: null,
+        mapRenderMode: 'wireframe'
       }),
       subscribe: () => () => {},
       setSettings: () => {},

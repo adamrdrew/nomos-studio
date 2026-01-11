@@ -3,6 +3,8 @@
 ## Intent
 Implement the first functional **map viewer** inside the existing Map Editor panel: render the currently-open map (loaded via the existing maps system), support **pan/zoom** (already present), support **wireframe vs textured rendering**, and enable **selection** (Select tool) so clicking map objects shows their properties in the Properties panel.
 
+Refine the viewer UX so that newly-opened maps reliably appear **centered** (not off-screen), at a **workable default scale**, with object markers that remain **readable at any zoom**.
+
 This Phase exists now because Phase 0005 established the editor shell and Konva canvas; Phase 0006 turns that shell into a usable viewer and sets up the minimal state + IPC wiring needed for future editing workflows.
 
 ## Scope
@@ -15,6 +17,20 @@ This Phase exists now because Phase 0005 established the editor shell and Konva 
 
 - **Pan/zoom remains functional**
   - Preserve existing interaction behavior (Pan/Zoom tools) from Phase 0005.
+
+- **Map spawn/origin and initial framing**
+  - When a map is opened, the map viewer must initialize its view transform so the user immediately sees the map (no “blank canvas” due to off-screen content).
+  - The initial view must be centered such that **world-space (0,0)** corresponds to the **center of the Map Editor viewport**.
+  - To ensure maps authored far from the raw origin still appear centered, the renderer may apply a *render-only* origin offset derived from the map’s bounds; this must not modify the underlying `MapDocument.json`.
+
+- **Map/editor grid scale defaults**
+  - The default zoom/scale must make typical maps readable without requiring immediate zooming.
+  - The maximum zoom must be sufficient for close inspection of geometry on the largest current maps.
+  - The grid must not dominate the view (i.e., it must not visually imply the map is tiny at reasonable zoom levels).
+
+- **Zoom-invariant marker sizing**
+  - Markers for entities/emitters/doors must remain a consistent, readable **screen-space** size across zoom levels (i.e., they must not become enormous at high zoom and obscure the map).
+  - Hit-testing thresholds must remain consistent with the marker’s rendered size.
 
 - **Wireframe vs Textured render modes**
   - Wireframe view draws:
@@ -96,6 +112,20 @@ This Phase exists now because Phase 0005 established the editor shell and Konva 
   - Pan tool: click+drag pans the view.
   - Zoom tool: mouse wheel zooms the view.
 
+- **Map spawn/origin and framing**
+  - When a valid map is opened, the map content is visible immediately without the user panning.
+  - The center of the Map Editor viewport corresponds to world-space (0,0) immediately after open.
+  - Re-opening the same map re-applies the initial framing (the view does not depend on prior pan/zoom state).
+
+- **Default scale and zoom bounds are usable**
+  - The default zoom level makes the map readable without requiring immediate zoom.
+  - The maximum zoom allows close inspection of walls/doors without the map feeling “capped” too early.
+  - The grid remains a subtle orientation aid and does not overpower the map at default zoom.
+
+- **Markers remain readable at any zoom**
+  - Entity/particle/light/door markers do not grow unbounded with zoom.
+  - At maximum zoom, markers do not obscure large portions of the map.
+
 - **Wireframe render mode**
   - Wireframe mode is available and shows sector/wall geometry and markers.
 
@@ -136,5 +166,7 @@ This Phase exists now because Phase 0005 established the editor shell and Konva 
 - **Renderer state is currently pull-based.** This Phase introduces a narrow push signal to refresh state after main-process actions (open map, change view mode) so the viewer is responsive without polling.
 
 - **Konva textured strokes:** Konva supports pattern fills well; textured wall rendering may require representing walls as thin polygons instead of stroked lines.
+
+- **Origin vs authored coordinates:** To satisfy “viewport center == world (0,0)” while still centering arbitrary maps, the renderer may treat the computed map-bounds center as the render-time origin. Properties must continue to show the authored/raw values.
 
 - **Properties panel placement (confirmed):** Properties remains in the existing right-side Inspector and becomes functional.

@@ -5,6 +5,7 @@ import { createSettingsWindow } from './windows/createSettingsWindow';
 import { SettingsService } from './application/settings/SettingsService';
 import { AssetIndexService } from './application/assets/AssetIndexService';
 import { OpenAssetService } from './application/assets/OpenAssetService';
+import { ReadAssetFileBytesService } from './application/assets/ReadAssetFileBytesService';
 import { AppStore } from './application/store/AppStore';
 import { JsonFileSettingsRepository } from './infrastructure/settings/JsonFileSettingsRepository';
 import { nodeFileSystem } from './infrastructure/settings/nodeFileSystem';
@@ -12,6 +13,7 @@ import { registerNomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
 import { NOMOS_IPC_CHANNELS } from '../shared/ipc/nomosIpc';
 import { AssetIndexer } from './infrastructure/assets/AssetIndexer';
 import { nodeDirectoryReader } from './infrastructure/assets/nodeDirectoryReader';
+import { nodeBinaryFileReader } from './infrastructure/assets/nodeBinaryFileReader';
 import { nodePathService } from './infrastructure/path/nodePathService';
 import { nodeProcessRunner } from './infrastructure/process/NodeProcessRunner';
 import { nodeShellOpener } from './infrastructure/shell/nodeShellOpener';
@@ -21,6 +23,7 @@ import type { UserNotifier } from './application/ui/UserNotifier';
 import { SaveMapService } from './application/maps/SaveMapService';
 import type { NomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
 import { createApplicationMenuTemplate } from './infrastructure/menu/createApplicationMenuTemplate';
+import type { MapRenderMode } from '../shared/domain/models';
 
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -32,18 +35,22 @@ const setApplicationMenu = (
     onOpenMap: () => Promise<void>;
     onSave: () => Promise<void>;
     onRefreshAssetsIndex: () => Promise<void>;
+    onSetMapRenderMode: (mode: MapRenderMode) => void;
   }>
 ): void => {
   const canSave = options.store.getState().mapDocument !== null;
+  const mapRenderMode = options.store.getState().mapRenderMode;
 
   const template = createApplicationMenuTemplate({
     appName: app.name,
     platform: process.platform,
     canSave,
+    mapRenderMode,
     onOpenSettings: options.onOpenSettings,
     onOpenMap: () => void options.onOpenMap(),
     onSave: () => void options.onSave(),
-    onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex()
+    onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex(),
+    onSetMapRenderMode: (mode) => options.onSetMapRenderMode(mode)
   });
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -110,6 +117,7 @@ app.on('ready', () => {
   });
   const assetIndexService = new AssetIndexService(store, assetIndexer);
   const openAssetService = new OpenAssetService(store, nodePathService, nodeShellOpener);
+  const readAssetFileBytesService = new ReadAssetFileBytesService(store, nodePathService, nodeBinaryFileReader);
 
   const mapValidationService = new MapValidationService(store, nodeProcessRunner, () => new Date().toISOString());
 
@@ -208,6 +216,7 @@ app.on('ready', () => {
 
     refreshAssetIndex: async () => assetIndexService.refreshIndex(),
     openAsset: async (request) => openAssetService.openAsset(request.relativePath),
+    readAssetFileBytes: async (request) => readAssetFileBytesService.readFileBytes(request.relativePath),
 
     validateMap: async (request) => {
       const result = await mapValidationService.validateMap(request.mapPath);
@@ -225,7 +234,8 @@ app.on('ready', () => {
         value: {
           settings: store.getState().settings,
           assetIndex: store.getState().assetIndex,
-          mapDocument: store.getState().mapDocument
+          mapDocument: store.getState().mapDocument,
+          mapRenderMode: store.getState().mapRenderMode
         }
       };
     }
@@ -299,7 +309,8 @@ app.on('ready', () => {
     onOpenSettings: openSettings,
     onOpenMap: openMap,
     onSave: save,
-    onRefreshAssetsIndex: refreshAssetsIndex
+    onRefreshAssetsIndex: refreshAssetsIndex,
+    onSetMapRenderMode: (mode) => store.setMapRenderMode(mode)
   });
 
   store.subscribe(() => {
@@ -308,8 +319,13 @@ app.on('ready', () => {
       onOpenSettings: openSettings,
       onOpenMap: openMap,
       onSave: save,
-      onRefreshAssetsIndex: refreshAssetsIndex
+      onRefreshAssetsIndex: refreshAssetsIndex,
+      onSetMapRenderMode: (mode) => store.setMapRenderMode(mode)
     });
+
+    if (mainWindow !== null) {
+      mainWindow.webContents.send(NOMOS_IPC_CHANNELS.stateChanged);
+    }
   });
 });
 

@@ -13,6 +13,7 @@ describe('AppStore', () => {
     expect(state.assetIndex).toBeNull();
     expect(state.assetIndexError).toBeNull();
     expect(state.mapDocument).toBeNull();
+    expect(state.mapRenderMode).toBe('wireframe');
   });
 
   it('notifies subscribers on state changes and unsubscribe stops notifications', () => {
@@ -105,5 +106,12 @@ describe('AppStore', () => {
 
     store.setMapDocument(null);
     expect(store.getState().mapDocument).toBeNull();
+  });
+
+  it('setMapRenderMode stores the mode', () => {
+    const store = new AppStore();
+
+    store.setMapRenderMode('textured');
+    expect(store.getState().mapRenderMode).toBe('textured');
   });
 });

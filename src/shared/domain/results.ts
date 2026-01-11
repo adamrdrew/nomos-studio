@@ -53,3 +53,13 @@ export type OpenAssetError = Readonly<{
     | 'open-asset/open-failed';
   message: string;
 }>;
+
+export type ReadAssetError = Readonly<{
+  kind: 'read-asset-error';
+  code:
+    | 'read-asset/missing-settings'
+    | 'read-asset/invalid-relative-path'
+    | 'read-asset/outside-base-dir'
+    | 'read-asset/read-failed';
+  message: string;
+}>;

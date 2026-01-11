@@ -1,9 +1,10 @@
-import type { AssetIndex, EditorSettings, MapDocument } from '../domain/models';
+import type { AssetIndex, EditorSettings, MapDocument, MapRenderMode } from '../domain/models';
 import type {
   AssetIndexError,
   MapIoError,
   MapValidationError,
   OpenAssetError,
+  ReadAssetError,
   Result,
   SettingsError
 } from '../domain/results';
@@ -16,16 +17,19 @@ export const NOMOS_IPC_CHANNELS = {
   dialogsOpenMap: 'nomos:dialogs:open-map',
   assetsRefreshIndex: 'nomos:assets:refresh-index',
   assetsOpen: 'nomos:assets:open',
+  assetsReadFileBytes: 'nomos:assets:read-file-bytes',
   mapValidate: 'nomos:map:validate',
   mapOpen: 'nomos:map:open',
   mapSave: 'nomos:map:save',
-  stateGet: 'nomos:state:get'
+  stateGet: 'nomos:state:get',
+  stateChanged: 'nomos:state:changed'
 } as const;
 
 export type AppStateSnapshot = Readonly<{
   settings: EditorSettings;
   assetIndex: AssetIndex | null;
   mapDocument: MapDocument | null;
+  mapRenderMode: MapRenderMode;
 }>;
 
 export type SettingsGetResponse = Result<EditorSettings, SettingsError>;
@@ -40,6 +44,9 @@ export type RefreshAssetIndexResponse = Result<AssetIndex, AssetIndexError>;
 
 export type OpenAssetRequest = Readonly<{ relativePath: string }>;
 export type OpenAssetResponse = Result<null, OpenAssetError>;
+
+export type ReadAssetFileBytesRequest = Readonly<{ relativePath: string }>;
+export type ReadAssetFileBytesResponse = Result<Uint8Array, ReadAssetError>;
 
 export type ValidateMapRequest = Readonly<{ mapPath: string }>;
 export type ValidateMapResponse = Result<null, MapValidationError>;

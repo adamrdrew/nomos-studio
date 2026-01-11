@@ -9,6 +9,14 @@ import { MapEditorDockPanel } from './panels/MapEditorDockPanel';
 export function EditorShell(): JSX.Element {
   React.useEffect(() => {
     void useNomosStore.getState().refreshFromMain();
+
+    const unsubscribe = window.nomos.state.onChanged(() => {
+      void useNomosStore.getState().refreshFromMain();
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const onDockReady = (event: DockviewReadyEvent): void => {

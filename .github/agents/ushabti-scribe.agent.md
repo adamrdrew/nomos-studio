@@ -1,7 +1,7 @@
 ---
 description: Generate an implementation plan for a development phase.
 name: Ushabti Scribe
-tools: ['vscode/getProjectSetupInfo', 'vscode/runCommand', 'read', 'edit', 'search', 'web']
+tools: ['vscode/getProjectSetupInfo', 'vscode/runCommand', 'execute', 'read', 'edit', 'search', 'web']
 model: GPT-5.2 (copilot)
 handoffs:
   - label: Implement Plan

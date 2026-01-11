@@ -1,13 +1,17 @@
 import type { MenuItemConstructorOptions } from 'electron';
 
+import type { MapRenderMode } from '../../../shared/domain/models';
+
 export type CreateApplicationMenuTemplateOptions = Readonly<{
   appName: string;
   platform: NodeJS.Platform;
   canSave: boolean;
+  mapRenderMode: MapRenderMode;
   onOpenSettings: () => void;
   onOpenMap: () => void;
   onSave: () => void;
   onRefreshAssetsIndex: () => void;
+  onSetMapRenderMode: (mode: MapRenderMode) => void;
 }>;
 
 export function createApplicationMenuTemplate(
@@ -41,6 +45,24 @@ export function createApplicationMenuTemplate(
   }
 
   template.push(fileMenu);
+
+  template.push({
+    label: 'View',
+    submenu: [
+      {
+        label: 'Wireframe',
+        type: 'radio',
+        checked: options.mapRenderMode === 'wireframe',
+        click: () => options.onSetMapRenderMode('wireframe')
+      },
+      {
+        label: 'Textured',
+        type: 'radio',
+        checked: options.mapRenderMode === 'textured',
+        click: () => options.onSetMapRenderMode('textured')
+      }
+    ]
+  });
 
   if (options.platform !== 'darwin') {
     template.push({

@@ -2,6 +2,8 @@ import React from 'react';
 import { Button, Card, Collapse, H5 } from '@blueprintjs/core';
 
 import { AssetBrowser } from '../inspector/AssetBrowser';
+import { useNomosStore } from '../../../store/nomosStore';
+import { decodeMapViewModel } from '../map/mapDecoder';
 
 function CollapsibleSection(props: {
   title: string;
@@ -45,6 +47,56 @@ export function InspectorDockPanel(): JSX.Element {
     })();
   }, []);
 
+  const mapDocument = useNomosStore((state) => state.mapDocument);
+  const selection = useNomosStore((state) => state.mapSelection);
+
+  const decodedMap = React.useMemo(() => {
+    if (mapDocument === null) {
+      return null;
+    }
+    return decodeMapViewModel(mapDocument.json);
+  }, [mapDocument]);
+
+  const selectedObject = React.useMemo(() => {
+    if (selection === null || decodedMap === null || !decodedMap.ok) {
+      return null;
+    }
+
+    const map = decodedMap.value;
+
+    switch (selection.kind) {
+      case 'light': {
+        const light = map.lights.find((candidate) => candidate.index === selection.index);
+        return light ? { title: `Light #${selection.index}`, value: light } : null;
+      }
+      case 'particle': {
+        const particle = map.particles.find((candidate) => candidate.index === selection.index);
+        return particle ? { title: `Particle Emitter #${selection.index}`, value: particle } : null;
+      }
+      case 'entity': {
+        const entity = map.entities.find((candidate) => candidate.index === selection.index);
+        return entity ? { title: `Entity #${selection.index}`, value: entity } : null;
+      }
+      case 'door': {
+        const door = map.doors.find((candidate) => candidate.id === selection.id);
+        return door ? { title: `Door ${selection.id}`, value: door } : null;
+      }
+      case 'wall': {
+        const wall = map.walls.find((candidate) => candidate.index === selection.index);
+        return wall ? { title: `Wall #${selection.index}`, value: wall } : null;
+      }
+      case 'sector': {
+        const sector = map.sectors.find((candidate) => candidate.id === selection.id);
+        return sector ? { title: `Sector ${selection.id}`, value: sector } : null;
+      }
+      default: {
+        // Exhaustive check.
+        const neverSelection: never = selection;
+        return neverSelection;
+      }
+    }
+  }, [decodedMap, selection]);
+
   return (
     <div
       style={{
@@ -63,7 +115,14 @@ export function InspectorDockPanel(): JSX.Element {
       </CollapsibleSection>
 
       <CollapsibleSection title="Properties" defaultIsOpen={true}>
-        <div />
+        {selectedObject === null ? (
+          <div style={{ opacity: 0.7 }}>Nothing selected</div>
+        ) : (
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>{selectedObject.title}</div>
+            <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(selectedObject.value, null, 2)}</pre>
+          </div>
+        )}
       </CollapsibleSection>
     </div>
   );

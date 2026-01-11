@@ -3,6 +3,8 @@ export {};
 import type {
   OpenAssetRequest,
   OpenAssetResponse,
+  ReadAssetFileBytesRequest,
+  ReadAssetFileBytesResponse,
   OpenMapDialogResponse,
   OpenMapResponse,
   PickDirectoryResponse,
@@ -33,6 +35,7 @@ declare global {
       assets: {
         refreshIndex: () => Promise<RefreshAssetIndexResponse>;
         open: (request: OpenAssetRequest) => Promise<OpenAssetResponse>;
+        readFileBytes: (request: ReadAssetFileBytesRequest) => Promise<ReadAssetFileBytesResponse>;
       };
       map: {
         validate: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
@@ -41,6 +44,7 @@ declare global {
       };
       state: {
         getSnapshot: () => Promise<StateGetResponse>;
+        onChanged: (listener: () => void) => () => void;
       };
     };
   }

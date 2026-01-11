@@ -1,4 +1,4 @@
-import type { AssetIndex, EditorSettings, MapDocument } from '../../../shared/domain/models';
+import type { AssetIndex, EditorSettings, MapDocument, MapRenderMode } from '../../../shared/domain/models';
 import type { AssetIndexError } from '../../../shared/domain/results';
 
 export type AppState = Readonly<{
@@ -6,6 +6,7 @@ export type AppState = Readonly<{
   assetIndex: AssetIndex | null;
   assetIndexError: AssetIndexError | null;
   mapDocument: MapDocument | null;
+  mapRenderMode: MapRenderMode;
 }>;
 
 export type AppStoreListener = (state: AppState) => void;
@@ -19,7 +20,8 @@ export class AppStore {
     settings: defaultSettings(),
     assetIndex: null,
     assetIndexError: null,
-    mapDocument: null
+    mapDocument: null,
+    mapRenderMode: 'wireframe'
   };
 
   private readonly listeners = new Set<AppStoreListener>();
@@ -52,6 +54,11 @@ export class AppStore {
 
   public setMapDocument(mapDocument: MapDocument | null): void {
     this.state = { ...this.state, mapDocument };
+    this.emit();
+  }
+
+  public setMapRenderMode(mapRenderMode: MapRenderMode): void {
+    this.state = { ...this.state, mapRenderMode };
     this.emit();
   }
 

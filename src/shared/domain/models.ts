@@ -31,3 +31,5 @@ export type MapDocument = Readonly<{
   dirty: boolean;
   lastValidation: MapValidationRecord | null;
 }>;
+
+export type MapRenderMode = 'wireframe' | 'textured';

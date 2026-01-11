@@ -6,6 +6,8 @@ Nomos Studio has two related “stores”:
 - **Main-process `AppStore`**: the source of truth for application state that is mutated by main-process services (settings load/update, assets indexing, map open/save/validate).
 - **Renderer `useNomosStore` (Zustand)**: a lightweight, renderer-local cache that pulls a snapshot from main via IPC. It does not currently receive push updates.
 
+The renderer uses a narrow push signal (`nomos:state:changed`) to know when to refresh its snapshot.
+
 The store subsystem is intentionally small and synchronous, designed to keep application services decoupled from Electron/UI primitives while still providing shared state (e.g., enabling/disabling menu items based on whether a document is loaded).
 
 ## Architecture
@@ -20,6 +22,7 @@ The store subsystem is intentionally small and synchronous, designed to keep app
 		- `setAssetIndex(assetIndex)`
 		- `setAssetIndexError(error)`
 		- `setMapDocument(mapDocumentOrNull)`
+		- `setMapRenderMode(mapRenderMode)`
 
 Main-process services depend on `AppStore` (injected), not on Electron globals:
 - `AssetIndexService` reads settings from `store.getState()` and writes `setAssetIndex` / `setAssetIndexError`.
@@ -34,11 +37,19 @@ The Electron main entrypoint (`src/main/main.ts`) creates one `AppStore` instanc
 		- `settings`
 		- `assetIndex`
 		- `mapDocument`
+		- `mapRenderMode`
+		- `mapSelection` (renderer-local UI selection)
 	- `refreshFromMain()` calls `window.nomos.state.getSnapshot()` and updates the Zustand state.
+	- `setMapSelection(...)` updates selection without calling main.
 
 ### IPC link
 - The snapshot is defined in `src/shared/ipc/nomosIpc.ts` as `AppStateSnapshot` and returned from `NOMOS_IPC_CHANNELS.stateGet` (`nomos:state:get`).
 - The preload surface exposes `window.nomos.state.getSnapshot()`.
+
+### Snapshot refresh signal
+- Main emits `nomos:state:changed` when the `AppStore` changes.
+- Preload exposes `window.nomos.state.onChanged(listener)`.
+- The renderer listens and calls `useNomosStore.refreshFromMain()`.
 
 ## Public API / entrypoints
 
@@ -50,13 +61,16 @@ The Electron main entrypoint (`src/main/main.ts`) creates one `AppStore` instanc
 	- `setAssetIndex(assetIndex: AssetIndex): void`
 	- `setAssetIndexError(error: AssetIndexError): void`
 	- `setMapDocument(mapDocument: MapDocument | null): void`
+	- `setMapRenderMode(mapRenderMode: MapRenderMode): void`
 
 ### Renderer API
 - `useNomosStore` (Zustand hook)
 	- `refreshFromMain(): Promise<void>`
+	- `setMapSelection(selection: MapSelection | null): void`
 
 ### IPC / preload entrypoints
 - `window.nomos.state.getSnapshot(): Promise<StateGetResponse>`
+- `window.nomos.state.onChanged(listener: () => void): () => void`
 - Main handler: `NomosIpcHandlers.getStateSnapshot()` in `src/main/main.ts`.
 
 ## Data shapes
@@ -69,6 +83,7 @@ type AppState = Readonly<{
 	assetIndex: AssetIndex | null;
 	assetIndexError: AssetIndexError | null;
 	mapDocument: MapDocument | null;
+	mapRenderMode: MapRenderMode;
 }>;
 ```
 
@@ -79,6 +94,7 @@ type AppStateSnapshot = Readonly<{
 	settings: EditorSettings;
 	assetIndex: AssetIndex | null;
 	mapDocument: MapDocument | null;
+	mapRenderMode: MapRenderMode;
 }>;
 
 type StateGetResponse = Result<AppStateSnapshot, { message: string }>;
@@ -93,7 +109,10 @@ type NomosStoreState = {
 	settings: EditorSettings;
 	assetIndex: AssetIndex | null;
 	mapDocument: MapDocument | null;
+	mapRenderMode: MapRenderMode;
+	mapSelection: MapSelection | null;
 	refreshFromMain: () => Promise<void>;
+	setMapSelection: (selection: MapSelection | null) => void;
 };
 ```
 
@@ -105,7 +124,8 @@ type NomosStoreState = {
 
 ### Single source of truth
 - The authoritative state is in main `AppStore`.
-- Renderer state is a pull-based cache; it can be stale unless `refreshFromMain()` is called.
+- Renderer state is a snapshot-based cache; it can be stale unless `refreshFromMain()` is called.
+	- The `nomos:state:changed` event exists solely to trigger refresh; the renderer still pulls the full snapshot.
 
 ### Asset index vs error mutual exclusion
 - `setAssetIndex(assetIndex)` clears `assetIndexError`.
@@ -118,6 +138,9 @@ type NomosStoreState = {
 ### Menu enablement dependency
 - The main process uses `store.getState().mapDocument !== null` to compute whether Save is enabled.
 - `store.subscribe()` triggers re-installing the application menu when state changes.
+
+### Render mode state
+- `mapRenderMode` lives in `AppStore` so that both the View menu checked state and the renderer rendering mode stay consistent.
 
 ## How to extend safely
 
@@ -133,8 +156,8 @@ type NomosStoreState = {
 
 Prefer keeping the preload API minimal: expose only what the renderer needs for display.
 
-### Push updates (future)
-If the renderer needs to react automatically to state changes, introduce a main→renderer event channel and keep it typed and narrowly scoped. Avoid letting the renderer initiate privileged operations except through explicit IPC commands.
+### Push updates
+- The renderer listens for the `nomos:state:changed` signal and refreshes its snapshot. Avoid introducing additional event streams unless there is a clear need.
 
 ## Testing notes
 - Main `AppStore` unit tests live in `src/main/application/store/AppStore.test.ts` and cover:

@@ -4,6 +4,8 @@ import {
   NOMOS_IPC_CHANNELS,
   type OpenAssetRequest,
   type OpenAssetResponse,
+  type ReadAssetFileBytesRequest,
+  type ReadAssetFileBytesResponse,
   type OpenMapDialogResponse,
   type OpenMapResponse,
   type PickDirectoryResponse,
@@ -35,7 +37,9 @@ const exposedNomosApi = {
     refreshIndex: async (): Promise<RefreshAssetIndexResponse> =>
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsRefreshIndex),
     open: async (request: OpenAssetRequest): Promise<OpenAssetResponse> =>
-      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsOpen, request)
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsOpen, request),
+    readFileBytes: async (request: ReadAssetFileBytesRequest): Promise<ReadAssetFileBytesResponse> =>
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsReadFileBytes, request)
   },
   map: {
     validate: async (request: ValidateMapRequest): Promise<ValidateMapResponse> =>
@@ -45,7 +49,18 @@ const exposedNomosApi = {
     save: async (): Promise<SaveMapResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapSave)
   },
   state: {
-    getSnapshot: async (): Promise<StateGetResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.stateGet)
+    getSnapshot: async (): Promise<StateGetResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.stateGet),
+    onChanged: (listener: () => void): (() => void) => {
+      const handler = (): void => {
+        listener();
+      };
+
+      ipcRenderer.on(NOMOS_IPC_CHANNELS.stateChanged, handler);
+
+      return () => {
+        ipcRenderer.removeListener(NOMOS_IPC_CHANNELS.stateChanged, handler);
+      };
+    }
   }
 } as const;
 

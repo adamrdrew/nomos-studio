@@ -8,6 +8,8 @@ Key goals:
 - Keep the IPC contract explicit and typed.
 - Limit surface area (only expose what the renderer needs).
 
+In addition to invoke-style calls, Nomos Studio also uses a single narrow main→renderer event (`nomos:state:changed`) to notify the renderer that it should refresh its snapshot.
+
 ## Architecture
 
 ### Contract definition (shared)
@@ -40,8 +42,10 @@ The renderer must only use the preload API:
 - `window.nomos.dialogs.pickDirectory()` / `pickFile()` / `openMap()`
 - `window.nomos.assets.refreshIndex()`
 - `window.nomos.assets.open({ relativePath })`
+- `window.nomos.assets.readFileBytes({ relativePath })`
 - `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()`
 - `window.nomos.state.getSnapshot()`
+- `window.nomos.state.onChanged(listener)`
 
 ### IPC channels
 Channels (canonical):
@@ -52,10 +56,12 @@ Channels (canonical):
 - `nomos:dialogs:open-map`
 - `nomos:assets:refresh-index`
 - `nomos:assets:open`
+- `nomos:assets:read-file-bytes`
 - `nomos:map:validate`
 - `nomos:map:open`
 - `nomos:map:save`
 - `nomos:state:get`
+- `nomos:state:changed` (event)
 
 ## Data shapes
 
@@ -84,6 +90,10 @@ type Result<TValue, TError> =
 - `OpenAssetRequest = Readonly<{ relativePath: string }>`
 - `OpenAssetResponse = Result<null, OpenAssetError>`
 
+Read file bytes:
+- `ReadAssetFileBytesRequest = Readonly<{ relativePath: string }>`
+- `ReadAssetFileBytesResponse = Result<Uint8Array, ReadAssetError>`
+
 ### Maps
 - `ValidateMapRequest = Readonly<{ mapPath: string }>`
 - `ValidateMapResponse = Result<null, MapValidationError>`
@@ -92,8 +102,12 @@ type Result<TValue, TError> =
 - `SaveMapResponse = Result<MapDocument, MapIoError>`
 
 ### State snapshot
-- `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; mapDocument: MapDocument | null }>`
+- `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; mapDocument: MapDocument | null; mapRenderMode: MapRenderMode }>`
 - `StateGetResponse = Result<AppStateSnapshot, { message: string }>`
+
+### State changed event
+- Main emits `nomos:state:changed` when `AppStore` changes.
+- Preload exposes `window.nomos.state.onChanged(listener)` which returns an unsubscribe function.
 
 ## Boundaries & invariants
 
@@ -108,7 +122,7 @@ type Result<TValue, TError> =
 
 ### Invoke/handle pattern
 - All operations use `ipcRenderer.invoke` + `ipcMain.handle` (request/response style).
-- There is currently no streaming/event subscription for state changes; renderer pulls state via `state:get`.
+- State is still pulled via `state:get`, but the renderer is notified via a narrow event so it knows when to refresh.
 
 ### Runtime validation
 - `registerNomosIpcHandlers` receives `unknown` args from Electron and casts them to typed requests.

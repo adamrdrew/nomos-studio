@@ -108,3 +108,52 @@
   - Add/extend unit tests for new/changed public methods (store setters, menu template, IPC wiring, asset read service/validator parsing paths).
   - Run `npm test`, `npm run typecheck`, `npm run lint`.
 - **Done when:** All quality gates pass.
+
+## S013 — Initialize view origin and frame the map on open
+- **Intent:** Ensure maps never appear “missing” due to off-screen placement and ensure the initial world-space origin is deterministic.
+- **Work:**
+  - On map open (and only when the opened map changes), initialize the Map Editor view transform so:
+    - the **viewport center corresponds to world-space (0,0)**
+    - the map’s content is visible immediately without manual panning
+  - Define a render-only “map origin” offset derived from the decoded map bounds (and any other relevant authored points, if needed) so the map is centered around world (0,0) for rendering/hit-testing.
+  - Ensure this origin offset does not mutate `MapDocument.json` and does not change Properties’ displayed authored values.
+  - Define reset behavior precisely:
+    - When the user pans/zooms, do not fight the user.
+    - When a new map is opened, re-apply the initial framing.
+- **Done when:** Opening any valid map shows visible content immediately and the view is centered deterministically.
+
+## S014 — Retune default scale, zoom bounds, and grid scale
+- **Intent:** Make maps usable at default zoom and ensure zoom bounds support both overview and close inspection.
+- **Work:**
+  - Define explicit view-transform defaults and bounds (initial scale, min zoom, max zoom) that do not make even the largest current map “tiny”.
+  - Retune the editor grid so it reads as an orientation aid rather than overwhelming the map. This may be done by:
+    - adjusting grid spacing in world units, and/or
+    - making grid spacing adapt to zoom so line density stays reasonable.
+  - Ensure the new defaults do not regress pan/zoom performance.
+- **Done when:** At default zoom, maps are readable; at max zoom, close inspection is possible; the grid no longer dominates.
+
+## S015 — Make object markers zoom-invariant in screen space
+- **Intent:** Prevent entity/emitter/door markers from obscuring the map at high zoom.
+- **Work:**
+  - Change marker rendering so marker size is defined in **screen pixels** and remains approximately constant across zoom.
+    - Implement by expressing marker sizes in world units as `screenPixels / view.scale` (or equivalent Konva technique).
+  - Align Select-mode hit-testing thresholds with the rendered marker sizes so selection remains intuitive.
+  - Confirm light *radius* visualization remains world-space (radius must still represent authored radius).
+- **Done when:** At high zoom, markers remain readable without covering large sections of geometry.
+
+## S016 — Update subsystem docs (L09) for framing/scale behavior
+- **Intent:** Keep docs current with the refined viewer UX rules.
+- **Work:**
+  - Update `docs/renderer-ui-system.md` to document:
+    - initial framing behavior on map open
+    - world-origin semantics in the viewport
+    - grid scale approach
+    - zoom-invariant marker sizing
+- **Done when:** Docs accurately describe the implemented behavior.
+
+## S017 — Re-run quality gates after UX refinements
+- **Intent:** Ensure the refinements don’t regress tests/lint/typecheck.
+- **Work:**
+  - Add/update unit tests for any new/changed public methods introduced by these refinements.
+  - Run `npm test`, `npm run typecheck`, `npm run lint`.
+- **Done when:** All quality gates pass.

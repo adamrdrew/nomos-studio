@@ -33,6 +33,14 @@ describe('registerNomosIpcHandlers', () => {
             message: 'nope'
           }
         }),
+        readAssetFileBytes: async () => ({
+          ok: false,
+          error: {
+            kind: 'read-asset-error',
+            code: 'read-asset/read-failed',
+            message: 'nope'
+          }
+        }),
         validateMap: async () => ({
           ok: false,
           error: { kind: 'map-validation-error', code: 'map-validation/runner-failed', message: 'nope' }
@@ -41,7 +49,12 @@ describe('registerNomosIpcHandlers', () => {
         saveMap: async () => ({ ok: false, error: { kind: 'map-io-error', code: 'map-io/no-document', message: 'nope' } }),
         getStateSnapshot: async () => ({
           ok: true,
-          value: { settings: { assetsDirPath: null, gameExecutablePath: null }, assetIndex: null, mapDocument: null }
+          value: {
+            settings: { assetsDirPath: null, gameExecutablePath: null },
+            assetIndex: null,
+            mapDocument: null,
+            mapRenderMode: 'wireframe'
+          }
         })
       }
     );
@@ -54,6 +67,7 @@ describe('registerNomosIpcHandlers', () => {
       channels.dialogsOpenMap,
       channels.assetsRefreshIndex,
       channels.assetsOpen,
+      channels.assetsReadFileBytes,
       channels.mapValidate,
       channels.mapOpen,
       channels.mapSave,

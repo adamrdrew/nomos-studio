@@ -5,6 +5,8 @@ The renderer UI subsystem contains the React UI that runs in Electron renderer p
 
 Current responsibilities:
 - Render the main “editor shell” UI (DockView layout) including the Map Editor surface and Inspector panels.
+- Render the currently-open map (wireframe or textured) in the Map Editor canvas.
+- Support Select-tool hit-testing and read-only Properties display.
 - Render Settings UI in two contexts:
 	- As a modal dialog inside the main window.
 	- As a dedicated Settings window when launched in “settings mode”.
@@ -27,6 +29,15 @@ Current responsibilities:
 		- Map Editor (center)
 		- Inspector (right)
 	- Refreshes the renderer snapshot on mount.
+	- Subscribes to main→renderer state changes and refreshes automatically.
+
+- `src/renderer/ui/editor/MapEditorCanvas.tsx`
+	- Konva `Stage`/`Layer` based map viewport.
+	- Renders:
+		- wireframe walls + doors
+		- textured floors + walls (best-effort)
+		- entity/emitter markers
+	- Implements Select-mode hit-testing and updates the selection state.
 
 ### State management
 Renderer state is intentionally small:
@@ -34,21 +45,32 @@ Renderer state is intentionally small:
 - `src/renderer/store/nomosStore.ts` (`useNomosStore`)
 	- Zustand store that caches a snapshot of main state.
 	- Populated by calling `refreshFromMain()` which invokes `window.nomos.state.getSnapshot()`.
+	- Also stores renderer-local UI state:
+		- `mapSelection` (selected map object identity)
 
 ### Preload/IPC integration
 Renderer code calls the typed preload surface `window.nomos.*` for privileged operations:
 - Settings read/write: `window.nomos.settings.get()` and `window.nomos.settings.update(...)`
 - File/directory dialogs: `window.nomos.dialogs.*`
 - Open asset in OS: `window.nomos.assets.open({ relativePath })`
+- Read asset bytes (for textures): `window.nomos.assets.readFileBytes({ relativePath })`
 - Map operations: `window.nomos.map.*`
 - State snapshot: `window.nomos.state.getSnapshot()`
+- State change subscription: `window.nomos.state.onChanged(listener)`
 
 ## Editor UI (normal mode)
 
 The editor UI is organized like a traditional creative tool:
 - **Map Editor** panel (center): a React Konva surface (`Stage`/`Layer`) that renders a graph-paper grid and supports pan/zoom.
+	- When a map is open, `MapEditorCanvas` decodes `mapDocument.json` and renders the map.
+	- Rendering style is controlled by `mapRenderMode` (`wireframe` / `textured`).
+	- On map open, the view is initialized so the viewport center corresponds to world-space `(0,0)` and the map is framed to be visible immediately.
+		- To achieve this for arbitrary authored coordinates, the renderer may apply a render-only origin offset derived from decoded map bounds; this does not mutate `MapDocument.json`.
+	- The editor grid adapts its spacing to zoom so line density stays readable.
+	- Object markers (doors/entities/emitters) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
 - **Tool palette** (left overlay within the Map Editor): Select / Zoom / Pan tool modes. Pan and zoom interactions are gated by the selected tool.
 - **Inspector** panel (right): contains collapsible sections, currently Asset Browser and Properties.
+	- Properties shows the selected map object (read-only) when Select tool chooses something.
 
 ## Public API / entrypoints
 
@@ -73,6 +95,7 @@ Settings UI uses two strings (nullable in persisted settings):
 - `settings: EditorSettings`
 - `assetIndex: AssetIndex | null`
 - `mapDocument: MapDocument | null`
+- `mapRenderMode: MapRenderMode`
 
 ## Boundaries & invariants
 
@@ -86,8 +109,8 @@ Settings UI uses two strings (nullable in persisted settings):
 	- “Done” and “Cancel” close the window.
 
 ### State freshness
-- Renderer state is pull-based.
-- After performing main-process actions that change state (e.g., open map, refresh assets), the renderer must refresh from main if it needs the latest snapshot.
+- Renderer state is snapshot-based.
+- The renderer refreshes on mount and also subscribes to main→renderer `state:changed` so state updates propagate without polling.
 
 ## How to extend safely
 

@@ -58,9 +58,11 @@ export class OpenMapService {
 
     const validationResult = await this.validator.validateMap(mapPath);
     if (!validationResult.ok) {
+      const isInvalidMap = validationResult.error.code === 'map-validation/invalid-map';
+
       await this.notifier.showError(
-        'Map Validation Failed',
-        validationResult.error.message,
+        isInvalidMap ? 'Map validation failed' : 'Map Validation Failed',
+        isInvalidMap ? 'Map validation failed' : validationResult.error.message,
         validationResult.error.report?.prettyText
       );
       return { ok: false, error: validationResult.error };

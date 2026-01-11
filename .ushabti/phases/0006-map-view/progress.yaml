@@ -2,89 +2,188 @@ phase:
   id: 0006
   slug: map-view
   title: Map View
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Confirm map JSON fields and texture/asset conventions
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Confirmed expected map keys: vertices/sectors/walls required; optional lights/particles/entities/doors. Confirmed world-geometry texture filenames resolve under <assetsDirPath>/Images/Textures/<filename>. Confirmed Properties stays in right-side Inspector."
+    touched:
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S002
     title: Add a narrow main→renderer “state changed” signal
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added a minimal nomos:state:changed event emitted on AppStore updates; renderer subscribes via preload and refreshes snapshot automatically."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/main/main.ts
+      - src/renderer/ui/editor/EditorShell.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S003
     title: Add map render mode state + View menu items
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added MapRenderMode ('wireframe'|'textured') to AppStore and IPC snapshot; added View menu with Wireframe/Textured radio items that update AppStore and propagate to renderer." 
+    touched:
+      - src/shared/domain/models.ts
+      - src/main/application/store/AppStore.ts
+      - src/main/application/store/AppStore.test.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/main.ts
+      - src/renderer/store/nomosStore.ts
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S004
     title: Create a typed renderer map view model + decoder
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added renderer-side MapViewModel types and a decodeMapViewModel(json: unknown) decoder returning a typed Result with clear errors; covered conditional paths with unit tests."
+    touched:
+      - src/renderer/ui/editor/map/mapViewModel.ts
+      - src/renderer/ui/editor/map/mapDecoder.ts
+      - src/renderer/ui/editor/map/mapDecoder.test.ts
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S005
     title: Render wireframe geometry (sectors/walls/doors)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Decoded current mapDocument.json in MapEditorCanvas and rendered wall segments plus door markers in world space via view transform (pan/zoom preserved)."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S006
     title: Render entity/emitter markers (and light radius)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Rendered light (circle + tinted semi-transparent radius), particle (square), and entity (triangle) markers in world space using decoded map objects."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S007
     title: Implement hit-testing + selection state
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented Select-mode hit testing (markers > doors > walls > sector) and stored selection as a discriminated union in renderer Zustand state."
+    touched:
+      - src/renderer/ui/editor/map/mapSelection.ts
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/store/nomosStore.test.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S008
     title: Populate the Properties panel from selection
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented read-only Properties panel showing the selected map object's properties (via renderer selection state and decoded map view model), with a 'Nothing selected' placeholder." 
+    touched:
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S009
     title: Implement textured rendering (floors + walls) with safe asset reads
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added safe IPC to read asset bytes (relative-to-assets, traversal-checked) and renderer-side bounded texture cache; implemented textured mode rendering for sector floors (pattern fill) and walls (pattern-filled rotated rects), resolving textures under Images/Textures/<filename>."
+    touched:
+      - src/shared/domain/results.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/main.ts
+      - src/main/infrastructure/assets/nodeBinaryFileReader.ts
+      - src/main/application/assets/ReadAssetFileBytesService.ts
+      - src/main/application/assets/ReadAssetFileBytesService.test.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S010
     title: Ensure validation failure messaging matches requirements
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Ensured invalid-map validation failures show an error dialog containing the exact text 'Map validation failed' and include pretty validator output as dialog detail; added/strengthened unit test coverage." 
+    touched:
+      - src/main/application/maps/OpenMapService.ts
+      - src/main/application/maps/OpenMapService.test.ts
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S011
     title: Update subsystem docs (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated subsystem docs to reflect map render modes, selection/properties, View menu items, state-changed snapshot refresh signal, and safe asset-bytes IPC used for textures."
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/menu-system.md
+      - docs/app-store-system.md
+      - docs/ipc-system.md
+      - docs/assets-system.md
+      - docs/maps-system.md
+      - .ushabti/phases/0006-map-view/progress.yaml
 
   - id: S012
     title: Tests and quality gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Ran npm test/typecheck/lint; all passed. Fixed a react-hooks exhaustive-deps lint warning in MapEditorCanvas."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
+
+  - id: S013
+    title: Initialize view origin and frame the map on open
+    implemented: true
+    reviewed: false
+    notes: "Added a render-only map origin derived from decoded map bounds (centers map around world (0,0) without mutating MapDocument.json). On map open, resets view offsets so viewport center corresponds to world origin; selection hit-testing compensates for origin shift."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
+
+  - id: S014
+    title: Retune default scale, zoom bounds, and grid scale
+    implemented: true
+    reviewed: false
+    notes: "Retuned view transform defaults by fitting the opened map to the viewport (bounded initial scale) and increased zoom bounds to allow closer inspection. Made grid spacing adapt to zoom to keep line density reasonable." 
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
+
+  - id: S015
+    title: Make object markers zoom-invariant in screen space
+    implemented: true
+    reviewed: false
+    notes: "Converted door/entity/particle/light marker sizes to be screen-space (px) by deriving world sizes from view.scale, and disabled stroke scaling for markers so they stay readable at any zoom. Light radius remains world-space." 
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0006-map-view/progress.yaml
+
+  - id: S016
+    title: Update subsystem docs (L09) for framing/scale behavior
+    implemented: true
+    reviewed: false
+    notes: "Updated renderer UI subsystem documentation to describe initial framing/origin semantics, adaptive grid spacing, and zoom-invariant marker sizing (with light radius remaining world-space)."
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0006-map-view/progress.yaml
+
+  - id: S017
+    title: Re-run quality gates after UX refinements
+    implemented: true
+    reviewed: false
+    notes: "User ran quality gates after S013–S016 changes: npm run lint (passes; typescript-eslint emits a non-fatal TS version support warning), npm run typecheck (passes), npm run test --coverage (22 suites, 116 tests; passes)."
+    touched:
+      - .ushabti/phases/0006-map-view/progress.yaml
