@@ -1,0 +1,83 @@
+phase:
+  id: 0007
+  slug: ui-refinements-grid-toolbox
+  title: UI Refinements (Grid + Toolbox)
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm UI constants and icon mapping
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Add grid settings to the main renderer snapshot (state shape)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Extend View menu template with grid controls
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Wire menu callbacks in main to update store and notify renderer
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Make Map Editor grid respect visibility + opacity settings
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Set initial Inspector width to ~20% on app open
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Prevent closing Map Editor and Inspector panels
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Redesign the left tool UI into a toolbox (icons + tooltips + non-stretch layout)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Update subsystem docs (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Unit tests for new/changed public APIs (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
