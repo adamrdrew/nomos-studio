@@ -1,0 +1,90 @@
+phase:
+  id: 0009
+  slug: transactional-editor-commands
+  title: Transactional Editor Commands + Undo/Redo
+  status: planned
+
+steps:
+  - id: S001
+    title: Inventory current edit + store patterns
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define shared command + result types (IPC-facing)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Decide and document history metadata semantics
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Implement main command engine API (pure-ish)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Implement bounded undo/redo history (main)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Wire MapEditService through engine + history
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Add IPC channels for undo/redo (minimal surface)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Expose history summary in state snapshot for enable/disable
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Renderer integration: selection reconciliation + undo/redo triggers
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Menu + shortcuts
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Test matrix completion (main)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S012
+    title: Documentation updates (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
