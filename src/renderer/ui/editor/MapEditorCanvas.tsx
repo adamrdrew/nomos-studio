@@ -10,6 +10,13 @@ import type { MapViewModel } from './map/mapViewModel';
 
 export type MapEditorInteractionMode = 'select' | 'pan' | 'zoom';
 
+export type MapEditorViewportApi = Readonly<{
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetView: () => void;
+  centerOnOrigin: () => void;
+}>;
+
 type Size = Readonly<{ width: number; height: number }>;
 
 type ViewTransform = Readonly<{ offsetX: number; offsetY: number; scale: number }>;
@@ -298,8 +305,12 @@ function chooseMinorGridWorldSpacing(viewScale: number): number {
   return best;
 }
 
-export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMode }): JSX.Element {
+export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interactionMode: MapEditorInteractionMode }>(
+  function MapEditorCanvas(props, ref): JSX.Element {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const stageRef = React.useRef<
+    Readonly<{ getPointerPosition: () => Readonly<{ x: number; y: number }> | null }> | null
+  >(null);
   const [size, setSize] = React.useState<Size>({ width: 1, height: 1 });
 
   const mapDocument = useNomosStore((state) => state.mapDocument);
@@ -454,6 +465,77 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
     offsetY: 0,
     scale: 1
   });
+
+  const zoomStepFactor = 1.2;
+
+  const getBestZoomFocusPoint = React.useCallback((): Readonly<{ x: number; y: number }> => {
+    const pointer = stageRef.current?.getPointerPosition() ?? null;
+    if (pointer !== null) {
+      return { x: pointer.x, y: pointer.y };
+    }
+
+    return { x: size.width / 2, y: size.height / 2 };
+  }, [size.height, size.width]);
+
+  const zoomAroundScreenPoint = React.useCallback(
+    (screenPoint: Readonly<{ x: number; y: number }>, scaleFactor: number): void => {
+      setView((current) => {
+        const nextScale = clamp(current.scale * scaleFactor, MIN_VIEW_SCALE, MAX_VIEW_SCALE);
+        if (nextScale === current.scale) {
+          return current;
+        }
+
+        const worldX = (screenPoint.x - current.offsetX) / current.scale;
+        const worldY = (screenPoint.y - current.offsetY) / current.scale;
+
+        const nextOffsetX = screenPoint.x - worldX * nextScale;
+        const nextOffsetY = screenPoint.y - worldY * nextScale;
+
+        return {
+          offsetX: nextOffsetX,
+          offsetY: nextOffsetY,
+          scale: nextScale
+        };
+      });
+    },
+    []
+  );
+
+  const computeInitialScale = React.useCallback((): number => {
+    if (mapBounds === null) {
+      return clamp(1, MIN_VIEW_SCALE, 6);
+    }
+
+    const widthWorld = Math.max(1, mapBounds.maxX - mapBounds.minX);
+    const heightWorld = Math.max(1, mapBounds.maxY - mapBounds.minY);
+
+    const paddingFactor = 0.85;
+    const fitScaleX = (size.width * paddingFactor) / widthWorld;
+    const fitScaleY = (size.height * paddingFactor) / heightWorld;
+    const fitScale = Math.min(fitScaleX, fitScaleY);
+
+    return clamp(fitScale, MIN_VIEW_SCALE, 6);
+  }, [mapBounds, size.height, size.width]);
+
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      zoomIn: () => {
+        zoomAroundScreenPoint(getBestZoomFocusPoint(), zoomStepFactor);
+      },
+      zoomOut: () => {
+        zoomAroundScreenPoint(getBestZoomFocusPoint(), 1 / zoomStepFactor);
+      },
+      resetView: () => {
+        const initialScale = computeInitialScale();
+        setView({ offsetX: size.width / 2, offsetY: size.height / 2, scale: initialScale });
+      },
+      centerOnOrigin: () => {
+        setView((current) => ({ ...current, offsetX: size.width / 2, offsetY: size.height / 2 }));
+      }
+    }),
+    [computeInitialScale, getBestZoomFocusPoint, size.height, size.width, zoomAroundScreenPoint]
+  );
 
   const lastFramedMapRef = React.useRef<string | null>(null);
 
@@ -956,6 +1038,11 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
   return (
     <div ref={containerRef} style={{ height: '100%', width: '100%' }}>
       <Stage
+        ref={(stage) => {
+          stageRef.current = stage as unknown as Readonly<{
+            getPointerPosition: () => Readonly<{ x: number; y: number }> | null;
+          }> | null;
+        }}
         width={size.width}
         height={size.height}
         onMouseDown={onMouseDown}
@@ -993,3 +1080,4 @@ export function MapEditorCanvas(props: { interactionMode: MapEditorInteractionMo
     </div>
   );
 }
+);

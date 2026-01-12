@@ -1,6 +1,8 @@
 export {};
 
 import type {
+  MapEditRequest,
+  MapEditResponse,
   OpenAssetRequest,
   OpenAssetResponse,
   ReadAssetFileBytesRequest,
@@ -41,6 +43,7 @@ declare global {
         validate: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
         open: (request: { mapPath: string }) => Promise<OpenMapResponse>;
         save: () => Promise<SaveMapResponse>;
+        edit: (request: MapEditRequest) => Promise<MapEditResponse>;
       };
       state: {
         getSnapshot: () => Promise<StateGetResponse>;

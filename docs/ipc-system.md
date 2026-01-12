@@ -43,7 +43,7 @@ The renderer must only use the preload API:
 - `window.nomos.assets.refreshIndex()`
 - `window.nomos.assets.open({ relativePath })`
 - `window.nomos.assets.readFileBytes({ relativePath })`
-- `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()`
+- `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()` / `edit({ command })`
 - `window.nomos.state.getSnapshot()`
 - `window.nomos.state.onChanged(listener)`
 
@@ -60,6 +60,7 @@ Channels (canonical):
 - `nomos:map:validate`
 - `nomos:map:open`
 - `nomos:map:save`
+- `nomos:map:edit`
 - `nomos:state:get`
 - `nomos:state:changed` (event)
 
@@ -101,8 +102,15 @@ Read file bytes:
 - `OpenMapResponse = Result<MapDocument, MapIoError | MapValidationError>`
 - `SaveMapResponse = Result<MapDocument, MapIoError>`
 
+Edit map:
+- `MapEditTargetRef = { kind: 'light' | 'particle' | 'entity'; index: number } | { kind: 'door'; id: string }`
+- `MapEditCommand = { kind: 'map-edit/delete' | 'map-edit/clone'; target: MapEditTargetRef }`
+- `MapEditRequest = Readonly<{ command: MapEditCommand }>`
+- `MapEditResult = { kind: 'map-edit/deleted' } | { kind: 'map-edit/cloned'; newRef: MapEditTargetRef }`
+- `MapEditResponse = Result<MapEditResult, MapEditError>`
+
 ### State snapshot
-- `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; mapDocument: MapDocument | null; mapRenderMode: MapRenderMode }>`
+- `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; mapDocument: MapDocument | null; mapRenderMode: MapRenderMode; mapGridSettings: MapGridSettings }>`
 - `StateGetResponse = Result<AppStateSnapshot, { message: string }>`
 
 ### State changed event

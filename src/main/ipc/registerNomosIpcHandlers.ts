@@ -2,6 +2,8 @@ import type { IpcMainInvokeEvent } from 'electron';
 
 import type { NOMOS_IPC_CHANNELS } from '../../shared/ipc/nomosIpc';
 import type {
+  MapEditRequest,
+  MapEditResponse,
   OpenAssetRequest,
   OpenAssetResponse,
   ReadAssetFileBytesRequest,
@@ -43,6 +45,7 @@ export type NomosIpcHandlers = Readonly<{
   validateMap: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
   openMap: (request: OpenMapRequest) => Promise<OpenMapResponse>;
   saveMap: () => Promise<SaveMapResponse>;
+  editMap: (request: MapEditRequest) => Promise<MapEditResponse>;
 
   getStateSnapshot: () => Promise<StateGetResponse>;
 }>;
@@ -76,6 +79,9 @@ export function registerNomosIpcHandlers(
     handlers.openMap(request as OpenMapRequest)
   );
   ipcMain.handle(channels.mapSave, async () => handlers.saveMap());
+  ipcMain.handle(channels.mapEdit, async (_event, request: unknown) =>
+    handlers.editMap(request as MapEditRequest)
+  );
 
   ipcMain.handle(channels.stateGet, async () => handlers.getStateSnapshot());
 }

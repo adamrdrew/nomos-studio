@@ -47,6 +47,10 @@ describe('registerNomosIpcHandlers', () => {
         }),
         openMap: async () => ({ ok: false, error: { kind: 'map-io-error', code: 'map-io/read-failed', message: 'nope' } }),
         saveMap: async () => ({ ok: false, error: { kind: 'map-io-error', code: 'map-io/no-document', message: 'nope' } }),
+        editMap: async () => ({
+          ok: false,
+          error: { kind: 'map-edit-error', code: 'map-edit/no-document', message: 'nope' }
+        }),
         getStateSnapshot: async () => ({
           ok: true,
           value: {
@@ -72,6 +76,7 @@ describe('registerNomosIpcHandlers', () => {
       channels.mapValidate,
       channels.mapOpen,
       channels.mapSave,
+      channels.mapEdit,
       channels.stateGet
     ]);
   });

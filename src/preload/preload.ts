@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import {
   NOMOS_IPC_CHANNELS,
+  type MapEditRequest,
+  type MapEditResponse,
   type OpenAssetRequest,
   type OpenAssetResponse,
   type ReadAssetFileBytesRequest,
@@ -46,7 +48,9 @@ const exposedNomosApi = {
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapValidate, request),
     open: async (request: { mapPath: string }): Promise<OpenMapResponse> =>
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapOpen, request),
-    save: async (): Promise<SaveMapResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapSave)
+    save: async (): Promise<SaveMapResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapSave),
+    edit: async (request: MapEditRequest): Promise<MapEditResponse> =>
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapEdit, request)
   },
   state: {
     getSnapshot: async (): Promise<StateGetResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.stateGet),

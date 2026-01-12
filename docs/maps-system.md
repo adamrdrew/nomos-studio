@@ -20,6 +20,7 @@ The maps system spans application services, infrastructure seams for filesystem/
 	- `MapValidationService` validates a map path by running the configured game executable.
 	- `OpenMapService` enforces prerequisite settings, validates the map, reads JSON from disk, constructs a `MapDocument`, and stores it in `AppStore`.
 	- `SaveMapService` serializes the current `MapDocument.json` and performs a safe write back to disk.
+	- `MapEditService` applies a narrow set of in-memory edits (Delete/Clone) to `MapDocument.json` and marks the document dirty.
 	- `UserNotifier` is injected so user-visible errors can be shown without binding services directly to Electron UI.
 
 - **Infrastructure seams (side effects)**
@@ -42,11 +43,15 @@ The maps system spans application services, infrastructure seams for filesystem/
 - `SaveMapService`
 	- `saveCurrentDocument(): Promise<Result<MapDocument, MapIoError>>`
 
+- `MapEditService`
+	- `edit(command: MapEditCommand): Result<MapEditResult, MapEditError>`
+
 ### Preload API (renderer-facing)
 - `window.nomos.dialogs.openMap(): Promise<OpenMapDialogResponse>`
 - `window.nomos.map.validate(request: { mapPath: string }): Promise<ValidateMapResponse>`
 - `window.nomos.map.open(request: { mapPath: string }): Promise<OpenMapResponse>`
 - `window.nomos.map.save(): Promise<SaveMapResponse>`
+- `window.nomos.map.edit(request: MapEditRequest): Promise<MapEditResponse>`
 
 ### IPC contract
 Defined in `src/shared/ipc/nomosIpc.ts`:
@@ -55,6 +60,7 @@ Defined in `src/shared/ipc/nomosIpc.ts`:
 	- `nomos:map:validate`
 	- `nomos:map:open`
 	- `nomos:map:save`
+	- `nomos:map:edit`
 
 Types:
 - `OpenMapDialogResponse = Result<string | null, { message: string }>`
@@ -63,6 +69,10 @@ Types:
 - `OpenMapRequest = Readonly<{ mapPath: string }>`
 - `OpenMapResponse = Result<MapDocument, MapIoError | MapValidationError>`
 - `SaveMapResponse = Result<MapDocument, MapIoError>`
+
+Edit map:
+- `MapEditRequest = Readonly<{ command: MapEditCommand }>`
+- `MapEditResponse = Result<MapEditResult, MapEditError>`
 
 ## Data shapes
 
@@ -154,6 +164,11 @@ If validation fails with `code: 'map-validation/invalid-map'`:
 ### Save behavior (L06)
 - Save writes to `<file>.tmp` and then atomically replaces the destination using a Windows-safe rename strategy.
 - On success, the stored document is updated with `dirty: false`.
+
+### Edit behavior (Delete/Clone)
+- Edits are applied only to the in-memory `MapDocument.json` and stored via `AppStore.setMapDocument` with `dirty: true`.
+- Edits do not touch the filesystem directly.
+- After an edit, main emits the existing `nomos:state:changed` signal (via the AppStore emit path) so the renderer refreshes its snapshot.
 
 ## How to extend safely
 

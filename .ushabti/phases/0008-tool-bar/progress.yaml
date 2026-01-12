@@ -1,0 +1,172 @@
+phase:
+  id: 0008
+  slug: tool-bar
+  title: Tool Bar
+  status: review
+
+steps:
+  - id: S001
+    title: Confirm command semantics and supported selection kinds
+    implemented: true
+    reviewed: false
+    notes: "Recorded toolbar location (Map Editor panel, above canvas), Center semantics (center on world origin without scale change), Default Zoom semantics (re-apply map-open framing), Delete/Clone supported selection kinds (light/particle/entity/door only), and clone offset (+16,+16 world)."
+    touched:
+      - .ushabti/phases/0008-tool-bar/phase.md
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S002
+    title: Define typed tool + toolbar-command registry
+    implemented: true
+    reviewed: false
+    notes: "Added a typed Map Editor tool registry (tool definitions + per-tool toolbar command definitions) and refactored the existing toolbox UI to render from the registry so toolbar rendering can be generic and registry-driven."
+    touched:
+      - src/renderer/ui/editor/tools/mapEditorTools.ts
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S003
+    title: Implement Map Editor Tool Bar UI component
+    implemented: true
+    reviewed: false
+    notes: "Added a Map Editor toolbar row above the canvas that renders command buttons by iterating the active tool's registry-defined toolbar commands; layout keeps the existing toolbox overlay separate from the toolbar."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S004
+    title: Make selected tool state shareable
+    implemented: true
+    reviewed: false
+    notes: "Moved selected tool to a single owner state (MapEditorDockPanel toolId) and used it to drive both the toolbox active state and the toolbar's active tool definition, avoiding duplicated tool state."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S005
+    title: Add a viewport control interface for pan/zoom commands
+    implemented: true
+    reviewed: false
+    notes: "Exposed a narrow imperative viewport API from MapEditorCanvas (zoomIn/zoomOut/resetView/centerOnOrigin) via forwardRef/useImperativeHandle and threaded a viewport ref from MapEditorDockPanel to prepare toolbar-driven view commands without coupling to internal canvas state."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S006
+    title: Implement Zoom/Pan tool commands
+    implemented: true
+    reviewed: false
+    notes: "Implemented Zoom In/Out, Default Zoom, and Center by routing toolbar commands through the MapEditorCanvas viewport API (clamped zoom steps, deterministic reset to center+fit scale, and center-on-origin without scale change)."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S007
+    title: Design the map edit IPC contract for Delete/Clone
+    implemented: true
+    reviewed: false
+    notes: "Defined the shared map edit IPC contract (channel + request/response unions + target references + handler signature) and exposed a typed preload surface (window.nomos.map.edit). Runtime handler wiring and main-process mutation service remain for later steps."
+    touched:
+      - src/shared/domain/results.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S008
+    title: Implement main-process map edit service (Delete/Clone)
+    implemented: true
+    reviewed: false
+    notes: "Added a main-process MapEditService that validates prerequisites (map loaded + JSON shape), applies Delete/Clone mutations to MapDocument.json for lights/particles/entities/doors, marks dirty: true, and returns typed results including clone refs; includes deterministic unique door-id generation with collision checks and unit tests covering success + failure branches."
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S009
+    title: Wire IPC → service → store → renderer refresh
+    implemented: true
+    reviewed: false
+    notes: "Wired the new nomos:map:edit IPC channel to MapEditService via registerNomosIpcHandlers + main handler; edits update AppStore.mapDocument (dirty: true) which triggers the existing stateChanged signal for renderer refresh; updated IPC registration unit test to include the new channel."
+    touched:
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/main.ts
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S010
+    title: Renderer-side enable/disable + selection updates
+    implemented: true
+    reviewed: false
+    notes: "Wired Select tool toolbar commands to window.nomos.map.edit and implemented safe enable/disable behavior: Delete/Clone are disabled when no map is loaded, no selection exists, or selection kind is wall/sector; after Delete selection clears, after Clone selection updates to the returned clone reference."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S011
+    title: Update subsystem docs (L09)
+    implemented: true
+    reviewed: false
+    notes: "Updated renderer UI, maps, and IPC subsystem docs to reflect the new tool bar, the typed map edit IPC surface (nomos:map:edit / window.nomos.map.edit), and the main-process MapEditService + dirty tracking behavior." 
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/maps-system.md
+      - docs/ipc-system.md
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S012
+    title: Unit tests for new/changed public APIs (L04)
+    implemented: true
+    reviewed: false
+    notes: "Added unit tests for MapEditService.edit covering success + failure branches across supported targets, and updated registerNomosIpcHandlers tests to include the new nomos:map:edit channel wiring." 
+    touched:
+      - src/main/application/maps/MapEditService.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S013
+    title: Quality gates
+    implemented: true
+    reviewed: false
+    notes: "User reran quality gates: npm test, npm run typecheck, and npm run lint all pass (lint emits a TypeScript version support warning but exits 0)."
+    touched:
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S014
+    title: Complete L04 test coverage for new public APIs
+    implemented: true
+    reviewed: false
+    notes: "Added additional MapEditService.edit branch tests (particle/entity delete, particle clone success, negative/non-integer index handling, door clone id generation for -copy, and door clone invalid whitespace id) and added a unit test suite for mapEditorTools exported helpers. User ran npm test/typecheck/lint successfully."
+    touched:
+      - src/main/application/maps/MapEditService.test.ts
+      - src/renderer/ui/editor/tools/mapEditorTools.test.ts
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S015
+    title: Align toolbar zoom focus with wheel zoom behavior
+    implemented: true
+    reviewed: false
+    notes: "Updated MapEditorCanvas viewport zoomIn/zoomOut to zoom around the current pointer position when available (via Stage.getPointerPosition), falling back to viewport center otherwise. User ran npm test/typecheck/lint successfully."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S016
+    title: Clarify door clone visibility/offset semantics
+    implemented: true
+    reviewed: false
+    notes: "Updated phase.md to clarify that the (+16,+16) clone offset applies only to x/y-bearing objects (lights/particles/entities); doors clone by duplicating the door record with a new unique id while retaining wall linkage. User ran npm test/typecheck/lint successfully."
+    touched:
+      - .ushabti/phases/0008-tool-bar/phase.md
+      - .ushabti/phases/0008-tool-bar/progress.yaml
+
+  - id: S017
+    title: Complete remaining MapEditService L04 branch coverage
+    implemented: true
+    reviewed: false
+    notes: "User reran `npm run test --coverage`; MapEditService.ts is now 100% statements/branches/functions/lines. Added targeted MapEditService tests and made unreachable branches meaningful (typed unsupported-target) so L04 conditional paths are covered." 
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0008-tool-bar/progress.yaml

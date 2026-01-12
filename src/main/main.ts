@@ -21,6 +21,7 @@ import { MapValidationService } from './application/maps/MapValidationService';
 import { OpenMapService } from './application/maps/OpenMapService';
 import type { UserNotifier } from './application/ui/UserNotifier';
 import { SaveMapService } from './application/maps/SaveMapService';
+import { MapEditService } from './application/maps/MapEditService';
 import type { NomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
 import { createApplicationMenuTemplate } from './infrastructure/menu/createApplicationMenuTemplate';
 import type { MapRenderMode } from '../shared/domain/models';
@@ -161,6 +162,7 @@ app.on('ready', () => {
 
   const openMapService = new OpenMapService(store, mapValidationService, nodeFileSystem, notifier);
   const saveMapService = new SaveMapService(store, nodeFileSystem, notifier);
+  const mapEditService = new MapEditService(store);
 
   void (async () => {
     const settingsResult = await settingsService.getSettings();
@@ -238,6 +240,7 @@ app.on('ready', () => {
     },
     openMap: async (request) => openMapService.openMap(request.mapPath),
     saveMap: async () => saveMapService.saveCurrentDocument(),
+    editMap: async (request) => mapEditService.edit(request.command),
 
     getStateSnapshot: async () => {
       return {

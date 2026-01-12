@@ -44,6 +44,16 @@ export type MapIoError = Readonly<{
   message: string;
 }>;
 
+export type MapEditError = Readonly<{
+  kind: 'map-edit-error';
+  code:
+    | 'map-edit/no-document'
+    | 'map-edit/invalid-json'
+    | 'map-edit/not-found'
+    | 'map-edit/unsupported-target';
+  message: string;
+}>;
+
 export type OpenAssetError = Readonly<{
   kind: 'open-asset-error';
   code:

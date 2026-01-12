@@ -83,6 +83,11 @@ The editor UI is organized like a traditional creative tool:
 - **Toolbox** (left overlay within the Map Editor): Select / Zoom / Pan tool modes.
 	- Buttons are icon-based with tooltips and do not stretch to fill the vertical space.
 	- The toolbox is a compact, scrollable column so additional tools can be added without odd stretching.
+
+- **Tool bar** (row above the Map Editor canvas): tool-specific commands for the currently selected tool.
+	- Tool bar commands are registry-driven (tool definitions declare which commands they expose).
+	- Zoom/Pan commands control the viewport via a narrow imperative viewport API exposed by `MapEditorCanvas`.
+	- Select commands (Delete/Clone) request main-process edits via `window.nomos.map.edit(...)` and update renderer selection based on the edit result.
 - **Inspector** panel (right): contains collapsible sections, currently Asset Browser and Properties.
 	- Properties shows the selected map object (read-only) when Select tool chooses something.
 	- On initial app open, Inspector starts at approximately 20% of the window width.
