@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { AssetIndex, EditorSettings, MapDocument, MapGridSettings, MapRenderMode } from '../../shared/domain/models';
+import type { MapEditHistoryInfo, MapEditSelectionEffect, MapEditTargetRef } from '../../shared/ipc/nomosIpc';
 import type { MapSelection } from '../ui/editor/map/mapSelection';
 
 export type NomosStoreState = {
@@ -9,10 +10,50 @@ export type NomosStoreState = {
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
   mapGridSettings: MapGridSettings;
+  mapHistory: MapEditHistoryInfo;
   mapSelection: MapSelection | null;
   refreshFromMain: () => Promise<void>;
   setMapSelection: (selection: MapSelection | null) => void;
+  applyMapSelectionEffect: (effect: MapEditSelectionEffect) => void;
 };
+
+function toMapSelection(ref: MapEditTargetRef): MapSelection {
+  switch (ref.kind) {
+    case 'light':
+    case 'particle':
+    case 'entity':
+      return { kind: ref.kind, index: ref.index };
+    case 'door':
+      return { kind: 'door', id: ref.id };
+    default: {
+      const neverRef: never = ref;
+      return neverRef;
+    }
+  }
+}
+
+function selectionMatchesRef(selection: MapSelection | null, ref: MapEditTargetRef): boolean {
+  if (selection === null) {
+    return false;
+  }
+
+  if (selection.kind !== ref.kind) {
+    return false;
+  }
+
+  switch (ref.kind) {
+    case 'light':
+    case 'particle':
+    case 'entity':
+      return 'index' in selection && selection.index === ref.index;
+    case 'door':
+      return 'id' in selection && selection.id === ref.id;
+    default: {
+      const neverRef: never = ref;
+      return neverRef;
+    }
+  }
+}
 
 const defaultSettings: EditorSettings = {
   assetsDirPath: null,
@@ -25,6 +66,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   mapDocument: null,
   mapRenderMode: 'wireframe',
   mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+  mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 },
   mapSelection: null,
   refreshFromMain: async () => {
     const snapshotResult = await window.nomos.state.getSnapshot();
@@ -37,10 +79,33 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
       assetIndex: snapshotResult.value.assetIndex,
       mapDocument: snapshotResult.value.mapDocument,
       mapRenderMode: snapshotResult.value.mapRenderMode,
-      mapGridSettings: snapshotResult.value.mapGridSettings
+      mapGridSettings: snapshotResult.value.mapGridSettings,
+      mapHistory: snapshotResult.value.mapHistory
     });
   },
   setMapSelection: (selection) => {
     set({ mapSelection: selection });
+  },
+  applyMapSelectionEffect: (effect) => {
+    set((state) => {
+      switch (effect.kind) {
+        case 'map-edit/selection/keep':
+          return {};
+        case 'map-edit/selection/clear':
+          return { mapSelection: null };
+        case 'map-edit/selection/set':
+          return { mapSelection: toMapSelection(effect.ref) };
+        case 'map-edit/selection/remap': {
+          if (!selectionMatchesRef(state.mapSelection, effect.from)) {
+            return {};
+          }
+          return { mapSelection: toMapSelection(effect.to) };
+        }
+        default: {
+          const neverEffect: never = effect;
+          return neverEffect;
+        }
+      }
+    });
   }
 }));

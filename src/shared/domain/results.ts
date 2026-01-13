@@ -50,8 +50,13 @@ export type MapEditError = Readonly<{
     | 'map-edit/no-document'
     | 'map-edit/invalid-json'
     | 'map-edit/not-found'
-    | 'map-edit/unsupported-target';
+    | 'map-edit/unsupported-target'
+    | 'map-edit/transaction-empty'
+    | 'map-edit/transaction-too-large'
+    | 'map-edit/transaction-step-failed';
   message: string;
+  stepIndex?: number;
+  cause?: MapEditError;
 }>;
 
 export type OpenAssetError = Readonly<{

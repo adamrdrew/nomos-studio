@@ -6,6 +6,7 @@ import type { FileSystem } from '../../infrastructure/settings/fileSystem';
 import type { AppStore } from '../store/AppStore';
 import type { MapValidationService } from './MapValidationService';
 import type { UserNotifier } from '../ui/UserNotifier';
+import type { MapEditHistoryPort } from './MapEditHistory';
 
 function toMapIoError(code: MapIoError['code'], message: string): MapIoError {
   return { kind: 'map-io-error', code, message };
@@ -16,17 +17,20 @@ export class OpenMapService {
   private readonly validator: MapValidationService;
   private readonly fs: FileSystem;
   private readonly notifier: UserNotifier;
+  private readonly history: MapEditHistoryPort;
 
   public constructor(
     store: AppStore,
     validator: MapValidationService,
     fs: FileSystem,
-    notifier: UserNotifier
+    notifier: UserNotifier,
+    history: MapEditHistoryPort
   ) {
     this.store = store;
     this.validator = validator;
     this.fs = fs;
     this.notifier = notifier;
+    this.history = history;
   }
 
   public async openMap(mapPath: string): Promise<Result<MapDocument, MapIoError | MapValidationError>> {
@@ -93,6 +97,7 @@ export class OpenMapService {
       lastValidation: validationResult.value
     };
 
+    this.history.onMapOpened(document);
     this.store.setMapDocument(document);
 
     return { ok: true, value: document };

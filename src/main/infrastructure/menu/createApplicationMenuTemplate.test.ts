@@ -6,11 +6,15 @@ describe('createApplicationMenuTemplate', () => {
       appName: 'Nomos Studio',
       platform: 'darwin',
       canSave: false,
+      canUndo: false,
+      canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
       onToggleMapGrid: () => {},
@@ -34,16 +38,20 @@ describe('createApplicationMenuTemplate', () => {
     expect(preferencesItem?.accelerator).toBe('CommandOrControl+,');
   });
 
-  it('creates a Windows/Linux Edit menu with Settings… (Ctrl+,) entrypoint', () => {
+  it('creates a Windows/Linux Settings menu with Settings… (Ctrl+,) entrypoint', () => {
     const template = createApplicationMenuTemplate({
       appName: 'Nomos Studio',
       platform: 'win32',
       canSave: false,
+      canUndo: false,
+      canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
       onToggleMapGrid: () => {},
@@ -51,14 +59,14 @@ describe('createApplicationMenuTemplate', () => {
       onDecreaseMapGridOpacity: () => {}
     });
 
-    expect(template.some((item) => item.label === 'Edit')).toBe(true);
+    expect(template.some((item) => item.label === 'Settings')).toBe(true);
 
-    const editMenu = template.find((item) => item.label === 'Edit');
-    if (editMenu === undefined || editMenu.submenu === undefined || !Array.isArray(editMenu.submenu)) {
-      throw new Error('Expected Edit menu submenu');
+    const settingsMenu = template.find((item) => item.label === 'Settings');
+    if (settingsMenu === undefined || settingsMenu.submenu === undefined || !Array.isArray(settingsMenu.submenu)) {
+      throw new Error('Expected Settings menu submenu');
     }
 
-    const settingsItem = editMenu.submenu.find(
+    const settingsItem = settingsMenu.submenu.find(
       (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Settings…'
     ) as { label?: string; accelerator?: string } | undefined;
 
@@ -71,11 +79,15 @@ describe('createApplicationMenuTemplate', () => {
       appName: 'Nomos Studio',
       platform: 'darwin',
       canSave: true,
+      canUndo: false,
+      canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
       onToggleMapGrid: () => {},
@@ -100,11 +112,15 @@ describe('createApplicationMenuTemplate', () => {
       appName: 'Nomos Studio',
       platform: 'darwin',
       canSave: false,
+      canUndo: false,
+      canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
       onToggleMapGrid: () => {},
@@ -129,11 +145,15 @@ describe('createApplicationMenuTemplate', () => {
       appName: 'Nomos Studio',
       platform: 'darwin',
       canSave: false,
+      canUndo: false,
+      canRedo: false,
       mapRenderMode: 'textured',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
       onToggleMapGrid: () => {},
@@ -167,11 +187,15 @@ describe('createApplicationMenuTemplate', () => {
       appName: 'Nomos Studio',
       platform: 'darwin',
       canSave: false,
+      canUndo: false,
+      canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: false, gridOpacity: 0.3 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
       onToggleMapGrid: () => {},
@@ -219,11 +243,15 @@ describe('createApplicationMenuTemplate', () => {
       appName: 'Nomos Studio',
       platform: 'darwin',
       canSave: false,
+      canUndo: false,
+      canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
       onToggleMapGrid,

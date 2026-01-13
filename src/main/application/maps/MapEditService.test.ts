@@ -1,5 +1,8 @@
 import { MapEditService } from './MapEditService';
+import { MapCommandEngine } from './MapCommandEngine';
+import { MapEditHistory } from './MapEditHistory';
 import type { AppStore } from '../store/AppStore';
+import type { MapDocument, MapValidationRecord } from '../../../shared/domain/models';
 
 type StoredMapDocument = Readonly<{ dirty: boolean; json: unknown }>;
 
@@ -15,7 +18,344 @@ function baseMapJson(): Record<string, unknown> {
   };
 }
 
+function createService(store: AppStore): MapEditService {
+  return new MapEditService(store, new MapCommandEngine(), new MapEditHistory(100));
+}
+
+function createMutableStore(initialDocument: MapDocument | null): Readonly<{
+  store: AppStore;
+  getDocument: () => MapDocument | null;
+  setCalls: readonly (MapDocument | null)[];
+}> {
+  let mapDocument: MapDocument | null = initialDocument;
+  const setCalls: (MapDocument | null)[] = [];
+
+  const store: AppStore = {
+    getState: () => ({
+      settings: { assetsDirPath: null, gameExecutablePath: null },
+      assetIndex: null,
+      assetIndexError: null,
+      mapDocument
+    }),
+    subscribe: () => () => {},
+    setSettings: () => {},
+    setAssetIndex: () => {},
+    setAssetIndexError: () => {},
+    setMapDocument: (next: MapDocument | null) => {
+      mapDocument = next;
+      setCalls.push(next);
+    }
+  } as unknown as AppStore;
+
+  return {
+    store,
+    getDocument: () => mapDocument,
+    setCalls
+  };
+}
+
 describe('MapEditService', () => {
+  it('undo returns no-document when no map is loaded', () => {
+    const store: AppStore = {
+      getState: () => ({
+        settings: { assetsDirPath: null, gameExecutablePath: null },
+        assetIndex: null,
+        assetIndexError: null,
+        mapDocument: null
+      }),
+      subscribe: () => () => {},
+      setSettings: () => {},
+      setAssetIndex: () => {},
+      setAssetIndexError: () => {},
+      setMapDocument: () => {}
+    } as unknown as AppStore;
+
+    const service = createService(store);
+
+    const result = service.undo();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/no-document');
+    }
+  });
+
+  it('redo returns no-document when no map is loaded', () => {
+    const store: AppStore = {
+      getState: () => ({
+        settings: { assetsDirPath: null, gameExecutablePath: null },
+        assetIndex: null,
+        assetIndexError: null,
+        mapDocument: null
+      }),
+      subscribe: () => () => {},
+      setSettings: () => {},
+      setAssetIndex: () => {},
+      setAssetIndexError: () => {},
+      setMapDocument: () => {}
+    } as unknown as AppStore;
+
+    const service = createService(store);
+
+    const result = service.redo();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/no-document');
+    }
+  });
+
+  it('undo returns not-found when there is no history', () => {
+    const { store } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const service = createService(store);
+
+    const result = service.undo();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/not-found');
+    }
+  });
+
+  it('redo returns not-found when there is no history', () => {
+    const { store } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const service = createService(store);
+
+    const result = service.redo();
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/not-found');
+    }
+  });
+
+  it('undo restores json + dirty + lastValidation and returns selection/history info', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2020-01-01T00:00:00.000Z' };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: {
+        ...baseMapJson(),
+        lights: [{ x: 1, y: 2, radius: 3, intensity: 1, color: '#ffffff' }]
+      },
+      dirty: false,
+      lastValidation
+    });
+
+    const service = createService(store);
+
+    const editResult = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
+    expect(editResult.ok).toBe(true);
+
+    const undoResult = service.undo({ steps: 0 });
+    expect(undoResult.ok).toBe(true);
+    if (!undoResult.ok) {
+      throw new Error('Expected undo to succeed');
+    }
+
+    expect(undoResult.value.kind).toBe('map-edit/applied');
+    if (undoResult.value.kind === 'map-edit/applied') {
+      expect(undoResult.value.selection.kind).toBe('map-edit/selection/set');
+      expect(undoResult.value.history.canRedo).toBe(true);
+    }
+
+    const docAfterUndo = getDocument();
+    expect(docAfterUndo).not.toBeNull();
+    if (docAfterUndo === null) {
+      throw new Error('Expected document after undo');
+    }
+
+    expect(docAfterUndo.dirty).toBe(false);
+    expect(docAfterUndo.lastValidation).toEqual(lastValidation);
+    const json = docAfterUndo.json as Record<string, unknown>;
+    expect(Array.isArray(json['lights'])).toBe(true);
+    expect((json['lights'] as unknown[])).toHaveLength(1);
+  });
+
+  it('redo reapplies json + dirty + lastValidation after an undo', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2020-01-01T00:00:00.000Z' };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: {
+        ...baseMapJson(),
+        lights: [{ x: 1, y: 2, radius: 3, intensity: 1, color: '#ffffff' }]
+      },
+      dirty: false,
+      lastValidation
+    });
+
+    const service = createService(store);
+
+    const editResult = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
+    expect(editResult.ok).toBe(true);
+
+    const undoResult = service.undo();
+    expect(undoResult.ok).toBe(true);
+
+    const redoResult = service.redo();
+    expect(redoResult.ok).toBe(true);
+    if (!redoResult.ok) {
+      throw new Error('Expected redo to succeed');
+    }
+
+    expect(redoResult.value.kind).toBe('map-edit/applied');
+    if (redoResult.value.kind === 'map-edit/applied') {
+      expect(redoResult.value.selection.kind).toBe('map-edit/selection/clear');
+      expect(redoResult.value.history.canUndo).toBe(true);
+    }
+
+    const docAfterRedo = getDocument();
+    expect(docAfterRedo).not.toBeNull();
+    if (docAfterRedo === null) {
+      throw new Error('Expected document after redo');
+    }
+
+    expect(docAfterRedo.dirty).toBe(true);
+    expect(docAfterRedo.lastValidation).toBeNull();
+    const json = docAfterRedo.json as Record<string, unknown>;
+    expect(Array.isArray(json['lights'])).toBe(true);
+    expect((json['lights'] as unknown[])).toHaveLength(0);
+  });
+
+  it('clears redo after a new edit following undo', () => {
+    const { store } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: {
+        ...baseMapJson(),
+        lights: [
+          { x: 1, y: 2, radius: 3, intensity: 1, color: '#ffffff' },
+          { x: 9, y: 9, radius: 3, intensity: 1, color: '#ffffff' }
+        ]
+      },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const service = createService(store);
+
+    const firstDelete = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
+    expect(firstDelete.ok).toBe(true);
+
+    const undo = service.undo();
+    expect(undo.ok).toBe(true);
+
+    const secondDelete = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
+    expect(secondDelete.ok).toBe(true);
+
+    const redo = service.redo();
+    expect(redo.ok).toBe(false);
+    if (!redo.ok) {
+      expect(redo.error.code).toBe('map-edit/not-found');
+    }
+  });
+
+  it('applies a successful transaction atomically and returns map-edit/applied', () => {
+    let storedDocument: StoredMapDocument | null = null;
+
+    const store: AppStore = {
+      getState: () => ({
+        settings: { assetsDirPath: null, gameExecutablePath: null },
+        assetIndex: null,
+        assetIndexError: null,
+        mapDocument: {
+          filePath: '/maps/test.json',
+          json: {
+            ...baseMapJson(),
+            entities: [{ x: 10, y: 20, type: 'enemy' }]
+          },
+          dirty: false,
+          lastValidation: null
+        }
+      }),
+      subscribe: () => () => {},
+      setSettings: () => {},
+      setAssetIndex: () => {},
+      setAssetIndexError: () => {},
+      setMapDocument: (doc: unknown) => {
+        storedDocument = doc as StoredMapDocument | null;
+      }
+    } as unknown as AppStore;
+
+    const service = createService(store);
+
+    const result = service.edit({
+      kind: 'map-edit/transaction',
+      label: 'Clone Entity',
+      commands: [{ kind: 'map-edit/clone', target: { kind: 'entity', index: 0 } }],
+      selection: { kind: 'map-edit/selection', ref: { kind: 'entity', index: 0 } }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected transaction to succeed');
+    }
+
+    expect(result.value.kind).toBe('map-edit/applied');
+    if (result.value.kind === 'map-edit/applied') {
+      expect(result.value.selection.kind).toBe('map-edit/selection/set');
+      expect(result.value.history.canUndo).toBe(true);
+    }
+
+    expect(storedDocument).not.toBeNull();
+    if (storedDocument === null) {
+      throw new Error('Expected MapEditService to store an updated document');
+    }
+
+    const storedJson = (storedDocument as unknown as { json: unknown }).json as Record<string, unknown>;
+    expect(Array.isArray(storedJson['entities'])).toBe(true);
+    expect((storedJson['entities'] as unknown[])).toHaveLength(2);
+  });
+
+  it('does not mutate store when a transaction step fails', () => {
+    const initialJson = {
+      ...baseMapJson(),
+      lights: [{ x: 1, y: 2, radius: 3, intensity: 1, color: '#ffffff' }]
+    };
+
+    const { store, getDocument, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: initialJson,
+      dirty: false,
+      lastValidation: null
+    });
+
+    const service = createService(store);
+
+    const result = service.edit({
+      kind: 'map-edit/transaction',
+      commands: [
+        { kind: 'map-edit/delete', target: { kind: 'light', index: 0 } },
+        { kind: 'map-edit/delete', target: { kind: 'light', index: 99 } }
+      ]
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/transaction-step-failed');
+      expect(result.error.stepIndex).toBe(1);
+    }
+
+    expect(setCalls).toHaveLength(0);
+    const after = getDocument();
+    expect(after).not.toBeNull();
+    if (after !== null) {
+      expect(after.json).toEqual(initialJson);
+    }
+  });
+
   it('returns no-document when no map is loaded', () => {
     const store: AppStore = {
       getState: () => ({
@@ -31,7 +371,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
 
@@ -61,7 +401,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
 
@@ -91,7 +431,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/unknown', target: null } as unknown as Parameters<MapEditService['edit']>[0]);
 
@@ -121,7 +461,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({
       kind: 'map-edit/delete',
@@ -154,7 +494,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({
       kind: 'map-edit/clone',
@@ -194,7 +534,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
 
@@ -231,7 +571,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 5 } });
 
@@ -268,7 +608,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'entity', index: 0 } });
 
@@ -323,7 +663,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'door', id: 'door-1' } });
 
@@ -367,7 +707,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'particle', index: 0 } });
 
@@ -407,7 +747,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'door', id: 'door-1' } });
 
@@ -447,7 +787,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'door', id: 'missing-door' } });
 
@@ -484,7 +824,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'light', index: 0 } });
 
@@ -520,7 +860,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
 
@@ -553,7 +893,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'door', id: 'door-1' } });
 
@@ -590,7 +930,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'particle', index: 0 } });
 
@@ -633,7 +973,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'entity', index: 0 } });
 
@@ -676,7 +1016,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'particle', index: 0 } });
 
@@ -717,7 +1057,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: -1 } });
 
@@ -747,7 +1087,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({
       kind: 'map-edit/clone',
@@ -787,7 +1127,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'door', id: 'door-1' } });
 
@@ -831,7 +1171,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'door', id: '   ' } });
 
@@ -861,7 +1201,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'particle', index: 0 } });
 
@@ -891,7 +1231,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'entity', index: 0 } });
 
@@ -921,7 +1261,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'entity', index: 0 } });
 
@@ -951,7 +1291,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'door', id: 'door-1' } });
 
@@ -981,7 +1321,7 @@ describe('MapEditService', () => {
       setMapDocument: () => {}
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'door', id: 'door-1' } });
 
@@ -1022,7 +1362,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'door', id: 'door-1' } });
 
@@ -1070,7 +1410,7 @@ describe('MapEditService', () => {
       }
     } as unknown as AppStore;
 
-    const service = new MapEditService(store);
+    const service = createService(store);
 
     const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'door', id: 'door-1' } });
 

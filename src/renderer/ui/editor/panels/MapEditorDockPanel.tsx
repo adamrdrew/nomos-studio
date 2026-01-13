@@ -65,6 +65,7 @@ export function MapEditorDockPanel(): JSX.Element {
   const mapDocument = useNomosStore((state) => state.mapDocument);
   const selection = useNomosStore((state) => state.mapSelection);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
+  const applyMapSelectionEffect = useNomosStore((state) => state.applyMapSelectionEffect);
 
   const viewportRef = React.useRef<MapEditorViewportApi | null>(null);
 
@@ -129,6 +130,11 @@ export function MapEditorDockPanel(): JSX.Element {
             return;
           }
 
+          if (result.value.kind === 'map-edit/applied') {
+            applyMapSelectionEffect(result.value.selection);
+            return;
+          }
+
           setMapSelection(null);
         })();
         return;
@@ -156,6 +162,11 @@ export function MapEditorDockPanel(): JSX.Element {
           if (!result.ok) {
             // eslint-disable-next-line no-console
             console.error('[nomos] map clone failed', result.error);
+            return;
+          }
+
+          if (result.value.kind === 'map-edit/applied') {
+            applyMapSelectionEffect(result.value.selection);
             return;
           }
 

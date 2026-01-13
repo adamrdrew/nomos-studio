@@ -43,12 +43,56 @@ export function EditorShell(): JSX.Element {
   React.useEffect(() => {
     void useNomosStore.getState().refreshFromMain();
 
-    const unsubscribe = window.nomos.state.onChanged(() => {
+    const unsubscribe = window.nomos.state.onChanged((payload) => {
+      if (payload?.selectionEffect !== undefined) {
+        useNomosStore.getState().applyMapSelectionEffect(payload.selectionEffect);
+      }
       void useNomosStore.getState().refreshFromMain();
     });
 
     return () => {
       unsubscribe();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const handler = (event: KeyboardEvent): void => {
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName;
+        if (target.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+          return;
+        }
+      }
+
+      const isUndo = (event.key === 'z' || event.key === 'Z') && (event.metaKey || event.ctrlKey) && !event.shiftKey;
+      const isRedo =
+        ((event.key === 'z' || event.key === 'Z') && (event.metaKey || event.ctrlKey) && event.shiftKey) ||
+        ((event.key === 'y' || event.key === 'Y') && event.ctrlKey);
+
+      if (!isUndo && !isRedo) {
+        return;
+      }
+
+      event.preventDefault();
+
+      void (async () => {
+        const result = isUndo ? await window.nomos.map.undo() : await window.nomos.map.redo();
+        if (!result.ok) {
+          // eslint-disable-next-line no-console
+          console.error('[nomos] map undo/redo failed', result.error);
+          return;
+        }
+
+        if (result.value.kind === 'map-edit/applied') {
+          useNomosStore.getState().applyMapSelectionEffect(result.value.selection);
+        }
+      })();
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => {
+      window.removeEventListener('keydown', handler);
     };
   }, []);
 

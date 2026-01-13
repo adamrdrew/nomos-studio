@@ -9,6 +9,7 @@ Key goals:
 - Limit surface area (only expose what the renderer needs).
 
 In addition to invoke-style calls, Nomos Studio also uses a single narrow main→renderer event (`nomos:state:changed`) to notify the renderer that it should refresh its snapshot.
+This event may include a small typed payload for selection reconciliation.
 
 ## Architecture
 
@@ -44,6 +45,7 @@ The renderer must only use the preload API:
 - `window.nomos.assets.open({ relativePath })`
 - `window.nomos.assets.readFileBytes({ relativePath })`
 - `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()` / `edit({ command })`
+- `window.nomos.map.undo()` / `window.nomos.map.redo()`
 - `window.nomos.state.getSnapshot()`
 - `window.nomos.state.onChanged(listener)`
 
@@ -61,6 +63,8 @@ Channels (canonical):
 - `nomos:map:open`
 - `nomos:map:save`
 - `nomos:map:edit`
+- `nomos:map:undo`
+- `nomos:map:redo`
 - `nomos:state:get`
 - `nomos:state:changed` (event)
 
@@ -104,18 +108,29 @@ Read file bytes:
 
 Edit map:
 - `MapEditTargetRef = { kind: 'light' | 'particle' | 'entity'; index: number } | { kind: 'door'; id: string }`
-- `MapEditCommand = { kind: 'map-edit/delete' | 'map-edit/clone'; target: MapEditTargetRef }`
+- `MapEditAtomicCommand = { kind: 'map-edit/delete' | 'map-edit/clone'; target: MapEditTargetRef }`
+- `MapEditCommand = MapEditAtomicCommand | { kind: 'map-edit/transaction'; label?: string; commands: readonly MapEditAtomicCommand[]; selection?: { kind: 'map-edit/selection'; ref: MapEditTargetRef | null } }`
 - `MapEditRequest = Readonly<{ command: MapEditCommand }>`
-- `MapEditResult = { kind: 'map-edit/deleted' } | { kind: 'map-edit/cloned'; newRef: MapEditTargetRef }`
+- `MapEditResult = { kind: 'map-edit/deleted' } | { kind: 'map-edit/cloned'; newRef: MapEditTargetRef } | { kind: 'map-edit/applied'; selection: MapEditSelectionEffect; history: MapEditHistoryInfo }`
 - `MapEditResponse = Result<MapEditResult, MapEditError>`
 
+Undo/redo:
+- `MapUndoRequest = Readonly<{ steps?: number }>`
+- `MapUndoResponse = Result<MapEditResult, MapEditError>`
+- `MapRedoRequest = Readonly<{ steps?: number }>`
+- `MapRedoResponse = Result<MapEditResult, MapEditError>`
+
 ### State snapshot
-- `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; mapDocument: MapDocument | null; mapRenderMode: MapRenderMode; mapGridSettings: MapGridSettings }>`
+- `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; mapDocument: MapDocument | null; mapRenderMode: MapRenderMode; mapGridSettings: MapGridSettings; mapHistory: MapEditHistoryInfo }>`
 - `StateGetResponse = Result<AppStateSnapshot, { message: string }>`
 
 ### State changed event
 - Main emits `nomos:state:changed` when `AppStore` changes.
 - Preload exposes `window.nomos.state.onChanged(listener)` which returns an unsubscribe function.
+
+Optional payload:
+- The event may include a `StateChangedPayload` object.
+- Today the only payload used is `selectionEffect?: MapEditSelectionEffect`, which allows main-triggered operations (e.g., menu Undo/Redo) to reconcile renderer selection without renderer-side heuristics.
 
 ## Boundaries & invariants
 

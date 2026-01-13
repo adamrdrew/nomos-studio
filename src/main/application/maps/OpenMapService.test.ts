@@ -4,6 +4,16 @@ import type { MapValidationService } from './MapValidationService';
 import type { FileSystem } from '../../infrastructure/settings/fileSystem';
 import type { UserNotifier } from '../ui/UserNotifier';
 import type { MapDocument } from '../../../shared/domain/models';
+import type { MapEditHistoryPort } from './MapEditHistory';
+
+const nullHistory: MapEditHistoryPort = {
+  clear: () => {},
+  onMapOpened: () => {},
+  recordEdit: () => {},
+  getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+  undo: () => ({ ok: false, error: { kind: 'map-edit-error', code: 'map-edit/not-found', message: 'no' } }),
+  redo: () => ({ ok: false, error: { kind: 'map-edit-error', code: 'map-edit/not-found', message: 'no' } })
+};
 
 describe('OpenMapService', () => {
   it('gates on missing settings and does not attempt validation', async () => {
@@ -46,7 +56,7 @@ describe('OpenMapService', () => {
       showInfo: async () => {}
     };
 
-    const service = new OpenMapService(store, validator, fs, notifier);
+    const service = new OpenMapService(store, validator, fs, notifier, nullHistory);
 
     const result = await service.openMap('/maps/test.json');
 
@@ -95,7 +105,7 @@ describe('OpenMapService', () => {
       showInfo: async () => {}
     };
 
-    const service = new OpenMapService(store, validator, fs, notifier);
+    const service = new OpenMapService(store, validator, fs, notifier, nullHistory);
 
     const result = await service.openMap('/maps/test.json');
 
@@ -144,7 +154,7 @@ describe('OpenMapService', () => {
       showInfo: async () => {}
     };
 
-    const service = new OpenMapService(store, validator, fs, notifier);
+    const service = new OpenMapService(store, validator, fs, notifier, nullHistory);
 
     const result = await service.openMap('/maps/test.json');
 
@@ -205,7 +215,7 @@ describe('OpenMapService', () => {
       showInfo: async () => {}
     };
 
-    const service = new OpenMapService(store, validator, fs, notifier);
+    const service = new OpenMapService(store, validator, fs, notifier, nullHistory);
 
     const result = await service.openMap('/maps/test.json');
 
@@ -218,6 +228,7 @@ describe('OpenMapService', () => {
 
   it('loads and stores document on validation success', async () => {
     let storedPath: string | null = null;
+    let openedCount = 0;
 
     const store: AppStore = {
       getState: () => ({
@@ -253,11 +264,19 @@ describe('OpenMapService', () => {
       showInfo: async () => {}
     };
 
-    const service = new OpenMapService(store, validator, fs, notifier);
+    const history: MapEditHistoryPort = {
+      ...nullHistory,
+      onMapOpened: () => {
+        openedCount += 1;
+      }
+    };
+
+    const service = new OpenMapService(store, validator, fs, notifier, history);
 
     const result = await service.openMap('/maps/test.json');
 
     expect(result.ok).toBe(true);
+    expect(openedCount).toBe(1);
     expect(storedPath).not.toBeNull();
   });
 
@@ -295,7 +314,7 @@ describe('OpenMapService', () => {
       showInfo: async () => {}
     };
 
-    const service = new OpenMapService(store, validator, fs, notifier);
+    const service = new OpenMapService(store, validator, fs, notifier, nullHistory);
 
     const result = await service.openMap('/maps/test.json');
 
@@ -344,7 +363,7 @@ describe('OpenMapService', () => {
       showInfo: async () => {}
     };
 
-    const service = new OpenMapService(store, validator, fs, notifier);
+    const service = new OpenMapService(store, validator, fs, notifier, nullHistory);
 
     const result = await service.openMap('/maps/test.json');
 

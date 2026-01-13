@@ -6,11 +6,15 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   appName: string;
   platform: NodeJS.Platform;
   canSave: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   mapRenderMode: MapRenderMode;
   mapGridSettings: MapGridSettings;
   onOpenSettings: () => void;
   onOpenMap: () => void;
   onSave: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onRefreshAssetsIndex: () => void;
   onSetMapRenderMode: (mode: MapRenderMode) => void;
   onToggleMapGrid: () => void;
@@ -21,6 +25,19 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
 export function createApplicationMenuTemplate(
   options: CreateApplicationMenuTemplateOptions
 ): MenuItemConstructorOptions[] {
+  const editMenu: MenuItemConstructorOptions = {
+    label: 'Edit',
+    submenu: [
+      { label: 'Undo', enabled: options.canUndo, accelerator: 'CommandOrControl+Z', click: () => options.onUndo() },
+      {
+        label: 'Redo',
+        enabled: options.canRedo,
+        accelerator: options.platform === 'darwin' ? 'Shift+CommandOrControl+Z' : 'CommandOrControl+Y',
+        click: () => options.onRedo()
+      }
+    ]
+  };
+
   const fileMenu: MenuItemConstructorOptions = {
     label: 'File',
     submenu: [
@@ -49,6 +66,8 @@ export function createApplicationMenuTemplate(
   }
 
   template.push(fileMenu);
+
+  template.push(editMenu);
 
   template.push({
     label: 'View',
@@ -85,7 +104,7 @@ export function createApplicationMenuTemplate(
 
   if (options.platform !== 'darwin') {
     template.push({
-      label: 'Edit',
+      label: 'Settings',
       submenu: [
         {
           label: 'Settings…',

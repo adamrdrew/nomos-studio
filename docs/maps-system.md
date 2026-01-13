@@ -21,6 +21,8 @@ The maps system spans application services, infrastructure seams for filesystem/
 	- `OpenMapService` enforces prerequisite settings, validates the map, reads JSON from disk, constructs a `MapDocument`, and stores it in `AppStore`.
 	- `SaveMapService` serializes the current `MapDocument.json` and performs a safe write back to disk.
 	- `MapEditService` applies a narrow set of in-memory edits (Delete/Clone) to `MapDocument.json` and marks the document dirty.
+	- `MapCommandEngine` applies map edit commands (including transactional batches) against a working clone of `MapDocument.json` and returns explicit selection effects.
+	- `MapEditHistory` stores bounded undo/redo stacks for the currently-open map.
 	- `UserNotifier` is injected so user-visible errors can be shown without binding services directly to Electron UI.
 
 - **Infrastructure seams (side effects)**
@@ -45,6 +47,8 @@ The maps system spans application services, infrastructure seams for filesystem/
 
 - `MapEditService`
 	- `edit(command: MapEditCommand): Result<MapEditResult, MapEditError>`
+	- `undo(request?: { steps?: number }): Result<MapEditResult, MapEditError>`
+	- `redo(request?: { steps?: number }): Result<MapEditResult, MapEditError>`
 
 ### Preload API (renderer-facing)
 - `window.nomos.dialogs.openMap(): Promise<OpenMapDialogResponse>`
@@ -52,6 +56,8 @@ The maps system spans application services, infrastructure seams for filesystem/
 - `window.nomos.map.open(request: { mapPath: string }): Promise<OpenMapResponse>`
 - `window.nomos.map.save(): Promise<SaveMapResponse>`
 - `window.nomos.map.edit(request: MapEditRequest): Promise<MapEditResponse>`
+- `window.nomos.map.undo(request?: { steps?: number }): Promise<MapUndoResponse>`
+- `window.nomos.map.redo(request?: { steps?: number }): Promise<MapRedoResponse>`
 
 ### IPC contract
 Defined in `src/shared/ipc/nomosIpc.ts`:
@@ -61,6 +67,8 @@ Defined in `src/shared/ipc/nomosIpc.ts`:
 	- `nomos:map:open`
 	- `nomos:map:save`
 	- `nomos:map:edit`
+	- `nomos:map:undo`
+	- `nomos:map:redo`
 
 Types:
 - `OpenMapDialogResponse = Result<string | null, { message: string }>`
@@ -165,10 +173,31 @@ If validation fails with `code: 'map-validation/invalid-map'`:
 - Save writes to `<file>.tmp` and then atomically replaces the destination using a Windows-safe rename strategy.
 - On success, the stored document is updated with `dirty: false`.
 
-### Edit behavior (Delete/Clone)
-- Edits are applied only to the in-memory `MapDocument.json` and stored via `AppStore.setMapDocument` with `dirty: true`.
+### Edit behavior (atomic + transactional)
+- Edits are applied only to the in-memory `MapDocument.json` and stored via a single `AppStore.setMapDocument` on success.
+- Transactions (`map-edit/transaction`) are applied atomically: all steps succeed, or no store mutation occurs.
+- On any successful edit:
+	- `dirty` is set to `true`.
+	- `lastValidation` is cleared to `null` (edits invalidate prior validation results).
 - Edits do not touch the filesystem directly.
-- After an edit, main emits the existing `nomos:state:changed` signal (via the AppStore emit path) so the renderer refreshes its snapshot.
+
+### Selection reconciliation
+- The renderer must not “guess” selection validity by inspecting `MapDocument.json`.
+- Instead, selection changes are driven by explicit `MapEditSelectionEffect` values produced in main:
+	- Transaction edits return `MapEditResult.kind: 'map-edit/applied'` with `selection`.
+	- Undo/redo returns `MapEditResult.kind: 'map-edit/applied'` with `selection`.
+- For main-triggered operations (e.g., menu Undo/Redo), main may include `selectionEffect` in the `nomos:state:changed` event payload so the renderer can reconcile selection deterministically.
+
+### Undo/redo semantics
+- Undo/redo is owned by the main process and restores the prior in-memory document **exactly** (round-trip safe):
+	- `json` is restored exactly to the prior value.
+	- `dirty` is restored exactly.
+	- `lastValidation` is restored exactly.
+- Opening a map clears undo/redo history for the prior document.
+- Saving a map does **not** clear undo/redo history. (History is an in-memory editing affordance; its lifecycle is tied to the currently-open document, not persistence.)
+
+### History enablement
+- Main exposes `mapHistory` (undo/redo availability + depths) via the state snapshot so UI can enable/disable commands without additional IPC.
 
 ## How to extend safely
 

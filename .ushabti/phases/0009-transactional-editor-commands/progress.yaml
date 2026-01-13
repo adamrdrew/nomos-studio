@@ -2,89 +2,137 @@ phase:
   id: 0009
   slug: transactional-editor-commands
   title: Transactional Editor Commands + Undo/Redo
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Inventory current edit + store patterns
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Call sites to update: main map edits in src/main/application/maps/MapEditService.ts; store mutation via AppStore.setMapDocument in src/main/application/store/AppStore.ts; map open/save also call setMapDocument in src/main/application/maps/OpenMapService.ts and src/main/application/maps/SaveMapService.ts; IPC wiring in src/shared/ipc/nomosIpc.ts (channels + request/response), src/preload/preload.ts (exposed API), src/preload/nomos.d.ts (types), src/main/ipc/registerNomosIpcHandlers.ts and src/main/main.ts (handlers); renderer selection reconciliation currently in src/renderer/ui/editor/panels/MapEditorDockPanel.tsx using window.nomos.map.edit result and setMapSelection.""
+    touched:
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S002
     title: Define shared command + result types (IPC-facing)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Extended shared IPC/domain types: added MapEditAtomicCommand + map-edit/transaction wrapper, added MapEditSelectionEffect and MapEditHistoryInfo, and extended MapEditResult with map-edit/applied envelope (while keeping deleted/cloned for compatibility). Added transaction-related MapEditError codes with optional stepIndex/cause."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/shared/domain/results.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S003
     title: Decide and document history metadata semantics
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Decided and documented semantics: any successful edit sets dirty=true and clears lastValidation=null; undo/redo restores json+dirty+lastValidation exactly; open-map clears history; save does not clear history."
+    touched:
+      - docs/maps-system.md
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S004
     title: Implement main command engine API (pure-ish)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added MapCommandEngine that applies MapEditCommand (including map-edit/transaction) against a working clone of MapDocument.json without mutating AppStore; enforces transaction size/emptiness, wraps step failures with transaction-step-failed (stepIndex + cause), and emits explicit selection effects. Added unit tests for key success/failure branches."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S005
     title: Implement bounded undo/redo history (main)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented bounded MapEditHistory (undo/redo stacks with max depth, redo invalidation on new edits) behind a narrow MapEditHistoryPort for testability. Integrated history reset on successful open-map via OpenMapService.onMapOpened and updated OpenMapService tests accordingly."
+    touched:
+      - src/main/application/maps/MapEditHistory.ts
+      - src/main/application/maps/MapEditHistory.test.ts
+      - src/main/application/maps/OpenMapService.ts
+      - src/main/application/maps/OpenMapService.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S006
     title: Wire MapEditService through engine + history
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Refactored MapEditService to apply edits via MapCommandEngine without partial store mutation, commit a single AppStore.setMapDocument on success, set dirty=true and clear lastValidation=null, and record history entries via MapEditHistoryPort. Transaction commands return the new map-edit/applied envelope (selection + history info). Updated main composition and MapEditService unit tests for new constructor dependencies."
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - src/main/main.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S007
     title: Add IPC channels for undo/redo (minimal surface)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added typed IPC channels (nomos:map:undo/redo) with MapUndo/Redo request/response shapes, exposed them via preload API (window.nomos.map.undo/redo), registered handlers in registerNomosIpcHandlers, and wired main handlers to MapEditService.undo/redo. Added unit tests for MapEditService undo/redo and updated IPC handler wiring test."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - src/main/main.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S008
     title: Expose history summary in state snapshot for enable/disable
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Extended AppStateSnapshot with mapHistory (MapEditHistoryInfo) and populated it from main via mapEditHistory.getInfo(). Updated renderer store to cache mapHistory from snapshots and updated IPC wiring test fixtures." 
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/main.ts
+      - src/renderer/store/nomosStore.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S009
     title: Renderer integration: selection reconciliation + undo/redo triggers
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Renderer now applies explicit MapEditSelectionEffect from map-edit/applied results and from stateChanged payloads. Added undo/redo keyboard shortcuts (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Ctrl+Y) that call window.nomos.map.undo/redo and apply returned selection effects. Centralized selection effect application in the renderer store with unit tests." 
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/store/nomosStore.test.ts
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - src/renderer/ui/editor/EditorShell.tsx
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S010
     title: Menu + shortcuts
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added Edit > Undo/Redo menu items with standard accelerators and enablement. Menu click triggers undo/redo in main and sends a stateChanged payload containing selectionEffect so renderer selection reconciles." 
+    touched:
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
+      - src/main/main.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S011
     title: Test matrix completion (main)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Extended MapEditService unit tests to cover transactional success, redo invalidation after a new edit following undo, and the no-store-mutation guarantee when a transaction step fails." 
+    touched:
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
   - id: S012
     title: Documentation updates (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated docs for IPC and maps subsystems to reflect transactional editing, undo/redo channels, selection reconciliation via explicit effects (including optional stateChanged payload), and mapHistory in state snapshots." 
+    touched:
+      - docs/ipc-system.md
+      - docs/maps-system.md
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml

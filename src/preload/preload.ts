@@ -4,6 +4,10 @@ import {
   NOMOS_IPC_CHANNELS,
   type MapEditRequest,
   type MapEditResponse,
+  type MapRedoRequest,
+  type MapRedoResponse,
+  type MapUndoRequest,
+  type MapUndoResponse,
   type OpenAssetRequest,
   type OpenAssetResponse,
   type ReadAssetFileBytesRequest,
@@ -17,6 +21,7 @@ import {
   type SettingsGetResponse,
   type SettingsUpdateRequest,
   type SettingsUpdateResponse,
+  type StateChangedPayload,
   type StateGetResponse,
   type ValidateMapRequest,
   type ValidateMapResponse
@@ -50,13 +55,17 @@ const exposedNomosApi = {
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapOpen, request),
     save: async (): Promise<SaveMapResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapSave),
     edit: async (request: MapEditRequest): Promise<MapEditResponse> =>
-      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapEdit, request)
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapEdit, request),
+    undo: async (request?: MapUndoRequest): Promise<MapUndoResponse> =>
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapUndo, request),
+    redo: async (request?: MapRedoRequest): Promise<MapRedoResponse> =>
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapRedo, request)
   },
   state: {
     getSnapshot: async (): Promise<StateGetResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.stateGet),
-    onChanged: (listener: () => void): (() => void) => {
-      const handler = (): void => {
-        listener();
+    onChanged: (listener: (payload?: StateChangedPayload) => void): (() => void) => {
+      const handler = (_event: unknown, payload: unknown): void => {
+        listener(payload as StateChangedPayload | undefined);
       };
 
       ipcRenderer.on(NOMOS_IPC_CHANNELS.stateChanged, handler);

@@ -3,6 +3,10 @@ export {};
 import type {
   MapEditRequest,
   MapEditResponse,
+  MapRedoRequest,
+  MapRedoResponse,
+  MapUndoRequest,
+  MapUndoResponse,
   OpenAssetRequest,
   OpenAssetResponse,
   ReadAssetFileBytesRequest,
@@ -16,6 +20,7 @@ import type {
   SettingsGetResponse,
   SettingsUpdateRequest,
   SettingsUpdateResponse,
+  StateChangedPayload,
   StateGetResponse,
   ValidateMapRequest,
   ValidateMapResponse
@@ -44,10 +49,12 @@ declare global {
         open: (request: { mapPath: string }) => Promise<OpenMapResponse>;
         save: () => Promise<SaveMapResponse>;
         edit: (request: MapEditRequest) => Promise<MapEditResponse>;
+        undo: (request?: MapUndoRequest) => Promise<MapUndoResponse>;
+        redo: (request?: MapRedoRequest) => Promise<MapRedoResponse>;
       };
       state: {
         getSnapshot: () => Promise<StateGetResponse>;
-        onChanged: (listener: () => void) => () => void;
+        onChanged: (listener: (payload?: StateChangedPayload) => void) => () => void;
       };
     };
   }

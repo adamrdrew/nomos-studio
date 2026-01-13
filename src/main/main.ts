@@ -22,9 +22,12 @@ import { OpenMapService } from './application/maps/OpenMapService';
 import type { UserNotifier } from './application/ui/UserNotifier';
 import { SaveMapService } from './application/maps/SaveMapService';
 import { MapEditService } from './application/maps/MapEditService';
+import { MapCommandEngine } from './application/maps/MapCommandEngine';
+import { MapEditHistory } from './application/maps/MapEditHistory';
 import type { NomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
 import { createApplicationMenuTemplate } from './infrastructure/menu/createApplicationMenuTemplate';
 import type { MapRenderMode } from '../shared/domain/models';
+import type { StateChangedPayload } from '../shared/ipc/nomosIpc';
 
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -35,6 +38,10 @@ const setApplicationMenu = (
     onOpenSettings: () => void;
     onOpenMap: () => Promise<void>;
     onSave: () => Promise<void>;
+    canUndo: boolean;
+    canRedo: boolean;
+    onUndo: () => Promise<void>;
+    onRedo: () => Promise<void>;
     onRefreshAssetsIndex: () => Promise<void>;
     onSetMapRenderMode: (mode: MapRenderMode) => void;
     onToggleMapGrid: () => void;
@@ -43,6 +50,8 @@ const setApplicationMenu = (
   }>
 ): void => {
   const canSave = options.store.getState().mapDocument !== null;
+  const canUndo = options.canUndo;
+  const canRedo = options.canRedo;
   const mapRenderMode = options.store.getState().mapRenderMode;
   const mapGridSettings = options.store.getState().mapGridSettings;
 
@@ -50,11 +59,15 @@ const setApplicationMenu = (
     appName: app.name,
     platform: process.platform,
     canSave,
+    canUndo,
+    canRedo,
     mapRenderMode,
     mapGridSettings,
     onOpenSettings: options.onOpenSettings,
     onOpenMap: () => void options.onOpenMap(),
     onSave: () => void options.onSave(),
+    onUndo: () => void options.onUndo(),
+    onRedo: () => void options.onRedo(),
     onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex(),
     onSetMapRenderMode: (mode) => options.onSetMapRenderMode(mode),
     onToggleMapGrid: () => options.onToggleMapGrid(),
@@ -160,9 +173,25 @@ app.on('ready', () => {
     }
   };
 
-  const openMapService = new OpenMapService(store, mapValidationService, nodeFileSystem, notifier);
+  const mapEditHistory = new MapEditHistory(100);
+  const mapCommandEngine = new MapCommandEngine();
+
+  const openMapService = new OpenMapService(store, mapValidationService, nodeFileSystem, notifier, mapEditHistory);
   const saveMapService = new SaveMapService(store, nodeFileSystem, notifier);
-  const mapEditService = new MapEditService(store);
+  const mapEditService = new MapEditService(store, mapCommandEngine, mapEditHistory);
+
+  const sendSelectionEffect = (selectionEffect: StateChangedPayload['selectionEffect']): void => {
+    if (mainWindow === null) {
+      return;
+    }
+
+    if (selectionEffect === undefined) {
+      return;
+    }
+
+    const payload: StateChangedPayload = { selectionEffect };
+    mainWindow.webContents.send(NOMOS_IPC_CHANNELS.stateChanged, payload);
+  };
 
   void (async () => {
     const settingsResult = await settingsService.getSettings();
@@ -241,6 +270,8 @@ app.on('ready', () => {
     openMap: async (request) => openMapService.openMap(request.mapPath),
     saveMap: async () => saveMapService.saveCurrentDocument(),
     editMap: async (request) => mapEditService.edit(request.command),
+    undoMap: async (request) => mapEditService.undo(request),
+    redoMap: async (request) => mapEditService.redo(request),
 
     getStateSnapshot: async () => {
       return {
@@ -250,7 +281,8 @@ app.on('ready', () => {
           assetIndex: store.getState().assetIndex,
           mapDocument: store.getState().mapDocument,
           mapRenderMode: store.getState().mapRenderMode,
-          mapGridSettings: store.getState().mapGridSettings
+          mapGridSettings: store.getState().mapGridSettings,
+          mapHistory: mapEditHistory.getInfo()
         }
       };
     }
@@ -324,6 +356,20 @@ app.on('ready', () => {
     onOpenSettings: openSettings,
     onOpenMap: openMap,
     onSave: save,
+    canUndo: mapEditHistory.getInfo().canUndo,
+    canRedo: mapEditHistory.getInfo().canRedo,
+    onUndo: async () => {
+      const result = mapEditService.undo();
+      if (result.ok && result.value.kind === 'map-edit/applied') {
+        sendSelectionEffect(result.value.selection);
+      }
+    },
+    onRedo: async () => {
+      const result = mapEditService.redo();
+      if (result.ok && result.value.kind === 'map-edit/applied') {
+        sendSelectionEffect(result.value.selection);
+      }
+    },
     onRefreshAssetsIndex: refreshAssetsIndex,
     onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
     onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
@@ -339,6 +385,20 @@ app.on('ready', () => {
       onOpenSettings: openSettings,
       onOpenMap: openMap,
       onSave: save,
+      canUndo: mapEditHistory.getInfo().canUndo,
+      canRedo: mapEditHistory.getInfo().canRedo,
+      onUndo: async () => {
+        const result = mapEditService.undo();
+        if (result.ok && result.value.kind === 'map-edit/applied') {
+          sendSelectionEffect(result.value.selection);
+        }
+      },
+      onRedo: async () => {
+        const result = mapEditService.redo();
+        if (result.ok && result.value.kind === 'map-edit/applied') {
+          sendSelectionEffect(result.value.selection);
+        }
+      },
       onRefreshAssetsIndex: refreshAssetsIndex,
       onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
       onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),

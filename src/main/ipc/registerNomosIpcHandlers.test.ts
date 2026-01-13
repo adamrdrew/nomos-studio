@@ -51,6 +51,14 @@ describe('registerNomosIpcHandlers', () => {
           ok: false,
           error: { kind: 'map-edit-error', code: 'map-edit/no-document', message: 'nope' }
         }),
+        undoMap: async () => ({
+          ok: false,
+          error: { kind: 'map-edit-error', code: 'map-edit/not-found', message: 'nope' }
+        }),
+        redoMap: async () => ({
+          ok: false,
+          error: { kind: 'map-edit-error', code: 'map-edit/not-found', message: 'nope' }
+        }),
         getStateSnapshot: async () => ({
           ok: true,
           value: {
@@ -58,7 +66,8 @@ describe('registerNomosIpcHandlers', () => {
             assetIndex: null,
             mapDocument: null,
             mapRenderMode: 'wireframe',
-            mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 }
+            mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+            mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }
           }
         })
       }
@@ -77,6 +86,8 @@ describe('registerNomosIpcHandlers', () => {
       channels.mapOpen,
       channels.mapSave,
       channels.mapEdit,
+      channels.mapUndo,
+      channels.mapRedo,
       channels.stateGet
     ]);
   });

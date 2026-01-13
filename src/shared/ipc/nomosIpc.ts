@@ -23,6 +23,8 @@ export const NOMOS_IPC_CHANNELS = {
   mapOpen: 'nomos:map:open',
   mapSave: 'nomos:map:save',
   mapEdit: 'nomos:map:edit',
+  mapUndo: 'nomos:map:undo',
+  mapRedo: 'nomos:map:redo',
   stateGet: 'nomos:state:get',
   stateChanged: 'nomos:state:changed'
 } as const;
@@ -33,6 +35,7 @@ export type AppStateSnapshot = Readonly<{
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
   mapGridSettings: MapGridSettings;
+  mapHistory: MapEditHistoryInfo;
 }>;
 
 export type SettingsGetResponse = Result<EditorSettings, SettingsError>;
@@ -65,18 +68,60 @@ export type MapEditTargetRef =
   | Readonly<{ kind: 'entity'; index: number }>
   | Readonly<{ kind: 'door'; id: string }>;
 
-export type MapEditCommand =
+export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>;
 
+export type MapEditSelectionInput = Readonly<{
+  kind: 'map-edit/selection';
+  ref: MapEditTargetRef | null;
+}>;
+
+export type MapEditCommand =
+  | MapEditAtomicCommand
+  | Readonly<{
+      kind: 'map-edit/transaction';
+      label?: string;
+      commands: readonly MapEditAtomicCommand[];
+      selection?: MapEditSelectionInput;
+    }>;
+
 export type MapEditRequest = Readonly<{ command: MapEditCommand }>;
+
+export type MapEditSelectionEffect =
+  | Readonly<{ kind: 'map-edit/selection/keep' }>
+  | Readonly<{ kind: 'map-edit/selection/clear'; reason: 'deleted' | 'invalidated' }>
+  | Readonly<{ kind: 'map-edit/selection/set'; ref: MapEditTargetRef }>
+  | Readonly<{ kind: 'map-edit/selection/remap'; from: MapEditTargetRef; to: MapEditTargetRef }>;
+
+export type MapEditHistoryInfo = Readonly<{
+  canUndo: boolean;
+  canRedo: boolean;
+  undoDepth: number;
+  redoDepth: number;
+}>;
+
+export type StateChangedPayload = Readonly<{
+  selectionEffect?: MapEditSelectionEffect;
+}>;
 
 export type MapEditResult =
   | Readonly<{ kind: 'map-edit/deleted' }>
-  | Readonly<{ kind: 'map-edit/cloned'; newRef: MapEditTargetRef }>;
+  | Readonly<{ kind: 'map-edit/cloned'; newRef: MapEditTargetRef }>
+  | Readonly<{
+      kind: 'map-edit/applied';
+      selection: MapEditSelectionEffect;
+      history: MapEditHistoryInfo;
+    }>;
 
 export type MapEditResponse = Result<MapEditResult, MapEditError>;
 
 export type MapEditHandler = (request: MapEditRequest) => Promise<MapEditResponse>;
+
+export type MapUndoRequest = Readonly<{ steps?: number }>;
+export type MapUndoResponse = Result<MapEditResult, MapEditError>;
+
+export type MapRedoRequest = Readonly<{ steps?: number }>;
+export type MapRedoResponse = Result<MapEditResult, MapEditError>;
 
 export type StateGetResponse = Result<AppStateSnapshot, { message: string }>;

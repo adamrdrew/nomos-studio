@@ -4,6 +4,10 @@ import type { NOMOS_IPC_CHANNELS } from '../../shared/ipc/nomosIpc';
 import type {
   MapEditRequest,
   MapEditResponse,
+  MapRedoRequest,
+  MapRedoResponse,
+  MapUndoRequest,
+  MapUndoResponse,
   OpenAssetRequest,
   OpenAssetResponse,
   ReadAssetFileBytesRequest,
@@ -46,6 +50,8 @@ export type NomosIpcHandlers = Readonly<{
   openMap: (request: OpenMapRequest) => Promise<OpenMapResponse>;
   saveMap: () => Promise<SaveMapResponse>;
   editMap: (request: MapEditRequest) => Promise<MapEditResponse>;
+  undoMap: (request: MapUndoRequest) => Promise<MapUndoResponse>;
+  redoMap: (request: MapRedoRequest) => Promise<MapRedoResponse>;
 
   getStateSnapshot: () => Promise<StateGetResponse>;
 }>;
@@ -81,6 +87,12 @@ export function registerNomosIpcHandlers(
   ipcMain.handle(channels.mapSave, async () => handlers.saveMap());
   ipcMain.handle(channels.mapEdit, async (_event, request: unknown) =>
     handlers.editMap(request as MapEditRequest)
+  );
+  ipcMain.handle(channels.mapUndo, async (_event, request: unknown) =>
+    handlers.undoMap((request ?? {}) as MapUndoRequest)
+  );
+  ipcMain.handle(channels.mapRedo, async (_event, request: unknown) =>
+    handlers.redoMap((request ?? {}) as MapRedoRequest)
   );
 
   ipcMain.handle(channels.stateGet, async () => handlers.getStateSnapshot());
