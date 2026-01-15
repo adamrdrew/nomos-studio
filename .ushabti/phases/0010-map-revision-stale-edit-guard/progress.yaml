@@ -1,0 +1,67 @@
+phase:
+  id: 0010
+  slug: map-revision-stale-edit-guard
+  title: Map Document Revisioning + Stale-Edit Protection
+  status: planned
+
+steps:
+  - id: S001
+    title: Decide and record revision semantics
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S002
+    title: Add MapDocumentRevision + MapDocument.revision
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S003
+    title: Add typed stale-revision error
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S004
+    title: Update IPC contract request shapes to require baseRevision
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S005
+    title: Set initial revision on open map
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S006
+    title: Implement stale checks + revision bump in MapEditService
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S007
+    title: Wire main handlers to pass baseRevision through
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S008
+    title: Update renderer call sites to include baseRevision
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S009
+    title: Add/adjust unit tests
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S010
+    title: Update subsystem docs (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
