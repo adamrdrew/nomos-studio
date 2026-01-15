@@ -1,6 +1,7 @@
 import { MapEditService } from './MapEditService';
 import { MapCommandEngine } from './MapCommandEngine';
 import { MapEditHistory } from './MapEditHistory';
+import type { MapEditHistoryPort, MapHistoryEntry } from './MapEditHistory';
 import type { AppStore } from '../store/AppStore';
 import type { MapDocument, MapValidationRecord } from '../../../shared/domain/models';
 
@@ -20,6 +21,14 @@ function baseMapJson(): Record<string, unknown> {
 
 function createService(store: AppStore): MapEditService {
   return new MapEditService(store, new MapCommandEngine(), new MapEditHistory(100));
+}
+
+function createServiceWithEngine(store: AppStore, engine: MapCommandEngine): MapEditService {
+  return new MapEditService(store, engine, new MapEditHistory(100));
+}
+
+function createServiceWithEngineAndHistory(store: AppStore, engine: MapCommandEngine, history: MapEditHistoryPort): MapEditService {
+  return new MapEditService(store, engine, history);
 }
 
 function createMutableStore(initialDocument: MapDocument | null): Readonly<{
@@ -78,6 +87,342 @@ describe('MapEditService', () => {
     if (!result.ok) {
       expect(result.error.code).toBe('map-edit/no-document');
     }
+  });
+
+  it('edit returns invalid-json when a clone does not produce selection/set and does not mutate the store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), particles: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const engine: MapCommandEngine = {
+      apply: () =>
+        ({
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), particles: [{ x: 1, y: 2 }, { x: 2, y: 3 }] },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        })
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngine(store, engine);
+
+    const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'particle', index: 0 } });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    }
+    expect(setCalls).toHaveLength(0);
+  });
+
+  it('edit returns invalid-json when current document json is not cloneable and does not mutate the store', () => {
+    const nonCloneableJson = { bad: () => {} };
+
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: nonCloneableJson,
+      dirty: false,
+      lastValidation: null
+    });
+
+    const service = createService(store);
+
+    const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    }
+    expect(setCalls).toHaveLength(0);
+  });
+
+  it('edit returns invalid-json when engine produces a non-cloneable nextJson and does not mutate the store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const nonCloneableNextJson = { bad: () => {} } as unknown as Record<string, unknown>;
+
+    const engine: MapCommandEngine = {
+      apply: () =>
+        ({
+          ok: true as const,
+          value: {
+            nextJson: nonCloneableNextJson,
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        })
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngine(store, engine);
+
+    const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    }
+    expect(setCalls).toHaveLength(0);
+  });
+
+  it('edit returns unsupported-target for an unknown command kind and does not mutate the store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const service = createService(store);
+
+    const result = service.edit({ kind: 'map-edit/unknown' } as unknown as Parameters<MapEditService['edit']>[0]);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/unsupported-target');
+    }
+    expect(setCalls).toHaveLength(0);
+  });
+
+  it('edit records selectionBefore keep when transaction selection is omitted', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const entries: MapHistoryEntry[] = [];
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: entry => {
+        entries.push(entry);
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const engine: MapCommandEngine = {
+      apply: () =>
+        ({
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), lights: [] },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        })
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngineAndHistory(store, engine, history);
+
+    const result = service.edit({
+      kind: 'map-edit/transaction',
+      commands: [{ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } }]
+    });
+
+    expect(result.ok).toBe(true);
+    expect(setCalls).toHaveLength(1);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.selectionBefore).toEqual({ kind: 'map-edit/selection/keep' });
+  });
+
+  it('edit records selectionBefore clear/invalidated when transaction selection ref is null', () => {
+    const { store } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const entries: MapHistoryEntry[] = [];
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: entry => {
+        entries.push(entry);
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const engine: MapCommandEngine = {
+      apply: () =>
+        ({
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), lights: [] },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        })
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngineAndHistory(store, engine, history);
+
+    const result = service.edit({
+      kind: 'map-edit/transaction',
+      commands: [{ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } }],
+      selection: { kind: 'map-edit/selection', ref: null }
+    });
+
+    expect(result.ok).toBe(true);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.selectionBefore).toEqual({ kind: 'map-edit/selection/clear', reason: 'invalidated' });
+  });
+
+  it('edit records selectionBefore set when transaction selection ref is provided', () => {
+    const { store } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const entries: MapHistoryEntry[] = [];
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: entry => {
+        entries.push(entry);
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const engine: MapCommandEngine = {
+      apply: () =>
+        ({
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), lights: [] },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        })
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngineAndHistory(store, engine, history);
+
+    const result = service.edit({
+      kind: 'map-edit/transaction',
+      commands: [{ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } }],
+      selection: { kind: 'map-edit/selection', ref: { kind: 'light', index: 0 } }
+    });
+
+    expect(result.ok).toBe(true);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.selectionBefore).toEqual({ kind: 'map-edit/selection/set', ref: { kind: 'light', index: 0 } });
+  });
+
+  it('edit records selectionBefore set for an atomic delete command', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const entries: MapHistoryEntry[] = [];
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: entry => {
+        entries.push(entry);
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const engine: MapCommandEngine = {
+      apply: () =>
+        ({
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), lights: [] },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        })
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngineAndHistory(store, engine, history);
+
+    const result = service.edit({ kind: 'map-edit/delete', target: { kind: 'light', index: 0 } });
+
+    expect(result.ok).toBe(true);
+    expect(setCalls).toHaveLength(1);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.selectionBefore).toEqual({ kind: 'map-edit/selection/set', ref: { kind: 'light', index: 0 } });
+  });
+
+  it('edit records selectionBefore set for an atomic clone command', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), particles: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null
+    });
+
+    const entries: MapHistoryEntry[] = [];
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: entry => {
+        entries.push(entry);
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const engine: MapCommandEngine = {
+      apply: () =>
+        ({
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), particles: [{ x: 1, y: 2 }, { x: 2, y: 3 }] },
+            selection: { kind: 'map-edit/selection/set', ref: { kind: 'particle', index: 1 } }
+          }
+        })
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngineAndHistory(store, engine, history);
+
+    const result = service.edit({ kind: 'map-edit/clone', target: { kind: 'particle', index: 0 } });
+
+    expect(result.ok).toBe(true);
+    expect(setCalls).toHaveLength(1);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.selectionBefore).toEqual({ kind: 'map-edit/selection/set', ref: { kind: 'particle', index: 0 } });
   });
 
   it('redo returns no-document when no map is loaded', () => {
@@ -139,6 +484,230 @@ describe('MapEditService', () => {
     if (!result.ok) {
       expect(result.error.code).toBe('map-edit/not-found');
     }
+  });
+
+  it('undo defaults to 1 step when steps is non-finite or < 1', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null
+    });
+
+    let undoCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        throw new Error('recordEdit should not be called in this test');
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        undoCalls += 1;
+        return {
+          ok: true,
+          value: {
+            documentState: { json: { undoCalls }, dirty: false, lastValidation: null },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, new MapCommandEngine(), history);
+
+    const result = service.undo({ steps: Number.NaN });
+
+    expect(result.ok).toBe(true);
+    expect(undoCalls).toBe(1);
+    expect(setCalls).toHaveLength(1);
+
+    const result2 = service.undo({ steps: 0 });
+    expect(result2.ok).toBe(true);
+    expect(undoCalls).toBe(2);
+  });
+
+  it('undo floors fractional step counts and loops multiple times', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null
+    });
+
+    let undoCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        throw new Error('recordEdit should not be called in this test');
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        undoCalls += 1;
+        return {
+          ok: true,
+          value: {
+            documentState: { json: { undoCalls }, dirty: false, lastValidation: null },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, new MapCommandEngine(), history);
+
+    const result = service.undo({ steps: 2.9 });
+    expect(result.ok).toBe(true);
+    expect(undoCalls).toBe(2);
+    expect(setCalls).toHaveLength(1);
+    expect(setCalls[0]?.json).toEqual({ undoCalls: 2 });
+  });
+
+  it('undo returns the underlying error when a later undo step fails and does not mutate the store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null
+    });
+
+    let undoCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        throw new Error('recordEdit should not be called in this test');
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        undoCalls += 1;
+        if (undoCalls === 1) {
+          return {
+            ok: true,
+            value: {
+              documentState: { json: { undoCalls }, dirty: false, lastValidation: null },
+              selection: { kind: 'map-edit/selection/keep' }
+            }
+          };
+        }
+        return {
+          ok: false,
+          error: { kind: 'map-edit-error', code: 'map-edit/not-found', message: 'Nothing to undo.' }
+        };
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, new MapCommandEngine(), history);
+
+    const result = service.undo({ steps: 2 });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/not-found');
+    }
+    expect(setCalls).toHaveLength(0);
+  });
+
+  it('redo defaults to 1 step when steps is non-finite or < 1 and loops multiple times when > 1', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null
+    });
+
+    let redoCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        throw new Error('recordEdit should not be called in this test');
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        redoCalls += 1;
+        return {
+          ok: true,
+          value: {
+            documentState: { json: { redoCalls }, dirty: true, lastValidation: null },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, new MapCommandEngine(), history);
+
+    const result = service.redo({ steps: Number.POSITIVE_INFINITY });
+    expect(result.ok).toBe(true);
+    expect(redoCalls).toBe(1);
+
+    const result2 = service.redo({ steps: 2.1 });
+    expect(result2.ok).toBe(true);
+    expect(redoCalls).toBe(3);
+    expect(setCalls).toHaveLength(2);
+    expect(setCalls[1]?.json).toEqual({ redoCalls: 3 });
+  });
+
+  it('redo returns the underlying error when a later redo step fails and does not mutate the store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null
+    });
+
+    let redoCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        throw new Error('recordEdit should not be called in this test');
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        redoCalls += 1;
+        if (redoCalls === 1) {
+          return {
+            ok: true,
+            value: {
+              documentState: { json: { redoCalls }, dirty: true, lastValidation: null },
+              selection: { kind: 'map-edit/selection/keep' }
+            }
+          };
+        }
+        return {
+          ok: false,
+          error: { kind: 'map-edit-error', code: 'map-edit/not-found', message: 'Nothing to redo.' }
+        };
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, new MapCommandEngine(), history);
+
+    const result = service.redo({ steps: 2 });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/not-found');
+    }
+    expect(setCalls).toHaveLength(0);
   });
 
   it('undo restores json + dirty + lastValidation and returns selection/history info', () => {

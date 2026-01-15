@@ -3,6 +3,9 @@
 ## Overview
 Nomos Studio currently supports opening, validating, and saving map files (JSON) via main-process application services. Validation is performed by invoking an external “game executable” (configured in settings) with a `--validate-map` command.
 
+For the map editing/undo/redo design and its transactional command model, see:
+- `docs/map-edit-command-system.md`
+
 The current map model is intentionally minimal:
 - A map is a JSON file loaded into memory as `unknown`.
 - The app tracks the current open document (file path, JSON payload, dirty flag, and last validation record).

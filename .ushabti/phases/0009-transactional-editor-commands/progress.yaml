@@ -9,7 +9,7 @@ steps:
     title: Inventory current edit + store patterns
     implemented: true
     reviewed: false
-    notes: "Call sites to update: main map edits in src/main/application/maps/MapEditService.ts; store mutation via AppStore.setMapDocument in src/main/application/store/AppStore.ts; map open/save also call setMapDocument in src/main/application/maps/OpenMapService.ts and src/main/application/maps/SaveMapService.ts; IPC wiring in src/shared/ipc/nomosIpc.ts (channels + request/response), src/preload/preload.ts (exposed API), src/preload/nomos.d.ts (types), src/main/ipc/registerNomosIpcHandlers.ts and src/main/main.ts (handlers); renderer selection reconciliation currently in src/renderer/ui/editor/panels/MapEditorDockPanel.tsx using window.nomos.map.edit result and setMapSelection.""
+    notes: "Call sites to update: main map edits in src/main/application/maps/MapEditService.ts; store mutation via AppStore.setMapDocument in src/main/application/store/AppStore.ts; map open/save also call setMapDocument in src/main/application/maps/OpenMapService.ts and src/main/application/maps/SaveMapService.ts; IPC wiring in src/shared/ipc/nomosIpc.ts (channels + request/response), src/preload/preload.ts (exposed API), src/preload/nomos.d.ts (types), src/main/ipc/registerNomosIpcHandlers.ts and src/main/main.ts (handlers); renderer selection reconciliation currently in src/renderer/ui/editor/panels/MapEditorDockPanel.tsx using window.nomos.map.edit result and setMapSelection."
     touched:
       - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
 
@@ -136,3 +136,127 @@ steps:
       - docs/ipc-system.md
       - docs/maps-system.md
       - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S013
+    title: Complete L04 branch coverage for MapCommandEngine
+    implemented: true
+    reviewed: false
+    notes: "Coverage run (Jan 15, 2026) shows MapCommandEngine.ts at 100% statements/branches/lines; L04 conditional paths are covered for the public apply method."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S020
+    title: Remove unreachable branch in MapCommandEngine target comparison
+    implemented: true
+    reviewed: false
+    notes: "Refactored MapCommandEngine.targetEquals to remove unreachable default/trailing return path; coverage run (Jan 15, 2026) shows MapCommandEngine.ts 100% lines/branches."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0009-transactional-editor-commands/steps.md
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S014
+    title: Complete L04 branch coverage for MapEditHistory
+    implemented: true
+    reviewed: false
+    notes: "Coverage confirms recordEdit(maxDepth===0) path is covered; remaining uncovered constructor-default-param coverage is tracked separately (S024)."
+    touched:
+      - src/main/application/maps/MapEditHistory.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S015
+    title: Complete L04 branch coverage for MapEditService.edit edge/error paths
+    implemented: true
+    reviewed: false
+    notes: "Coverage run (Jan 15, 2026) shows MapEditService.ts at 100% statements/branches/lines; L04 conditional paths are covered for the public edit method (including afterState failure path)."
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S016
+    title: Complete remaining L04 branches in MapCommandEngine.apply (defensive paths)
+    implemented: true
+    reviewed: false
+    notes: "Coverage indicates structuredClone failure and undefined-step transaction defense are covered; remaining uncovered lines were in targetEquals and are tracked separately (S013/S020)."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S017
+    title: Complete L04 branch coverage for MapEditService.undo/redo step parsing
+    implemented: true
+    reviewed: false
+    notes: "Coverage run (Jan 15, 2026) shows MapEditService.ts at 100% statements/branches/lines; L04 conditional paths are covered for public undo/redo."
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S018
+    title: Add direct unit coverage for MapEditHistory.onMapOpened
+    implemented: true
+    reviewed: false
+    notes: "Coverage run (Jan 15, 2026) shows MapEditHistory.ts at 100% statements/branches/lines; onMapOpened is directly covered by unit tests."
+    touched:
+      - src/main/application/maps/MapEditHistory.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S021
+    title: Remove dead statement in MapEditHistory.onMapOpened
+    implemented: true
+    reviewed: false
+    notes: "Refactored MapEditHistory.onMapOpened to remove the dead `void document;` statement by renaming the param to _document and calling clear() directly."
+    touched:
+      - .ushabti/phases/0009-transactional-editor-commands/steps.md
+      - src/main/application/maps/MapEditHistory.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S022
+    title: Cover remaining targetEquals branches in MapCommandEngine
+    implemented: true
+    reviewed: false
+    notes: "Coverage run (Jan 15, 2026) shows MapCommandEngine.ts at 100% lines/branches; targetEquals paths are covered (including null selection ref and kind mismatch)."
+    touched:
+      - .ushabti/phases/0009-transactional-editor-commands/steps.md
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S023
+    title: Cover MapEditService.edit afterState failure branch
+    implemented: true
+    reviewed: false
+    notes: "Coverage run (Jan 15, 2026) shows MapEditService.ts at 100% lines/branches; the afterState failure return path is covered via unit test."
+    touched:
+      - .ushabti/phases/0009-transactional-editor-commands/steps.md
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S024
+    title: Cover MapEditHistory constructor default parameter branch
+    implemented: true
+    reviewed: false
+    notes: "Coverage run (Jan 15, 2026) shows MapEditHistory.ts at 100% lines/branches; constructor default-parameter branch is covered via unit test."
+    touched:
+      - .ushabti/phases/0009-transactional-editor-commands/steps.md
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S019
+    title: Complete command-application matrix tests required by phase.md
+    implemented: true
+    reviewed: false
+    notes: "MapCommandEngine tests cover delete+clone success across target kinds and key error paths; coverage run (Jan 15, 2026) shows MapCommandEngine.ts 100% lines/branches."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+
+  - id: S025
+    title: Add dedicated documentation for the transactional map edit command system (L09)
+    implemented: true
+    reviewed: false
+    notes: "Added docs/map-edit-command-system.md describing the transactional command model, engine responsibilities, selection effects, undo/redo invariants, and extension guidance; linked from maps and IPC subsystem docs."
+    touched:
+      - .ushabti/phases/0009-transactional-editor-commands/steps.md
+      - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
+      - docs/map-edit-command-system.md
+      - docs/maps-system.md
+      - docs/ipc-system.md

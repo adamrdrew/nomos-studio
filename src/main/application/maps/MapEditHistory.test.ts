@@ -13,9 +13,29 @@ function baseDocument(): MapDocument {
 
 describe('MapEditHistory', () => {
   it('starts empty', () => {
-    const history = new MapEditHistory(10);
+    const history = new MapEditHistory();
 
     expect(history.getInfo()).toEqual({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 });
+  });
+
+  it('disables history when maxDepth is 0 (recordEdit clears both stacks)', () => {
+    const history = new MapEditHistory(0);
+
+    history.recordEdit({
+      label: 'x',
+      before: { json: { a: 1 }, dirty: false, lastValidation: null },
+      after: { json: { a: 2 }, dirty: true, lastValidation: null },
+      selectionBefore: { kind: 'map-edit/selection/keep' },
+      selectionAfter: { kind: 'map-edit/selection/keep' }
+    });
+
+    expect(history.getInfo()).toEqual({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 });
+
+    const undo = history.undo();
+    expect(undo.ok).toBe(false);
+
+    const redo = history.redo();
+    expect(redo.ok).toBe(false);
   });
 
   it('recordEdit pushes undo and clears redo', () => {
@@ -128,5 +148,11 @@ describe('MapEditHistory', () => {
     history.onMapOpened(baseDocument());
 
     expect(history.getInfo()).toEqual({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 });
+
+    const undo = history.undo();
+    expect(undo.ok).toBe(false);
+
+    const redo = history.redo();
+    expect(redo.ok).toBe(false);
   });
 });

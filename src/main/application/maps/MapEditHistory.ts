@@ -55,8 +55,8 @@ export class MapEditHistory implements MapEditHistoryPort {
     this.redoStack = [];
   }
 
-  public onMapOpened(document: MapDocument): void {
-    void document;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onMapOpened(_document: MapDocument): void {
     this.clear();
   }
 

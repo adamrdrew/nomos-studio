@@ -5,7 +5,8 @@ import type {
   MapEditHistoryInfo,
   MapEditResult,
   MapEditSelectionEffect,
-  MapEditSelectionInput
+  MapEditSelectionInput,
+  MapEditTargetRef
 } from '../../../shared/ipc/nomosIpc';
 import type { AppStore } from '../store/AppStore';
 
@@ -77,6 +78,11 @@ export class MapEditService {
       return err('map-edit/no-document', 'No map is currently open.');
     }
 
+    if (command.kind !== 'map-edit/transaction' && command.kind !== 'map-edit/delete' && command.kind !== 'map-edit/clone') {
+      const unknownKind = (command as unknown as { kind?: unknown }).kind;
+      return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
+    }
+
     const normalizedCommand: MapEditCommand = command;
 
     const beforeState = toDocumentState(currentDocument);
@@ -101,12 +107,16 @@ export class MapEditService {
       return afterState;
     }
 
-    const selectionInput: MapEditSelectionInput | undefined =
-      normalizedCommand.kind === 'map-edit/transaction'
-        ? normalizedCommand.selection
-        : command.kind === 'map-edit/delete' || command.kind === 'map-edit/clone'
-          ? { kind: 'map-edit/selection', ref: command.target }
-          : undefined;
+    let selectionInput: MapEditSelectionInput | undefined;
+    switch (normalizedCommand.kind) {
+      case 'map-edit/transaction':
+        selectionInput = normalizedCommand.selection;
+        break;
+      case 'map-edit/delete':
+      case 'map-edit/clone':
+        selectionInput = { kind: 'map-edit/selection', ref: normalizedCommand.target };
+        break;
+    }
 
     const selectionBefore = selectionEffectForInput(selectionInput);
 
@@ -114,6 +124,15 @@ export class MapEditService {
       command.kind === 'map-edit/delete'
         ? { kind: 'map-edit/selection/clear', reason: 'deleted' }
         : applyResult.value.selection;
+
+    const cloneNewRef: MapEditTargetRef | undefined =
+      command.kind === 'map-edit/clone' && selectionAfter.kind === 'map-edit/selection/set'
+        ? selectionAfter.ref
+        : undefined;
+
+    if (command.kind === 'map-edit/clone' && cloneNewRef === undefined) {
+      return err('map-edit/invalid-json', 'Clone did not produce a new reference.');
+    }
 
     const entryBase = {
       before: beforeState.value,
@@ -130,30 +149,21 @@ export class MapEditService {
 
     const historyInfo = toHistoryInfo(this.history.getInfo());
 
-    if (command.kind === 'map-edit/transaction') {
-      return {
-        ok: true,
-        value: {
-          kind: 'map-edit/applied',
-          selection: selectionAfter,
-          history: historyInfo
-        }
-      };
+    switch (command.kind) {
+      case 'map-edit/transaction':
+        return {
+          ok: true,
+          value: {
+            kind: 'map-edit/applied',
+            selection: selectionAfter,
+            history: historyInfo
+          }
+        };
+      case 'map-edit/clone':
+        return { ok: true, value: { kind: 'map-edit/cloned', newRef: cloneNewRef! } };
+      case 'map-edit/delete':
+        return { ok: true, value: { kind: 'map-edit/deleted' } };
     }
-
-    if (command.kind === 'map-edit/clone') {
-      if (selectionAfter.kind === 'map-edit/selection/set') {
-        return { ok: true, value: { kind: 'map-edit/cloned', newRef: selectionAfter.ref } };
-      }
-      return err('map-edit/invalid-json', 'Clone did not produce a new reference.');
-    }
-
-    if (command.kind === 'map-edit/delete') {
-      return { ok: true, value: { kind: 'map-edit/deleted' } };
-    }
-
-    const unknownKind = (command as unknown as { kind?: unknown }).kind;
-    return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
   }
 
   public undo(request: Readonly<{ steps?: number }> = {}): Result<MapEditResult, MapEditError> {
@@ -168,17 +178,18 @@ export class MapEditService {
         ? 1
         : Math.floor(requestedSteps);
 
-    let restore: MapHistoryRestore | undefined;
-    for (let stepIndex = 0; stepIndex < steps; stepIndex++) {
+    const firstUndo = this.history.undo();
+    if (!firstUndo.ok) {
+      return firstUndo;
+    }
+
+    let restore: MapHistoryRestore = firstUndo.value;
+    for (let stepIndex = 1; stepIndex < steps; stepIndex++) {
       const undoResult = this.history.undo();
       if (!undoResult.ok) {
         return undoResult;
       }
       restore = undoResult.value;
-    }
-
-    if (restore === undefined) {
-      return err('map-edit/not-found', 'Nothing to undo.');
     }
 
     const nextDocument: MapDocument = {
@@ -212,17 +223,18 @@ export class MapEditService {
         ? 1
         : Math.floor(requestedSteps);
 
-    let restore: MapHistoryRestore | undefined;
-    for (let stepIndex = 0; stepIndex < steps; stepIndex++) {
+    const firstRedo = this.history.redo();
+    if (!firstRedo.ok) {
+      return firstRedo;
+    }
+
+    let restore: MapHistoryRestore = firstRedo.value;
+    for (let stepIndex = 1; stepIndex < steps; stepIndex++) {
       const redoResult = this.history.redo();
       if (!redoResult.ok) {
         return redoResult;
       }
       restore = redoResult.value;
-    }
-
-    if (restore === undefined) {
-      return err('map-edit/not-found', 'Nothing to redo.');
     }
 
     const nextDocument: MapDocument = {

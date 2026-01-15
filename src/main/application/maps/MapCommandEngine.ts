@@ -87,10 +87,6 @@ function targetEquals(a: MapEditTargetRef | null, b: MapEditTargetRef | null): b
     case 'particle':
     case 'entity':
       return a.index === (b as typeof a).index;
-    default: {
-      const unknownKind = (a as unknown as { kind?: unknown }).kind;
-      return String(unknownKind) === String((b as unknown as { kind?: unknown }).kind);
-    }
   }
 }
 

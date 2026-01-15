@@ -106,6 +106,9 @@ Read file bytes:
 - `OpenMapResponse = Result<MapDocument, MapIoError | MapValidationError>`
 - `SaveMapResponse = Result<MapDocument, MapIoError>`
 
+For details of the transactional edit command model and selection reconciliation semantics carried over IPC, see:
+- `docs/map-edit-command-system.md`
+
 Edit map:
 - `MapEditTargetRef = { kind: 'light' | 'particle' | 'entity'; index: number } | { kind: 'door'; id: string }`
 - `MapEditAtomicCommand = { kind: 'map-edit/delete' | 'map-edit/clone'; target: MapEditTargetRef }`
