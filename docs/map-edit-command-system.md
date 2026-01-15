@@ -132,11 +132,22 @@ Main exposes `MapEditHistoryInfo` in the state snapshot so UI can enable/disable
 ## IPC surface
 
 Renderer-to-main operations:
-- `window.nomos.map.edit({ command })`
-- `window.nomos.map.undo({ steps? })`
-- `window.nomos.map.redo({ steps? })`
+- `window.nomos.map.edit({ baseRevision, command })`
+- `window.nomos.map.undo({ baseRevision, steps? })`
+- `window.nomos.map.redo({ baseRevision, steps? })`
 
 All shapes are defined in `src/shared/ipc/nomosIpc.ts`.
+
+### Revision gating (stale-edit protection)
+Edit-like operations are revision-gated to prevent applying commands against a stale renderer snapshot.
+
+- Every renderer-initiated edit/undo/redo request must include `baseRevision` taken from the latest `MapDocument.revision` in the renderer snapshot.
+- Main compares `baseRevision` to the current authoritative document revision and rejects mismatches **before** any engine/history/store mutation.
+- Rejection uses a typed error:
+  - `{ kind: 'map-edit-error', code: 'map-edit/stale-revision', message: string, currentRevision: number }`
+
+Renderer handling rule:
+- On `map-edit/stale-revision`, refresh state from main and let the user retry; do not auto-retry the original operation.
 
 ## How to extend safely
 

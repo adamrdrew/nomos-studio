@@ -7,6 +7,8 @@ import type { MapDocument, MapValidationRecord } from '../../../shared/domain/mo
 
 type StoredMapDocument = Readonly<{ dirty: boolean; json: unknown }>;
 
+type MapDocumentFixture = Omit<MapDocument, 'revision'> & Partial<Pick<MapDocument, 'revision'>>;
+
 function baseMapJson(): Record<string, unknown> {
   return {
     vertices: [],
@@ -31,12 +33,18 @@ function createServiceWithEngineAndHistory(store: AppStore, engine: MapCommandEn
   return new MapEditService(store, engine, history);
 }
 
-function createMutableStore(initialDocument: MapDocument | null): Readonly<{
+function createMutableStore(initialDocument: MapDocumentFixture | null): Readonly<{
   store: AppStore;
   getDocument: () => MapDocument | null;
   setCalls: readonly (MapDocument | null)[];
 }> {
-  let mapDocument: MapDocument | null = initialDocument;
+  let mapDocument: MapDocument | null =
+    initialDocument === null
+      ? null
+      : {
+          ...initialDocument,
+          revision: initialDocument.revision ?? 1
+        };
   const setCalls: (MapDocument | null)[] = [];
 
   const store: AppStore = {
@@ -89,12 +97,155 @@ describe('MapEditService', () => {
     }
   });
 
+  it('edit with matching baseRevision succeeds and bumps revision by 1', () => {
+    const { store, getDocument, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null,
+      revision: 1
+    });
+
+    let applyCalls = 0;
+    const engine: MapCommandEngine = {
+      apply: () => {
+        applyCalls += 1;
+        return {
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), lights: [{ x: 9, y: 9 }] },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      }
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngine(store, engine);
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/delete', target: { kind: 'light', index: 0 } }
+    });
+
+    expect(result.ok).toBe(true);
+    expect(applyCalls).toBe(1);
+    expect(setCalls).toHaveLength(1);
+    expect(getDocument()?.revision).toBe(2);
+  });
+
+  it('edit rejects mismatched baseRevision with stale-revision and does not mutate store/engine/history', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null,
+      revision: 2
+    });
+
+    let applyCalls = 0;
+    const engine: MapCommandEngine = {
+      apply: () => {
+        applyCalls += 1;
+        return {
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson() },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      }
+    } as unknown as MapCommandEngine;
+
+    let recordEditCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        recordEditCalls += 1;
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, engine, history);
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/delete', target: { kind: 'light', index: 0 } }
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/stale-revision');
+      if (result.error.code === 'map-edit/stale-revision') {
+        expect(result.error.currentRevision).toBe(2);
+      }
+    }
+    expect(applyCalls).toBe(0);
+    expect(recordEditCalls).toBe(0);
+    expect(setCalls).toHaveLength(0);
+  });
+
+  it('edit A then stale edit B returns stale-revision with currentRevision and does not apply B', () => {
+    const { store, getDocument, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
+      dirty: false,
+      lastValidation: null,
+      revision: 1
+    });
+
+    let applyCalls = 0;
+    const engine: MapCommandEngine = {
+      apply: () => {
+        applyCalls += 1;
+        return {
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), lights: [{ x: applyCalls, y: applyCalls }] },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      }
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngine(store, engine);
+
+    const first = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/delete', target: { kind: 'light', index: 0 } }
+    });
+    expect(first.ok).toBe(true);
+    expect(getDocument()?.revision).toBe(2);
+
+    const stale = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/delete', target: { kind: 'light', index: 0 } }
+    });
+    expect(stale.ok).toBe(false);
+    if (!stale.ok) {
+      expect(stale.error.code).toBe('map-edit/stale-revision');
+      if (stale.error.code === 'map-edit/stale-revision') {
+        expect(stale.error.currentRevision).toBe(2);
+      }
+    }
+
+    expect(applyCalls).toBe(1);
+    expect(setCalls).toHaveLength(1);
+  });
+
   it('edit returns invalid-json when a clone does not produce selection/set and does not mutate the store', () => {
     const { store, setCalls } = createMutableStore({
       filePath: '/maps/test.json',
       json: { ...baseMapJson(), particles: [{ x: 1, y: 2 }] },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const engine: MapCommandEngine = {
@@ -126,7 +277,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: nonCloneableJson,
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const service = createService(store);
@@ -145,7 +297,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const nonCloneableNextJson = { bad: () => {} } as unknown as Record<string, unknown>;
@@ -177,7 +330,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson() },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const service = createService(store);
@@ -196,7 +350,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const entries: MapHistoryEntry[] = [];
@@ -244,7 +399,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const entries: MapHistoryEntry[] = [];
@@ -292,7 +448,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const entries: MapHistoryEntry[] = [];
@@ -340,7 +497,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson(), lights: [{ x: 1, y: 2 }] },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const entries: MapHistoryEntry[] = [];
@@ -385,7 +543,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson(), particles: [{ x: 1, y: 2 }] },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const entries: MapHistoryEntry[] = [];
@@ -455,7 +614,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson() },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const service = createService(store);
@@ -473,7 +633,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson() },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     const service = createService(store);
@@ -491,7 +652,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson() },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     let undoCalls = 0;
@@ -524,6 +686,7 @@ describe('MapEditService', () => {
     expect(result.ok).toBe(true);
     expect(undoCalls).toBe(1);
     expect(setCalls).toHaveLength(1);
+    expect(setCalls[0]?.revision).toBe(2);
 
     const result2 = service.undo({ steps: 0 });
     expect(result2.ok).toBe(true);
@@ -535,7 +698,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson() },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     let undoCalls = 0;
@@ -568,6 +732,54 @@ describe('MapEditService', () => {
     expect(undoCalls).toBe(2);
     expect(setCalls).toHaveLength(1);
     expect(setCalls[0]?.json).toEqual({ undoCalls: 2 });
+    expect(setCalls[0]?.revision).toBe(2);
+  });
+
+  it('undo rejects stale baseRevision and does not call history.undo or mutate the store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null,
+      revision: 2
+    });
+
+    let undoCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        throw new Error('recordEdit should not be called in this test');
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        undoCalls += 1;
+        return {
+          ok: true,
+          value: {
+            documentState: { json: { undoCalls }, dirty: false, lastValidation: null },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, new MapCommandEngine(), history);
+
+    const result = service.undo({ baseRevision: 1, steps: 1 });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/stale-revision');
+      if (result.error.code === 'map-edit/stale-revision') {
+        expect(result.error.currentRevision).toBe(2);
+      }
+    }
+    expect(undoCalls).toBe(0);
+    expect(setCalls).toHaveLength(0);
   });
 
   it('undo returns the underlying error when a later undo step fails and does not mutate the store', () => {
@@ -575,7 +787,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson() },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     let undoCalls = 0;
@@ -623,7 +836,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson() },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     let redoCalls = 0;
@@ -660,6 +874,55 @@ describe('MapEditService', () => {
     expect(redoCalls).toBe(3);
     expect(setCalls).toHaveLength(2);
     expect(setCalls[1]?.json).toEqual({ redoCalls: 3 });
+    expect(setCalls[0]?.revision).toBe(2);
+    expect(setCalls[1]?.revision).toBe(3);
+  });
+
+  it('redo rejects stale baseRevision and does not call history.redo or mutate the store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null,
+      revision: 2
+    });
+
+    let redoCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        throw new Error('recordEdit should not be called in this test');
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        redoCalls += 1;
+        return {
+          ok: true,
+          value: {
+            documentState: { json: { redoCalls }, dirty: false, lastValidation: null },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, new MapCommandEngine(), history);
+
+    const result = service.redo({ baseRevision: 1, steps: 1 });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/stale-revision');
+      if (result.error.code === 'map-edit/stale-revision') {
+        expect(result.error.currentRevision).toBe(2);
+      }
+    }
+    expect(redoCalls).toBe(0);
+    expect(setCalls).toHaveLength(0);
   });
 
   it('redo returns the underlying error when a later redo step fails and does not mutate the store', () => {
@@ -667,7 +930,8 @@ describe('MapEditService', () => {
       filePath: '/maps/test.json',
       json: { ...baseMapJson() },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     });
 
     let redoCalls = 0;
@@ -720,7 +984,8 @@ describe('MapEditService', () => {
         lights: [{ x: 1, y: 2, radius: 3, intensity: 1, color: '#ffffff' }]
       },
       dirty: false,
-      lastValidation
+      lastValidation,
+      revision: 1
     });
 
     const service = createService(store);
@@ -914,6 +1179,9 @@ describe('MapEditService', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe('map-edit/transaction-step-failed');
+      if (result.error.code !== 'map-edit/transaction-step-failed') {
+        throw new Error('Expected transaction-step-failed');
+      }
       expect(result.error.stepIndex).toBe(1);
     }
 

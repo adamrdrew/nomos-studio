@@ -269,7 +269,7 @@ app.on('ready', () => {
     },
     openMap: async (request) => openMapService.openMap(request.mapPath),
     saveMap: async () => saveMapService.saveCurrentDocument(),
-    editMap: async (request) => mapEditService.edit(request.command),
+    editMap: async (request) => mapEditService.edit(request),
     undoMap: async (request) => mapEditService.undo(request),
     redoMap: async (request) => mapEditService.redo(request),
 

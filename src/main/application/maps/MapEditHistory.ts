@@ -2,7 +2,9 @@ import type { MapDocument, MapValidationRecord } from '../../../shared/domain/mo
 import type { MapEditError, Result } from '../../../shared/domain/results';
 import type { MapEditHistoryInfo, MapEditSelectionEffect } from '../../../shared/ipc/nomosIpc';
 
-function err(code: MapEditError['code'], message: string): Result<never, MapEditError> {
+type NonStaleMapEditErrorCode = Exclude<MapEditError['code'], 'map-edit/stale-revision'>;
+
+function err(code: NonStaleMapEditErrorCode, message: string): Result<never, MapEditError> {
   return {
     ok: false,
     error: {

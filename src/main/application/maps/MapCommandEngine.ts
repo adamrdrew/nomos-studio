@@ -8,7 +8,13 @@ import type {
   MapEditTargetRef
 } from '../../../shared/ipc/nomosIpc';
 
-function err(code: MapEditError['code'], message: string, extras?: Partial<Omit<MapEditError, 'kind' | 'code' | 'message'>>): Result<never, MapEditError> {
+type NonStaleMapEditErrorCode = Exclude<MapEditError['code'], 'map-edit/stale-revision'>;
+
+function err(
+  code: NonStaleMapEditErrorCode,
+  message: string,
+  extras?: Partial<Omit<MapEditError, 'kind' | 'code' | 'message'>>
+): Result<never, MapEditError> {
   return {
     ok: false,
     error: {

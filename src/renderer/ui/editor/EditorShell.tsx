@@ -1,10 +1,13 @@
 import React from 'react';
 import { DockviewDefaultTab, DockviewReact, type DockviewReadyEvent, type IDockviewDefaultTabProps } from 'dockview';
+import { Intent, Position, Toaster } from '@blueprintjs/core';
 
 import { useNomosStore } from '../../store/nomosStore';
 
 import { InspectorDockPanel } from './panels/InspectorDockPanel';
 import { MapEditorDockPanel } from './panels/MapEditorDockPanel';
+
+const toaster = Toaster.create({ position: Position.TOP });
 
 const NonClosableTab = (props: IDockviewDefaultTabProps): JSX.Element => {
   return <DockviewDefaultTab {...props} hideClose={true} />;
@@ -77,8 +80,19 @@ export function EditorShell(): JSX.Element {
       event.preventDefault();
 
       void (async () => {
-        const result = isUndo ? await window.nomos.map.undo() : await window.nomos.map.redo();
+        const mapDocument = useNomosStore.getState().mapDocument;
+        if (mapDocument === null) {
+          return;
+        }
+
+        const request = { baseRevision: mapDocument.revision };
+        const result = isUndo ? await window.nomos.map.undo(request) : await window.nomos.map.redo(request);
         if (!result.ok) {
+          if (result.error.code === 'map-edit/stale-revision') {
+            await useNomosStore.getState().refreshFromMain();
+            toaster.show({ message: 'Document changed; refreshed. Please retry.', intent: Intent.WARNING });
+            return;
+          }
           // eslint-disable-next-line no-console
           console.error('[nomos] map undo/redo failed', result.error);
           return;

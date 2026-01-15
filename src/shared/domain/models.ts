@@ -25,11 +25,14 @@ export type MapValidationRecord =
       reportText: string;
     }>;
 
+export type MapDocumentRevision = number;
+
 export type MapDocument = Readonly<{
   filePath: string;
   json: unknown;
   dirty: boolean;
   lastValidation: MapValidationRecord | null;
+  revision: MapDocumentRevision;
 }>;
 
 export type MapRenderMode = 'wireframe' | 'textured';

@@ -16,7 +16,8 @@ function baseDocument(json: unknown): MapDocument {
     filePath: '/maps/test.json',
     json,
     dirty: false,
-    lastValidation: null
+    lastValidation: null,
+    revision: 1
   };
 }
 
@@ -104,6 +105,9 @@ describe('MapCommandEngine', () => {
       throw new Error('Expected failure');
     }
     expect(result.error.code).toBe('map-edit/transaction-step-failed');
+    if (result.error.code !== 'map-edit/transaction-step-failed') {
+      throw new Error('Expected transaction-step-failed');
+    }
     expect(result.error.stepIndex).toBe(0);
   });
 
@@ -473,6 +477,9 @@ describe('MapCommandEngine', () => {
     }
 
     expect(result.error.code).toBe('map-edit/transaction-step-failed');
+    if (result.error.code !== 'map-edit/transaction-step-failed') {
+      throw new Error('Expected transaction-step-failed');
+    }
     expect(result.error.stepIndex).toBe(1);
     expect(result.error.cause?.code).toBe('map-edit/not-found');
   });

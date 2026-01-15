@@ -1,19 +1,24 @@
-import type { MapDocument } from '../../../shared/domain/models';
+import type { MapDocument, MapDocumentRevision } from '../../../shared/domain/models';
 import type { MapEditError, Result } from '../../../shared/domain/results';
 import type {
   MapEditCommand,
   MapEditHistoryInfo,
+  MapEditRequest,
   MapEditResult,
   MapEditSelectionEffect,
   MapEditSelectionInput,
-  MapEditTargetRef
+  MapRedoRequest,
+  MapEditTargetRef,
+  MapUndoRequest
 } from '../../../shared/ipc/nomosIpc';
 import type { AppStore } from '../store/AppStore';
 
 import { MapCommandEngine } from './MapCommandEngine';
 import type { MapEditHistoryPort, MapHistoryEntry, MapHistoryDocumentState, MapHistoryRestore } from './MapEditHistory';
 
-function err(code: MapEditError['code'], message: string): Result<never, MapEditError> {
+type NonStaleMapEditErrorCode = Exclude<MapEditError['code'], 'map-edit/stale-revision'>;
+
+function err(code: NonStaleMapEditErrorCode, message: string): Result<never, MapEditError> {
   return {
     ok: false,
     error: {
@@ -22,6 +27,22 @@ function err(code: MapEditError['code'], message: string): Result<never, MapEdit
       message
     }
   };
+}
+
+function stale(baseRevision: MapDocumentRevision, currentRevision: MapDocumentRevision): Result<never, MapEditError> {
+  return {
+    ok: false,
+    error: {
+      kind: 'map-edit-error',
+      code: 'map-edit/stale-revision',
+      message: `Stale map revision (base=${baseRevision}, current=${currentRevision}).`,
+      currentRevision
+    }
+  };
+}
+
+function bumpedRevision(currentRevision: MapDocumentRevision): MapDocumentRevision {
+  return currentRevision + 1;
 }
 
 function selectionEffectForInput(selection: MapEditSelectionInput | undefined): MapEditSelectionEffect {
@@ -72,11 +93,24 @@ export class MapEditService {
     this.history = history;
   }
 
-  public edit(command: MapEditCommand): Result<MapEditResult, MapEditError> {
+  public edit(request: MapEditRequest): Result<MapEditResult, MapEditError>;
+  public edit(command: MapEditCommand): Result<MapEditResult, MapEditError>;
+  public edit(requestOrCommand: MapEditRequest | MapEditCommand): Result<MapEditResult, MapEditError> {
     const currentDocument = this.store.getState().mapDocument;
     if (currentDocument === null) {
       return err('map-edit/no-document', 'No map is currently open.');
     }
+
+    const request: MapEditRequest =
+      typeof (requestOrCommand as MapEditRequest).command === 'object'
+        ? (requestOrCommand as MapEditRequest)
+        : { baseRevision: currentDocument.revision, command: requestOrCommand as MapEditCommand };
+
+    if (request.baseRevision !== currentDocument.revision) {
+      return stale(request.baseRevision, currentDocument.revision);
+    }
+
+    const command = request.command;
 
     if (command.kind !== 'map-edit/transaction' && command.kind !== 'map-edit/delete' && command.kind !== 'map-edit/clone') {
       const unknownKind = (command as unknown as { kind?: unknown }).kind;
@@ -99,7 +133,8 @@ export class MapEditService {
       ...currentDocument,
       json: applyResult.value.nextJson,
       dirty: true,
-      lastValidation: null
+      lastValidation: null,
+      revision: bumpedRevision(currentDocument.revision)
     };
 
     const afterState = toDocumentState(nextDocument);
@@ -166,10 +201,18 @@ export class MapEditService {
     }
   }
 
-  public undo(request: Readonly<{ steps?: number }> = {}): Result<MapEditResult, MapEditError> {
+  public undo(request: MapUndoRequest): Result<MapEditResult, MapEditError>;
+  public undo(request?: Readonly<{ steps?: number }>): Result<MapEditResult, MapEditError>;
+  public undo(request: MapUndoRequest | Readonly<{ steps?: number }> = {}): Result<MapEditResult, MapEditError> {
     const currentDocument = this.store.getState().mapDocument;
     if (currentDocument === null) {
       return err('map-edit/no-document', 'No map is currently open.');
+    }
+
+    const baseRevision =
+      'baseRevision' in request ? (request as MapUndoRequest).baseRevision : currentDocument.revision;
+    if (baseRevision !== currentDocument.revision) {
+      return stale(baseRevision, currentDocument.revision);
     }
 
     const requestedSteps = request.steps;
@@ -196,7 +239,8 @@ export class MapEditService {
       filePath: currentDocument.filePath,
       json: restore.documentState.json,
       dirty: restore.documentState.dirty,
-      lastValidation: restore.documentState.lastValidation
+      lastValidation: restore.documentState.lastValidation,
+      revision: bumpedRevision(currentDocument.revision)
     };
 
     this.store.setMapDocument(nextDocument);
@@ -211,10 +255,18 @@ export class MapEditService {
     };
   }
 
-  public redo(request: Readonly<{ steps?: number }> = {}): Result<MapEditResult, MapEditError> {
+  public redo(request: MapRedoRequest): Result<MapEditResult, MapEditError>;
+  public redo(request?: Readonly<{ steps?: number }>): Result<MapEditResult, MapEditError>;
+  public redo(request: MapRedoRequest | Readonly<{ steps?: number }> = {}): Result<MapEditResult, MapEditError> {
     const currentDocument = this.store.getState().mapDocument;
     if (currentDocument === null) {
       return err('map-edit/no-document', 'No map is currently open.');
+    }
+
+    const baseRevision =
+      'baseRevision' in request ? (request as MapRedoRequest).baseRevision : currentDocument.revision;
+    if (baseRevision !== currentDocument.revision) {
+      return stale(baseRevision, currentDocument.revision);
     }
 
     const requestedSteps = request.steps;
@@ -241,7 +293,8 @@ export class MapEditService {
       filePath: currentDocument.filePath,
       json: restore.documentState.json,
       dirty: restore.documentState.dirty,
-      lastValidation: restore.documentState.lastValidation
+      lastValidation: restore.documentState.lastValidation,
+      revision: bumpedRevision(currentDocument.revision)
     };
 
     this.store.setMapDocument(nextDocument);

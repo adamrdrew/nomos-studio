@@ -56,9 +56,9 @@ const exposedNomosApi = {
     save: async (): Promise<SaveMapResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapSave),
     edit: async (request: MapEditRequest): Promise<MapEditResponse> =>
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapEdit, request),
-    undo: async (request?: MapUndoRequest): Promise<MapUndoResponse> =>
+    undo: async (request: MapUndoRequest): Promise<MapUndoResponse> =>
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapUndo, request),
-    redo: async (request?: MapRedoRequest): Promise<MapRedoResponse> =>
+    redo: async (request: MapRedoRequest): Promise<MapRedoResponse> =>
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapRedo, request)
   },
   state: {

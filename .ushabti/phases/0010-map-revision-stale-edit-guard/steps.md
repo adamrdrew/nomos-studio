@@ -8,7 +8,7 @@
   - Adopt: save does not increment.
   - Adopt: `baseRevision` required for edit-like renderer IPC.
 - Done when:
-  - Semantics are reflected in `src/shared/domain/models.ts` and `src/shared/domain/results.ts` and in docs updates described later.
+  - Semantics are recorded in `phase.md` under “Chosen semantics”.
 
 ## S002 — Add `MapDocumentRevision` + `MapDocument.revision`
 - Intent: Introduce the authoritative revision counter into the shared data model.
@@ -38,7 +38,14 @@
   - Update `src/main/ipc/registerNomosIpcHandlers.ts` typing and casting accordingly.
   - Update `src/preload/preload.ts` and `src/preload/nomos.d.ts` signatures to match.
 - Done when:
-  - All IPC compile-time contracts agree and the renderer cannot call edit/undo/redo without a `baseRevision`.
+  - All IPC compile-time contracts agree and the preload API surface requires `baseRevision` for edit/undo/redo.
+
+## S004A — Update renderer call sites to pass `baseRevision`
+- Intent: Keep compilation and runtime behavior correct after IPC contract requires `baseRevision`.
+- Work:
+  - Update renderer call sites that invoke `window.nomos.map.edit/undo/redo` to pass `baseRevision` from the latest snapshot’s `mapDocument.revision`.
+- Done when:
+  - Renderer compiles with the new required `baseRevision` fields and edit/undo/redo IPC requests include `baseRevision`.
 
 ## S005 — Set initial revision on open map
 - Intent: Establish a consistent baseRevision starting point.
@@ -76,12 +83,11 @@
 - Intent: Keep renderer behavior minimal while complying with new IPC contract.
 - Work:
   - Update `src/renderer/ui/editor/panels/MapEditorDockPanel.tsx`:
-    - pass `baseRevision: mapDocument.revision` into `window.nomos.map.edit` requests.
+    - handle stale-revision errors by refreshing and surfacing a calm message.
   - Update `src/renderer/ui/editor/EditorShell.tsx`:
-    - pass `baseRevision: mapDocument.revision` into undo/redo.
     - on stale-revision error: refresh snapshot and display a calm message (“Document changed; refreshed. Please retry.”).
 - Done when:
-  - Renderer compiles and stale-revision error handling is present without auto-retry.
+  - Stale-revision error handling is present without auto-retry.
 
 ## S009 — Add/adjust unit tests
 - Intent: Prove correctness (revision bumps) and safety (no partial mutation) per L04.
@@ -105,3 +111,15 @@
   - Update `docs/map-edit-command-system.md` to mention revision gating on edit-like operations.
 - Done when:
   - Docs describe revision + stale protection accurately and match implemented shapes.
+
+## S011 — Verify semantics are applied end-to-end
+- Intent: Ensure implementation matches the chosen semantics.
+- Work:
+  - Confirm the code reflects:
+    - initial revision `1` on open
+    - revision increments on successful edit/undo/redo
+    - save does not increment revision
+    - baseRevision required for renderer edit/undo/redo IPC
+  - Confirm docs in `docs/` describe the same.
+- Done when:
+  - The above is true in code and docs, and unit tests pass.

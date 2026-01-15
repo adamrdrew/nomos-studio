@@ -94,7 +94,8 @@ export class OpenMapService {
       filePath: absolutePath,
       json,
       dirty: false,
-      lastValidation: validationResult.value
+      lastValidation: validationResult.value,
+      revision: 1
     };
 
     this.history.onMapOpened(document);

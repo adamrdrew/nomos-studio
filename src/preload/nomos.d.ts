@@ -49,8 +49,8 @@ declare global {
         open: (request: { mapPath: string }) => Promise<OpenMapResponse>;
         save: () => Promise<SaveMapResponse>;
         edit: (request: MapEditRequest) => Promise<MapEditResponse>;
-        undo: (request?: MapUndoRequest) => Promise<MapUndoResponse>;
-        redo: (request?: MapRedoRequest) => Promise<MapRedoResponse>;
+        undo: (request: MapUndoRequest) => Promise<MapUndoResponse>;
+        redo: (request: MapRedoRequest) => Promise<MapRedoResponse>;
       };
       state: {
         getSnapshot: () => Promise<StateGetResponse>;

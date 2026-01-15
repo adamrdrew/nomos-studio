@@ -99,7 +99,8 @@ describe('AppStore', () => {
       filePath: '/maps/test.json',
       json: { a: 1 },
       dirty: false,
-      lastValidation: null
+      lastValidation: null,
+      revision: 1
     };
 
     store.setMapDocument(document);

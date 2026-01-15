@@ -2,66 +2,113 @@ phase:
   id: 0010
   slug: map-revision-stale-edit-guard
   title: Map Document Revisioning + Stale-Edit Protection
-  status: planned
+  status: complete
 
 steps:
   - id: S001
     title: Decide and record revision semantics
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Chosen semantics recorded in phase.md; implementation verified in later steps."
+    touched:
+      - .ushabti/phases/0010-map-revision-stale-edit-guard/phase.md
+      - .ushabti/phases/0010-map-revision-stale-edit-guard/steps.md
+      - .ushabti/phases/0010-map-revision-stale-edit-guard/progress.yaml
   - id: S002
     title: Add MapDocumentRevision + MapDocument.revision
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added MapDocumentRevision + MapDocument.revision and updated main/services and test fixtures to carry revision consistently."
+    touched:
+      - src/shared/domain/models.ts
+      - src/main/application/maps/OpenMapService.ts
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/store/AppStore.test.ts
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - src/main/application/maps/MapEditHistory.test.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - src/main/application/maps/SaveMapService.test.ts
   - id: S003
     title: Add typed stale-revision error
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added MapEditError stale-revision variant with currentRevision and updated helpers/tests to narrow on error.code." 
+    touched:
+      - src/shared/domain/results.ts
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/main/application/maps/MapEditHistory.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - src/main/application/maps/MapCommandEngine.test.ts
   - id: S004
     title: Update IPC contract request shapes to require baseRevision
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added required baseRevision to MapEdit/Undo/Redo IPC request types and updated main IPC registration + preload API signatures to match." 
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+  - id: S004A
+    title: Update renderer call sites to pass baseRevision
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer edit/undo/redo calls to include baseRevision from the current mapDocument.revision." 
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - src/renderer/ui/editor/EditorShell.tsx
   - id: S005
     title: Set initial revision on open map
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "OpenMapService initializes MapDocument.revision to 1 on successful open; unit test asserts stored and returned revision." 
+    touched:
+      - src/main/application/maps/OpenMapService.ts
+      - src/main/application/maps/OpenMapService.test.ts
   - id: S006
     title: Implement stale checks + revision bump in MapEditService
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added baseRevision stale checks for edit/undo/redo (atomic early return) and bump MapDocument.revision on every successful mutation." 
+    touched:
+      - src/main/application/maps/MapEditService.ts
   - id: S007
     title: Wire main handlers to pass baseRevision through
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Main editMap now passes MapEditRequest through; IPC registration validates edit/undo/redo requests include baseRevision to prevent unsafe defaults." 
+    touched:
+      - src/main/main.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
   - id: S008
     title: Update renderer call sites to include baseRevision
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "On map-edit/stale-revision, renderer refreshes from main and shows a calm toast message; does not auto-retry." 
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - src/renderer/ui/editor/EditorShell.tsx
   - id: S009
     title: Add/adjust unit tests
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added MapEditService unit tests for stale baseRevision atomic rejection and revision bump behavior across edit/undo/redo." 
+    touched:
+      - src/main/application/maps/MapEditService.test.ts
   - id: S010
     title: Update subsystem docs (L09)
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Updated IPC/maps/edit-command docs to reflect MapDocument.revision, baseRevision-required edit/undo/redo requests, and stale-revision error handling." 
+    touched:
+      - docs/ipc-system.md
+      - docs/maps-system.md
+      - docs/map-edit-command-system.md
+  - id: S011
+    title: Verify semantics are applied end-to-end
+    implemented: true
+    reviewed: true
+    notes: "User ran npm test (26/26 suites passed), npm run typecheck (passed), and npm run lint (passed; @typescript-eslint warns TS 5.9.3 unsupported but lint exits 0). Semantics verified against Phase: open revision=1; edit/undo/redo bump revision; save does not bump; IPC requires baseRevision." 
+    touched:
+      - .ushabti/phases/0010-map-revision-stale-edit-guard/review.md

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Tooltip } from '@blueprintjs/core';
+import { Button, Intent, Position, Toaster, Tooltip } from '@blueprintjs/core';
 import { Colors } from '@blueprintjs/core';
 
 import { MapEditorCanvas } from '../MapEditorCanvas';
@@ -9,6 +9,8 @@ import type { MapEditorToolDefinition, MapEditorToolId, MapEditorToolbarCommandI
 import { useNomosStore } from '../../../store/nomosStore';
 import type { MapSelection } from '../map/mapSelection';
 import type { MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
+
+const toaster = Toaster.create({ position: Position.TOP });
 
 function MapEditorToolBar(props: {
   activeTool: MapEditorToolDefinition;
@@ -108,6 +110,9 @@ export function MapEditorDockPanel(): JSX.Element {
         if (!isToolBarCommandEnabled(commandId)) {
           return;
         }
+        if (mapDocument === null) {
+          return;
+        }
         if (selection === null) {
           return;
         }
@@ -118,6 +123,7 @@ export function MapEditorDockPanel(): JSX.Element {
 
         void (async () => {
           const result = await window.nomos.map.edit({
+            baseRevision: mapDocument.revision,
             command: {
               kind: 'map-edit/delete',
               target
@@ -125,6 +131,11 @@ export function MapEditorDockPanel(): JSX.Element {
           });
 
           if (!result.ok) {
+            if (result.error.code === 'map-edit/stale-revision') {
+              await useNomosStore.getState().refreshFromMain();
+              toaster.show({ message: 'Document changed; refreshed. Please retry.', intent: Intent.WARNING });
+              return;
+            }
             // eslint-disable-next-line no-console
             console.error('[nomos] map delete failed', result.error);
             return;
@@ -143,6 +154,9 @@ export function MapEditorDockPanel(): JSX.Element {
         if (!isToolBarCommandEnabled(commandId)) {
           return;
         }
+        if (mapDocument === null) {
+          return;
+        }
         if (selection === null) {
           return;
         }
@@ -153,6 +167,7 @@ export function MapEditorDockPanel(): JSX.Element {
 
         void (async () => {
           const result = await window.nomos.map.edit({
+            baseRevision: mapDocument.revision,
             command: {
               kind: 'map-edit/clone',
               target
@@ -160,6 +175,11 @@ export function MapEditorDockPanel(): JSX.Element {
           });
 
           if (!result.ok) {
+            if (result.error.code === 'map-edit/stale-revision') {
+              await useNomosStore.getState().refreshFromMain();
+              toaster.show({ message: 'Document changed; refreshed. Please retry.', intent: Intent.WARNING });
+              return;
+            }
             // eslint-disable-next-line no-console
             console.error('[nomos] map clone failed', result.error);
             return;

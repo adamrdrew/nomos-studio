@@ -1,6 +1,7 @@
 import type { IpcMainInvokeEvent } from 'electron';
 
 import type { NOMOS_IPC_CHANNELS } from '../../shared/ipc/nomosIpc';
+import type { MapEditError } from '../../shared/domain/results';
 import type {
   MapEditRequest,
   MapEditResponse,
@@ -56,6 +57,25 @@ export type NomosIpcHandlers = Readonly<{
   getStateSnapshot: () => Promise<StateGetResponse>;
 }>;
 
+function badMapEditRequest(message: string): Readonly<{ ok: false; error: MapEditError }> {
+  return {
+    ok: false,
+    error: {
+      kind: 'map-edit-error',
+      code: 'map-edit/invalid-json',
+      message
+    }
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 export function registerNomosIpcHandlers(
   ipcMain: IpcMainLike,
   channels: typeof import('../../shared/ipc/nomosIpc').NOMOS_IPC_CHANNELS,
@@ -86,13 +106,19 @@ export function registerNomosIpcHandlers(
   );
   ipcMain.handle(channels.mapSave, async () => handlers.saveMap());
   ipcMain.handle(channels.mapEdit, async (_event, request: unknown) =>
-    handlers.editMap(request as MapEditRequest)
+    isRecord(request) && isFiniteNumber(request['baseRevision']) && isRecord(request['command'])
+      ? handlers.editMap(request as MapEditRequest)
+      : (badMapEditRequest('Invalid map edit request.') as MapEditResponse)
   );
   ipcMain.handle(channels.mapUndo, async (_event, request: unknown) =>
-    handlers.undoMap((request ?? {}) as MapUndoRequest)
+    isRecord(request) && isFiniteNumber(request['baseRevision'])
+      ? handlers.undoMap(request as MapUndoRequest)
+      : (badMapEditRequest('Invalid map undo request.') as MapUndoResponse)
   );
   ipcMain.handle(channels.mapRedo, async (_event, request: unknown) =>
-    handlers.redoMap((request ?? {}) as MapRedoRequest)
+    isRecord(request) && isFiniteNumber(request['baseRevision'])
+      ? handlers.redoMap(request as MapRedoRequest)
+      : (badMapEditRequest('Invalid map redo request.') as MapRedoResponse)
   );
 
   ipcMain.handle(channels.stateGet, async () => handlers.getStateSnapshot());

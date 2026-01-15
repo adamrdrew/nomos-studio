@@ -8,7 +8,7 @@ For the map editing/undo/redo design and its transactional command model, see:
 
 The current map model is intentionally minimal:
 - A map is a JSON file loaded into memory as `unknown`.
-- The app tracks the current open document (file path, JSON payload, dirty flag, and last validation record).
+- The app tracks the current open document (file path, JSON payload, dirty flag, last validation record, and a monotonic `revision` used for stale-edit protection).
 
 Renderer-side rendering/hit-testing builds a typed view model from `MapDocument.json` after validation succeeds, but `MapDocument.json` remains `unknown` within the maps subsystem to preserve round-tripping.
 
@@ -49,8 +49,11 @@ The maps system spans application services, infrastructure seams for filesystem/
 	- `saveCurrentDocument(): Promise<Result<MapDocument, MapIoError>>`
 
 - `MapEditService`
+	- `edit(request: MapEditRequest): Result<MapEditResult, MapEditError>`
 	- `edit(command: MapEditCommand): Result<MapEditResult, MapEditError>`
+	- `undo(request: MapUndoRequest): Result<MapEditResult, MapEditError>`
 	- `undo(request?: { steps?: number }): Result<MapEditResult, MapEditError>`
+	- `redo(request: MapRedoRequest): Result<MapEditResult, MapEditError>`
 	- `redo(request?: { steps?: number }): Result<MapEditResult, MapEditError>`
 
 ### Preload API (renderer-facing)
@@ -59,8 +62,8 @@ The maps system spans application services, infrastructure seams for filesystem/
 - `window.nomos.map.open(request: { mapPath: string }): Promise<OpenMapResponse>`
 - `window.nomos.map.save(): Promise<SaveMapResponse>`
 - `window.nomos.map.edit(request: MapEditRequest): Promise<MapEditResponse>`
-- `window.nomos.map.undo(request?: { steps?: number }): Promise<MapUndoResponse>`
-- `window.nomos.map.redo(request?: { steps?: number }): Promise<MapRedoResponse>`
+- `window.nomos.map.undo(request: MapUndoRequest): Promise<MapUndoResponse>`
+- `window.nomos.map.redo(request: MapRedoRequest): Promise<MapRedoResponse>`
 
 ### IPC contract
 Defined in `src/shared/ipc/nomosIpc.ts`:
@@ -82,7 +85,7 @@ Types:
 - `SaveMapResponse = Result<MapDocument, MapIoError>`
 
 Edit map:
-- `MapEditRequest = Readonly<{ command: MapEditCommand }>`
+- `MapEditRequest = Readonly<{ baseRevision: number; command: MapEditCommand }>`
 - `MapEditResponse = Result<MapEditResult, MapEditError>`
 
 ## Data shapes
@@ -95,8 +98,14 @@ type MapDocument = Readonly<{
 	json: unknown;
 	dirty: boolean;
 	lastValidation: MapValidationRecord | null;
+	revision: number;
 }>;
 ```
+
+`revision` semantics:
+- Set to `1` when a map is successfully opened.
+- Bumped by `+1` on every successful edit/undo/redo.
+- Save does not bump `revision`.
 
 `MapValidationRecord`:
 ```ts
@@ -198,6 +207,10 @@ If validation fails with `code: 'map-validation/invalid-map'`:
 	- `lastValidation` is restored exactly.
 - Opening a map clears undo/redo history for the prior document.
 - Saving a map does **not** clear undo/redo history. (History is an in-memory editing affordance; its lifecycle is tied to the currently-open document, not persistence.)
+
+### Stale-edit protection
+- Renderer-initiated edit-like operations (edit/undo/redo) must include `baseRevision` matching the latest snapshot’s `mapDocument.revision`.
+- Main rejects mismatches with `map-edit/stale-revision` including `currentRevision` and performs no partial mutation.
 
 ### History enablement
 - Main exposes `mapHistory` (undo/redo availability + depths) via the state snapshot so UI can enable/disable commands without additional IPC.

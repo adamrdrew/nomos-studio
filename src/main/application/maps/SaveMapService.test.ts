@@ -56,7 +56,8 @@ describe('SaveMapService', () => {
           filePath: '/maps/test.json',
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -104,7 +105,8 @@ describe('SaveMapService', () => {
           filePath: '/maps/test.json',
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -153,7 +155,8 @@ describe('SaveMapService', () => {
             filePath: '/maps/test.json',
             json: circular,
             dirty: true,
-            lastValidation: null
+            lastValidation: null,
+            revision: 1
           }
         };
       },
@@ -208,7 +211,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -267,7 +271,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -321,7 +326,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -396,7 +402,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -466,7 +473,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -530,7 +538,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -602,7 +611,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -678,7 +688,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},
@@ -743,7 +754,8 @@ describe('SaveMapService', () => {
           filePath,
           json: { a: 1 },
           dirty: true,
-          lastValidation: null
+          lastValidation: null,
+          revision: 1
         }
       }),
       subscribe: () => () => {},

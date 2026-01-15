@@ -228,6 +228,7 @@ describe('OpenMapService', () => {
 
   it('loads and stores document on validation success', async () => {
     let storedPath: string | null = null;
+    let storedRevision: number | null = null;
     let openedCount = 0;
 
     const store: AppStore = {
@@ -244,6 +245,7 @@ describe('OpenMapService', () => {
       setAssetIndexError: () => {},
       setMapDocument: (doc: MapDocument | null) => {
         storedPath = doc?.filePath ?? null;
+        storedRevision = doc?.revision ?? null;
       }
     } as unknown as AppStore;
 
@@ -276,8 +278,13 @@ describe('OpenMapService', () => {
     const result = await service.openMap('/maps/test.json');
 
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
     expect(openedCount).toBe(1);
     expect(storedPath).not.toBeNull();
+    expect(result.value.revision).toBe(1);
+    expect(storedRevision).toBe(1);
   });
 
   it('returns parse-failed when file JSON is invalid', async () => {

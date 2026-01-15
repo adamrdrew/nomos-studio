@@ -44,8 +44,9 @@ The renderer must only use the preload API:
 - `window.nomos.assets.refreshIndex()`
 - `window.nomos.assets.open({ relativePath })`
 - `window.nomos.assets.readFileBytes({ relativePath })`
-- `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()` / `edit({ command })`
-- `window.nomos.map.undo()` / `window.nomos.map.redo()`
+- `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()`
+- `window.nomos.map.edit({ baseRevision, command })`
+- `window.nomos.map.undo({ baseRevision, steps? })` / `window.nomos.map.redo({ baseRevision, steps? })`
 - `window.nomos.state.getSnapshot()`
 - `window.nomos.state.onChanged(listener)`
 
@@ -113,15 +114,21 @@ Edit map:
 - `MapEditTargetRef = { kind: 'light' | 'particle' | 'entity'; index: number } | { kind: 'door'; id: string }`
 - `MapEditAtomicCommand = { kind: 'map-edit/delete' | 'map-edit/clone'; target: MapEditTargetRef }`
 - `MapEditCommand = MapEditAtomicCommand | { kind: 'map-edit/transaction'; label?: string; commands: readonly MapEditAtomicCommand[]; selection?: { kind: 'map-edit/selection'; ref: MapEditTargetRef | null } }`
-- `MapEditRequest = Readonly<{ command: MapEditCommand }>`
+- `MapEditRequest = Readonly<{ baseRevision: number; command: MapEditCommand }>`
 - `MapEditResult = { kind: 'map-edit/deleted' } | { kind: 'map-edit/cloned'; newRef: MapEditTargetRef } | { kind: 'map-edit/applied'; selection: MapEditSelectionEffect; history: MapEditHistoryInfo }`
 - `MapEditResponse = Result<MapEditResult, MapEditError>`
 
 Undo/redo:
-- `MapUndoRequest = Readonly<{ steps?: number }>`
+- `MapUndoRequest = Readonly<{ baseRevision: number; steps?: number }>`
 - `MapUndoResponse = Result<MapEditResult, MapEditError>`
-- `MapRedoRequest = Readonly<{ steps?: number }>`
+- `MapRedoRequest = Readonly<{ baseRevision: number; steps?: number }>`
 - `MapRedoResponse = Result<MapEditResult, MapEditError>`
+
+Stale edit protection:
+- Renderer-initiated edit-like operations must send `baseRevision` from the latest snapshot’s `mapDocument.revision`.
+- Main rejects mismatches with a typed error:
+	- `{ kind: 'map-edit-error', code: 'map-edit/stale-revision', message: string, currentRevision: number }`
+- On stale errors, the renderer should refresh its snapshot via `window.nomos.state.getSnapshot()` (or store helper) and let the user retry.
 
 ### State snapshot
 - `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; mapDocument: MapDocument | null; mapRenderMode: MapRenderMode; mapGridSettings: MapGridSettings; mapHistory: MapEditHistoryInfo }>`
@@ -154,6 +161,8 @@ Optional payload:
 - `registerNomosIpcHandlers` receives `unknown` args from Electron and casts them to typed requests.
 - Today, handlers generally assume the renderer sends correct payload shapes.
 - When adding channels that could have safety implications, validate `unknown` inputs explicitly in the handler layer.
+
+For map edits, undo, and redo, `registerNomosIpcHandlers` performs minimal request-shape validation to ensure `baseRevision` is present and finite before delegating to handlers.
 
 ## How to extend safely
 

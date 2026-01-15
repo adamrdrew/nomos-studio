@@ -1,4 +1,11 @@
-import type { AssetIndex, EditorSettings, MapDocument, MapGridSettings, MapRenderMode } from '../domain/models';
+import type {
+  AssetIndex,
+  EditorSettings,
+  MapDocument,
+  MapDocumentRevision,
+  MapGridSettings,
+  MapRenderMode
+} from '../domain/models';
 import type {
   AssetIndexError,
   MapEditError,
@@ -86,7 +93,7 @@ export type MapEditCommand =
       selection?: MapEditSelectionInput;
     }>;
 
-export type MapEditRequest = Readonly<{ command: MapEditCommand }>;
+export type MapEditRequest = Readonly<{ baseRevision: MapDocumentRevision; command: MapEditCommand }>;
 
 export type MapEditSelectionEffect =
   | Readonly<{ kind: 'map-edit/selection/keep' }>
@@ -118,10 +125,10 @@ export type MapEditResponse = Result<MapEditResult, MapEditError>;
 
 export type MapEditHandler = (request: MapEditRequest) => Promise<MapEditResponse>;
 
-export type MapUndoRequest = Readonly<{ steps?: number }>;
+export type MapUndoRequest = Readonly<{ baseRevision: MapDocumentRevision; steps?: number }>;
 export type MapUndoResponse = Result<MapEditResult, MapEditError>;
 
-export type MapRedoRequest = Readonly<{ steps?: number }>;
+export type MapRedoRequest = Readonly<{ baseRevision: MapDocumentRevision; steps?: number }>;
 export type MapRedoResponse = Result<MapEditResult, MapEditError>;
 
 export type StateGetResponse = Result<AppStateSnapshot, { message: string }>;

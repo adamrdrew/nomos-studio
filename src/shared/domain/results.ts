@@ -1,3 +1,5 @@
+import type { MapDocumentRevision } from './models';
+
 export type Result<Ok, Err> =
   | Readonly<{ ok: true; value: Ok }>
   | Readonly<{ ok: false; error: Err }>;
@@ -44,20 +46,29 @@ export type MapIoError = Readonly<{
   message: string;
 }>;
 
-export type MapEditError = Readonly<{
+export type MapEditStaleRevisionError = Readonly<{
   kind: 'map-edit-error';
-  code:
-    | 'map-edit/no-document'
-    | 'map-edit/invalid-json'
-    | 'map-edit/not-found'
-    | 'map-edit/unsupported-target'
-    | 'map-edit/transaction-empty'
-    | 'map-edit/transaction-too-large'
-    | 'map-edit/transaction-step-failed';
+  code: 'map-edit/stale-revision';
   message: string;
-  stepIndex?: number;
-  cause?: MapEditError;
+  currentRevision: MapDocumentRevision;
 }>;
+
+export type MapEditError =
+  | MapEditStaleRevisionError
+  | Readonly<{
+      kind: 'map-edit-error';
+      code:
+        | 'map-edit/no-document'
+        | 'map-edit/invalid-json'
+        | 'map-edit/not-found'
+        | 'map-edit/unsupported-target'
+        | 'map-edit/transaction-empty'
+        | 'map-edit/transaction-too-large'
+        | 'map-edit/transaction-step-failed';
+      message: string;
+      stepIndex?: number;
+      cause?: MapEditError;
+    }>;
 
 export type OpenAssetError = Readonly<{
   kind: 'open-asset-error';
