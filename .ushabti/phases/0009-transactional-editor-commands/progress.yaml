@@ -2,13 +2,13 @@ phase:
   id: 0009
   slug: transactional-editor-commands
   title: Transactional Editor Commands + Undo/Redo
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Inventory current edit + store patterns
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Call sites to update: main map edits in src/main/application/maps/MapEditService.ts; store mutation via AppStore.setMapDocument in src/main/application/store/AppStore.ts; map open/save also call setMapDocument in src/main/application/maps/OpenMapService.ts and src/main/application/maps/SaveMapService.ts; IPC wiring in src/shared/ipc/nomosIpc.ts (channels + request/response), src/preload/preload.ts (exposed API), src/preload/nomos.d.ts (types), src/main/ipc/registerNomosIpcHandlers.ts and src/main/main.ts (handlers); renderer selection reconciliation currently in src/renderer/ui/editor/panels/MapEditorDockPanel.tsx using window.nomos.map.edit result and setMapSelection."
     touched:
       - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
@@ -16,7 +16,7 @@ steps:
   - id: S002
     title: Define shared command + result types (IPC-facing)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended shared IPC/domain types: added MapEditAtomicCommand + map-edit/transaction wrapper, added MapEditSelectionEffect and MapEditHistoryInfo, and extended MapEditResult with map-edit/applied envelope (while keeping deleted/cloned for compatibility). Added transaction-related MapEditError codes with optional stepIndex/cause."
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -26,7 +26,7 @@ steps:
   - id: S003
     title: Decide and document history metadata semantics
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Decided and documented semantics: any successful edit sets dirty=true and clears lastValidation=null; undo/redo restores json+dirty+lastValidation exactly; open-map clears history; save does not clear history."
     touched:
       - docs/maps-system.md
@@ -35,7 +35,7 @@ steps:
   - id: S004
     title: Implement main command engine API (pure-ish)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added MapCommandEngine that applies MapEditCommand (including map-edit/transaction) against a working clone of MapDocument.json without mutating AppStore; enforces transaction size/emptiness, wraps step failures with transaction-step-failed (stepIndex + cause), and emits explicit selection effects. Added unit tests for key success/failure branches."
     touched:
       - src/main/application/maps/MapCommandEngine.ts
@@ -45,7 +45,7 @@ steps:
   - id: S005
     title: Implement bounded undo/redo history (main)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Implemented bounded MapEditHistory (undo/redo stacks with max depth, redo invalidation on new edits) behind a narrow MapEditHistoryPort for testability. Integrated history reset on successful open-map via OpenMapService.onMapOpened and updated OpenMapService tests accordingly."
     touched:
       - src/main/application/maps/MapEditHistory.ts
@@ -57,7 +57,7 @@ steps:
   - id: S006
     title: Wire MapEditService through engine + history
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Refactored MapEditService to apply edits via MapCommandEngine without partial store mutation, commit a single AppStore.setMapDocument on success, set dirty=true and clear lastValidation=null, and record history entries via MapEditHistoryPort. Transaction commands return the new map-edit/applied envelope (selection + history info). Updated main composition and MapEditService unit tests for new constructor dependencies."
     touched:
       - src/main/application/maps/MapEditService.ts
@@ -68,7 +68,7 @@ steps:
   - id: S007
     title: Add IPC channels for undo/redo (minimal surface)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added typed IPC channels (nomos:map:undo/redo) with MapUndo/Redo request/response shapes, exposed them via preload API (window.nomos.map.undo/redo), registered handlers in registerNomosIpcHandlers, and wired main handlers to MapEditService.undo/redo. Added unit tests for MapEditService undo/redo and updated IPC handler wiring test."
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -84,7 +84,7 @@ steps:
   - id: S008
     title: Expose history summary in state snapshot for enable/disable
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended AppStateSnapshot with mapHistory (MapEditHistoryInfo) and populated it from main via mapEditHistory.getInfo(). Updated renderer store to cache mapHistory from snapshots and updated IPC wiring test fixtures." 
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -96,7 +96,7 @@ steps:
   - id: S009
     title: Renderer integration: selection reconciliation + undo/redo triggers
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Renderer now applies explicit MapEditSelectionEffect from map-edit/applied results and from stateChanged payloads. Added undo/redo keyboard shortcuts (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Ctrl+Y) that call window.nomos.map.undo/redo and apply returned selection effects. Centralized selection effect application in the renderer store with unit tests." 
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -111,7 +111,7 @@ steps:
   - id: S010
     title: Menu + shortcuts
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added Edit > Undo/Redo menu items with standard accelerators and enablement. Menu click triggers undo/redo in main and sends a stateChanged payload containing selectionEffect so renderer selection reconciles." 
     touched:
       - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
@@ -121,7 +121,7 @@ steps:
   - id: S011
     title: Test matrix completion (main)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended MapEditService unit tests to cover transactional success, redo invalidation after a new edit following undo, and the no-store-mutation guarantee when a transaction step fails." 
     touched:
       - src/main/application/maps/MapEditService.test.ts
@@ -130,7 +130,7 @@ steps:
   - id: S012
     title: Documentation updates (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated docs for IPC and maps subsystems to reflect transactional editing, undo/redo channels, selection reconciliation via explicit effects (including optional stateChanged payload), and mapHistory in state snapshots." 
     touched:
       - docs/ipc-system.md
@@ -140,7 +140,7 @@ steps:
   - id: S013
     title: Complete L04 branch coverage for MapCommandEngine
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Coverage run (Jan 15, 2026) shows MapCommandEngine.ts at 100% statements/branches/lines; L04 conditional paths are covered for the public apply method."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
@@ -149,7 +149,7 @@ steps:
   - id: S020
     title: Remove unreachable branch in MapCommandEngine target comparison
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Refactored MapCommandEngine.targetEquals to remove unreachable default/trailing return path; coverage run (Jan 15, 2026) shows MapCommandEngine.ts 100% lines/branches."
     touched:
       - src/main/application/maps/MapCommandEngine.ts
@@ -159,8 +159,8 @@ steps:
   - id: S014
     title: Complete L04 branch coverage for MapEditHistory
     implemented: true
-    reviewed: false
-    notes: "Coverage confirms recordEdit(maxDepth===0) path is covered; remaining uncovered constructor-default-param coverage is tracked separately (S024)."
+    reviewed: true
+    notes: "Coverage run (Jan 15, 2026) shows MapEditHistory.ts at 100% statements/branches/lines (including recordEdit(maxDepth===0) and constructor default parameter)."
     touched:
       - src/main/application/maps/MapEditHistory.test.ts
       - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
@@ -168,7 +168,7 @@ steps:
   - id: S015
     title: Complete L04 branch coverage for MapEditService.edit edge/error paths
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Coverage run (Jan 15, 2026) shows MapEditService.ts at 100% statements/branches/lines; L04 conditional paths are covered for the public edit method (including afterState failure path)."
     touched:
       - src/main/application/maps/MapEditService.ts
@@ -178,8 +178,8 @@ steps:
   - id: S016
     title: Complete remaining L04 branches in MapCommandEngine.apply (defensive paths)
     implemented: true
-    reviewed: false
-    notes: "Coverage indicates structuredClone failure and undefined-step transaction defense are covered; remaining uncovered lines were in targetEquals and are tracked separately (S013/S020)."
+    reviewed: true
+    notes: "Coverage run (Jan 15, 2026) shows MapCommandEngine.ts at 100% statements/branches/lines, including the defensive structuredClone failure and undefined-step transaction paths."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
       - .ushabti/phases/0009-transactional-editor-commands/progress.yaml
@@ -187,7 +187,7 @@ steps:
   - id: S017
     title: Complete L04 branch coverage for MapEditService.undo/redo step parsing
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Coverage run (Jan 15, 2026) shows MapEditService.ts at 100% statements/branches/lines; L04 conditional paths are covered for public undo/redo."
     touched:
       - src/main/application/maps/MapEditService.ts
@@ -197,7 +197,7 @@ steps:
   - id: S018
     title: Add direct unit coverage for MapEditHistory.onMapOpened
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Coverage run (Jan 15, 2026) shows MapEditHistory.ts at 100% statements/branches/lines; onMapOpened is directly covered by unit tests."
     touched:
       - src/main/application/maps/MapEditHistory.test.ts
@@ -206,7 +206,7 @@ steps:
   - id: S021
     title: Remove dead statement in MapEditHistory.onMapOpened
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Refactored MapEditHistory.onMapOpened to remove the dead `void document;` statement by renaming the param to _document and calling clear() directly."
     touched:
       - .ushabti/phases/0009-transactional-editor-commands/steps.md
@@ -216,7 +216,7 @@ steps:
   - id: S022
     title: Cover remaining targetEquals branches in MapCommandEngine
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Coverage run (Jan 15, 2026) shows MapCommandEngine.ts at 100% lines/branches; targetEquals paths are covered (including null selection ref and kind mismatch)."
     touched:
       - .ushabti/phases/0009-transactional-editor-commands/steps.md
@@ -225,7 +225,7 @@ steps:
   - id: S023
     title: Cover MapEditService.edit afterState failure branch
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Coverage run (Jan 15, 2026) shows MapEditService.ts at 100% lines/branches; the afterState failure return path is covered via unit test."
     touched:
       - .ushabti/phases/0009-transactional-editor-commands/steps.md
@@ -234,7 +234,7 @@ steps:
   - id: S024
     title: Cover MapEditHistory constructor default parameter branch
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Coverage run (Jan 15, 2026) shows MapEditHistory.ts at 100% lines/branches; constructor default-parameter branch is covered via unit test."
     touched:
       - .ushabti/phases/0009-transactional-editor-commands/steps.md
@@ -243,7 +243,7 @@ steps:
   - id: S019
     title: Complete command-application matrix tests required by phase.md
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "MapCommandEngine tests cover delete+clone success across target kinds and key error paths; coverage run (Jan 15, 2026) shows MapCommandEngine.ts 100% lines/branches."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
@@ -252,7 +252,7 @@ steps:
   - id: S025
     title: Add dedicated documentation for the transactional map edit command system (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added docs/map-edit-command-system.md describing the transactional command model, engine responsibilities, selection effects, undo/redo invariants, and extension guidance; linked from maps and IPC subsystem docs."
     touched:
       - .ushabti/phases/0009-transactional-editor-commands/steps.md
