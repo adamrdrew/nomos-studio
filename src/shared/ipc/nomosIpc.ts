@@ -73,11 +73,20 @@ export type MapEditTargetRef =
   | Readonly<{ kind: 'light'; index: number }>
   | Readonly<{ kind: 'particle'; index: number }>
   | Readonly<{ kind: 'entity'; index: number }>
-  | Readonly<{ kind: 'door'; id: string }>;
+  | Readonly<{ kind: 'door'; id: string }>
+  | Readonly<{ kind: 'wall'; index: number }>
+  | Readonly<{ kind: 'sector'; id: number }>;
+
+export type MapEditPrimitiveValue = string | number | boolean | null;
 
 export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
+  | Readonly<{
+      kind: 'map-edit/update-fields';
+      target: MapEditTargetRef;
+      set: Readonly<Record<string, MapEditPrimitiveValue>>;
+    }>
   | Readonly<{
       kind: 'map-edit/move-entity';
       target: Readonly<{ kind: 'entity'; index: number }>;

@@ -32,14 +32,16 @@ Key goals:
 Edits refer to targets by stable references rather than passing entire objects.
 
 - `MapEditTargetRef`
-  - `{ kind: 'light' | 'particle' | 'entity'; index: number }`
+  - `{ kind: 'light' | 'particle' | 'entity' | 'wall'; index: number }`
   - `{ kind: 'door'; id: string }`
+  - `{ kind: 'sector'; id: number }`
 
 ### Atomic commands
 Atomic commands are the building blocks for edits.
 
 - `map-edit/delete`
 - `map-edit/clone`
+- `map-edit/update-fields`
 - `map-edit/move-entity`
 
 Each atomic command includes a `target: MapEditTargetRef`.
@@ -56,6 +58,24 @@ Each atomic command includes a `target: MapEditTargetRef`.
 Move semantics:
 - Only `x` and `y` are updated; other entity fields are preserved.
 - Selection effect is `map-edit/selection/keep` (no implicit selection changes).
+
+`map-edit/update-fields` updates a set of fields on a single target (used by the Inspector Properties editor):
+```ts
+{
+  kind: 'map-edit/update-fields';
+  target: MapEditTargetRef;
+  set: Record<string, string | number | boolean | null>;
+}
+```
+
+Update-fields validation rules:
+- `set` keys must be non-empty strings.
+- `set` values must be JSON primitives only (`string | number | boolean | null`). Objects and arrays are rejected.
+- Numbers must be finite (no `NaN`, `Infinity`, or `-Infinity`).
+
+Update-fields semantics:
+- Fields are set directly onto the target object in map JSON (no schema inference).
+- Selection effect is `map-edit/selection/keep`.
 
 ### Transaction command
 A transaction bundles multiple atomic commands into a single atomic operation.

@@ -34,6 +34,28 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+function isPrimitiveValue(value: unknown): value is string | number | boolean | null {
+  if (value === null) {
+    return true;
+  }
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+}
+
+function validateUpdateFieldsSet(set: Readonly<Record<string, unknown>>): Result<null, MapEditError> {
+  for (const [key, value] of Object.entries(set)) {
+    if (key.trim().length === 0) {
+      return err('map-edit/invalid-json', 'update-fields.set must not contain empty keys');
+    }
+    if (!isPrimitiveValue(value)) {
+      return err('map-edit/invalid-json', `update-fields.set["${key}"] must be a JSON primitive`);
+    }
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return err('map-edit/invalid-json', `update-fields.set["${key}"] must be a finite number`);
+    }
+  }
+  return { ok: true, value: null };
+}
+
 function asArray(value: unknown, context: string): Result<unknown[], MapEditError> {
   if (!Array.isArray(value)) {
     return err('map-edit/invalid-json', `${context} must be an array`);
@@ -92,7 +114,10 @@ function targetEquals(a: MapEditTargetRef | null, b: MapEditTargetRef | null): b
     case 'light':
     case 'particle':
     case 'entity':
+    case 'wall':
       return a.index === (b as typeof a).index;
+    case 'sector':
+      return a.id === (b as typeof a).id;
   }
 }
 
@@ -227,6 +252,26 @@ export class MapCommandEngine {
           }
         };
       }
+      case 'map-edit/update-fields': {
+        const validateSet = validateUpdateFieldsSet(command.set as unknown as Record<string, unknown>);
+        if (!validateSet.ok) {
+          return validateSet;
+        }
+
+        const updateResult = this.updateFieldsInJson(json, command.target, command.set as unknown as Record<string, unknown>);
+        if (!updateResult.ok) {
+          return updateResult;
+        }
+
+        return {
+          ok: true,
+          value: {
+            nextJson: updateResult.value,
+            selection: { kind: 'map-edit/selection/keep' },
+            nextSelection: currentSelection ?? null
+          }
+        };
+      }
       case 'map-edit/move-entity': {
         const toX = command.to.x;
         const toY = command.to.y;
@@ -253,6 +298,147 @@ export class MapCommandEngine {
         return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
       }
     }
+  }
+
+  private updateFieldsInJson(
+    json: Record<string, unknown>,
+    target: MapEditTargetRef,
+    set: Readonly<Record<string, unknown>>
+  ): Result<Record<string, unknown>, MapEditError> {
+    switch (target.kind) {
+      case 'light':
+        return this.updateFieldsIndexed(json, 'lights', target.index, set);
+      case 'particle':
+        return this.updateFieldsIndexed(json, 'particles', target.index, set);
+      case 'entity':
+        return this.updateFieldsIndexed(json, 'entities', target.index, set);
+      case 'door':
+        return this.updateFieldsDoorById(json, target.id, set);
+      case 'wall':
+        return this.updateFieldsIndexed(json, 'walls', target.index, set);
+      case 'sector':
+        return this.updateFieldsSectorById(json, target.id, set);
+      default: {
+        const unknownKind = (target as unknown as { kind?: unknown }).kind;
+        return err('map-edit/unsupported-target', `Unsupported map edit target kind: ${String(unknownKind)}`);
+      }
+    }
+  }
+
+  private updateFieldsIndexed(
+    json: Record<string, unknown>,
+    collectionKey: 'lights' | 'particles' | 'entities' | 'walls',
+    index: number,
+    set: Readonly<Record<string, unknown>>
+  ): Result<Record<string, unknown>, MapEditError> {
+    if (!Number.isInteger(index) || index < 0) {
+      return err('map-edit/not-found', `No ${collectionKey} entry exists at index ${index}.`);
+    }
+
+    const raw = asArray(json[collectionKey], collectionKey);
+    if (!raw.ok) {
+      return raw;
+    }
+
+    const source = raw.value[index];
+    if (source === undefined) {
+      return err('map-edit/not-found', `No ${collectionKey} entry exists at index ${index}.`);
+    }
+
+    const sourceRecord = asRecord(source, `${collectionKey}[${index}]`);
+    if (!sourceRecord.ok) {
+      return sourceRecord;
+    }
+
+    const nextEntry: Record<string, unknown> = { ...sourceRecord.value };
+    for (const [key, value] of Object.entries(set)) {
+      nextEntry[key] = value;
+    }
+
+    const nextArray = raw.value.slice();
+    nextArray[index] = nextEntry;
+
+    return { ok: true, value: { ...json, [collectionKey]: nextArray } };
+  }
+
+  private updateFieldsSectorById(
+    json: Record<string, unknown>,
+    id: number,
+    set: Readonly<Record<string, unknown>>
+  ): Result<Record<string, unknown>, MapEditError> {
+    if (!Number.isInteger(id)) {
+      return err('map-edit/invalid-json', 'sector id must be an integer');
+    }
+
+    const sectors = asArray(json['sectors'], 'sectors');
+    if (!sectors.ok) {
+      return sectors;
+    }
+
+    const index = sectors.value.findIndex((candidate) => {
+      if (!isRecord(candidate)) {
+        return false;
+      }
+      return candidate['id'] === id;
+    });
+
+    if (index < 0) {
+      return err('map-edit/not-found', `No sector exists with id ${id}.`);
+    }
+
+    const source = sectors.value[index];
+    const sourceRecord = asRecord(source, `sectors[${index}]`);
+    if (!sourceRecord.ok) {
+      return sourceRecord;
+    }
+
+    const nextSector: Record<string, unknown> = { ...sourceRecord.value };
+    for (const [key, value] of Object.entries(set)) {
+      nextSector[key] = value;
+    }
+
+    const nextSectors = sectors.value.slice();
+    nextSectors[index] = nextSector;
+
+    return { ok: true, value: { ...json, sectors: nextSectors } };
+  }
+
+  private updateFieldsDoorById(
+    json: Record<string, unknown>,
+    id: string,
+    set: Readonly<Record<string, unknown>>
+  ): Result<Record<string, unknown>, MapEditError> {
+    const doors = asArray(json['doors'], 'doors');
+    if (!doors.ok) {
+      return doors;
+    }
+
+    const index = doors.value.findIndex((candidate) => {
+      if (!isRecord(candidate)) {
+        return false;
+      }
+      return candidate['id'] === id;
+    });
+
+    if (index < 0) {
+      return err('map-edit/not-found', `No door exists with id "${id}".`);
+    }
+
+    const source = doors.value[index];
+    const sourceRecord = asRecord(source, `doors[${index}]`);
+    if (!sourceRecord.ok) {
+      return sourceRecord;
+    }
+
+    const nextDoor: Record<string, unknown> = { ...sourceRecord.value };
+    for (const [key, value] of Object.entries(set)) {
+      nextDoor[key] = value;
+    }
+
+    const nextDoors = doors.value.slice();
+    nextDoors[index] = nextDoor;
+
+    return { ok: true, value: { ...json, doors: nextDoors } };
   }
 
   private moveEntityInJson(

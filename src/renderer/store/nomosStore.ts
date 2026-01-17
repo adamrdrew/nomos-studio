@@ -25,6 +25,10 @@ function toMapSelection(ref: MapEditTargetRef): MapSelection {
       return { kind: ref.kind, index: ref.index };
     case 'door':
       return { kind: 'door', id: ref.id };
+    case 'wall':
+      return { kind: 'wall', index: ref.index };
+    case 'sector':
+      return { kind: 'sector', id: ref.id };
     default: {
       const neverRef: never = ref;
       return neverRef;
@@ -47,6 +51,10 @@ function selectionMatchesRef(selection: MapSelection | null, ref: MapEditTargetR
     case 'entity':
       return 'index' in selection && selection.index === ref.index;
     case 'door':
+      return 'id' in selection && selection.id === ref.id;
+    case 'wall':
+      return 'index' in selection && selection.index === ref.index;
+    case 'sector':
       return 'id' in selection && selection.id === ref.id;
     default: {
       const neverRef: never = ref;

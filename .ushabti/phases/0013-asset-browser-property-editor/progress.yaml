@@ -1,0 +1,134 @@
+phase:
+  id: 0013
+  slug: asset-browser-property-editor
+  title: Asset Browser + Property Editor Improvements
+  status: complete
+
+steps:
+  - id: S001
+    title: Inspect current Asset Browser + Properties implementations
+    implemented: true
+    reviewed: true
+    notes: "Inspector panels: src/renderer/ui/editor/panels/InspectorDockPanel.tsx renders Asset Browser via src/renderer/ui/editor/inspector/AssetBrowser.tsx and currently renders Properties as <pre> JSON.stringify(selectedObject.value). Asset index comes from Nomos store state.assetIndex (AppStateSnapshot.assetIndex) via src/renderer/store/nomosStore.ts. Selection type is src/renderer/ui/editor/map/mapSelection.ts; edit-target selection refs for IPC are in src/shared/ipc/nomosIpc.ts (MapEditTargetRef supports light/particle/entity/door). Decoded selection view-model fields (src/renderer/ui/editor/map/mapViewModel.ts): light {index,x,y,radius,intensity,color{r,g,b}}, particle {index,x,y}, entity {index,x,y,defName,yawDeg}, door {id,wallIndex,tex,startsClosed}, wall {index,v0,v1,frontSector,backSector,tex,endLevel}, sector {id,floorZ,ceilZ,floorTex,ceilTex,light}."
+    touched:
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S002
+    title: Dark-mode styling for Asset Browser panel
+    implemented: true
+    reviewed: true
+    notes: "Applied dark-mode surface styling to Asset Browser section (Card/header/body) and updated AssetBrowser rows to use light text/icons with a simple hover highlight for readability."
+    touched:
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - src/renderer/ui/editor/inspector/AssetBrowser.tsx
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S003
+    title: Color-coded icons by asset type
+    implemented: true
+    reviewed: true
+    notes: "Added asset icon color-coding in Asset Browser by entry kind/extension using Blueprint Colors (folder blue, png red, midi green, sf2 gold/yellow, json violet, wav orange, ttf rose/pink, fallback turquoise/teal)."
+    touched:
+      - src/renderer/ui/editor/inspector/AssetBrowser.tsx
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S004
+    title: Dark-mode styling for Properties panel container
+    implemented: true
+    reviewed: true
+    notes: "Applied dark-mode surface styling to the Properties section container (Card/header/body) to match Asset Browser."
+    touched:
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S005
+    title: Define a minimal, typed “update fields” map edit command (shared IPC)
+    implemented: true
+    reviewed: true
+    notes: "Extended shared IPC MapEditAtomicCommand with map-edit/update-fields { target, set } where set values are JSON primitives (string|number|boolean|null), for safe property editing via main-process command engine."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S006
+    title: Implement the command in MapCommandEngine
+    implemented: true
+    reviewed: true
+    notes: "Implemented map-edit/update-fields in MapCommandEngine.applyAtomic: validates primitive-only set map (finite numbers), resolves target (indexed collections + door by id), and applies field updates immutably while keeping selection unchanged."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S007
+    title: Unit tests: MapCommandEngine update-fields
+    implemented: true
+    reviewed: true
+    notes: "Added unit tests for map-edit/update-fields covering success for light/particle/entity/door and failures for missing collection, not-found target, non-object entry, non-finite numbers, and non-primitive set values. Verified via jest MapCommandEngine.test.ts run."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S008
+    title: Integrate update-fields into MapEditService + history
+    implemented: true
+    reviewed: true
+    notes: "Integrated map-edit/update-fields into MapEditService: allowed kind, treated selection input as keep (undefined), and returned standard map-edit/applied result while preserving dirty/revision/history semantics." 
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S009
+    title: Unit tests: MapEditService property edit behavior
+    implemented: true
+    reviewed: true
+    notes: "Added MapEditService unit tests for map-edit/update-fields covering success (dirty=true, lastValidation=null, revision bump), undo/redo exact restoration, and stale baseRevision rejection. User confirmed jest MapEditService.test.ts PASS."
+    touched:
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S010
+    title: Implement Properties editor UI (renderer)
+    implemented: true
+    reviewed: true
+    notes: "Replaced raw JSON <pre> Properties view with a structured editor UI (no index display). Implemented per-kind editors for light/particle/entity/door with validation + commit via window.nomos.map.edit using map-edit/update-fields, including stale-revision refresh+warning. Wall/sector render as read-only field lists (no raw JSON)."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S011
+    title: Update docs (L09)
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer UI, map edit command, and maps system docs to reflect editable Properties UI and the new map-edit/update-fields atomic command + validation rules."
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/map-edit-command-system.md
+      - docs/maps-system.md
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+  - id: S012
+    title: Verification
+    implemented: true
+    reviewed: true
+    notes: "Automated gates captured to logs (re-run after S013): npm test EXIT:0, npm run typecheck EXIT:0, npm run lint EXIT:0. Manual smoke complete (confirmed): Inspector titles readable; entity defs dropdown loads; wall/sector edits apply, persist via save+reopen, and undo/redo works; stale revision path behaves as expected."
+    touched:
+      - .ushabti/phases/0013-asset-browser-property-editor/verification/npm-test.log
+      - .ushabti/phases/0013-asset-browser-property-editor/verification/npm-typecheck.log
+      - .ushabti/phases/0013-asset-browser-property-editor/verification/npm-lint.log
+      - src/renderer/ui/editor/inspector/AssetBrowser.tsx
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+
+  - id: S013
+    title: Post-S010 Inspector tweaks (contrast + wall/sector edits + entity defs loader)
+    implemented: true
+    reviewed: true
+    notes: "Fixed Inspector section title contrast (white header text + inherited title/button color). Enabled wall/sector property editing end-to-end by extending MapEditTargetRef, supporting update-fields for wall (indexed) and sector (by id) in MapCommandEngine, wiring renderer selection refs, and adding Wall/Sector editors in Properties. Fixed entity defname dropdown to complete manifest loading (no infinite 'loading'). Updated docs for new target kinds and updated MapCommandEngine tests for wall/sector update-fields branches. Verified with jest focused run, typecheck, and lint (typescript-eslint emits a TS version warning but eslint exits clean)."
+    touched:
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - src/renderer/store/nomosStore.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - docs/map-edit-command-system.md
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml
+
+  - id: S014
+    title: Close L04 gaps: MapCommandEngine update-fields edge-branch tests
+    implemented: true
+    reviewed: true
+    notes: "Added MapCommandEngine.apply update-fields tests for null set values, empty/whitespace keys, non-array doors/sectors, and non-integer indices. Verified via npm test (pass)."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0013-asset-browser-property-editor/progress.yaml

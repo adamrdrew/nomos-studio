@@ -259,6 +259,367 @@ describe('MapCommandEngine', () => {
     expect(result.value.selection.ref.id).toBe('door-1-copy');
   });
 
+  it('updates fields on a light by index', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 0 },
+      set: { x: 10, y: 20, radius: 99, enabled: true }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(result.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+
+    const lights = result.value.nextJson['lights'] as unknown[];
+    expect(lights.length).toBe(1);
+    expect(lights[0]).toEqual({ x: 10, y: 20, radius: 99, enabled: true });
+  });
+
+  it('updates fields on a particle by index', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'particle', index: 0 },
+      set: { x: 12, y: 34 }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    const particles = result.value.nextJson['particles'] as unknown[];
+    expect(particles[0]).toEqual({ x: 12, y: 34 });
+  });
+
+  it('updates fields on an entity by index', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'entity', index: 0 },
+      set: { x: 7, y: 8, yaw_deg: 90, def: 'b' }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    const entities = result.value.nextJson['entities'] as unknown[];
+    expect(entities[0]).toEqual({ x: 7, y: 8, yaw_deg: 90, def: 'b' });
+  });
+
+  it('updates fields on a door by id', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'door', id: 'door-1' },
+      set: { tex: 'next.png', starts_closed: true }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    const doors = result.value.nextJson['doors'] as unknown[];
+    expect(doors.length).toBe(1);
+    expect(doors[0]).toEqual({ id: 'door-1', wall_index: 0, tex: 'next.png', starts_closed: true });
+  });
+
+  it('updates fields on a wall by index', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(
+      baseDocument({
+        walls: [{ v0: 1, v1: 2, front_sector: 10, back_sector: null, tex: 'a.png', end_level: false }]
+      }),
+      {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'wall', index: 0 },
+        set: { tex: 'b.png', end_level: true }
+      }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    const walls = result.value.nextJson['walls'] as unknown[];
+    expect(walls.length).toBe(1);
+    expect(walls[0]).toEqual({ v0: 1, v1: 2, front_sector: 10, back_sector: null, tex: 'b.png', end_level: true });
+  });
+
+  it('allows update-fields set values to be null', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(
+      baseDocument({
+        walls: [{ v0: 1, v1: 2, front_sector: 10, back_sector: 11, tex: 'a.png', end_level: false }]
+      }),
+      {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'wall', index: 0 },
+        set: { back_sector: null }
+      }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    const walls = result.value.nextJson['walls'] as unknown[];
+    expect(walls.length).toBe(1);
+    expect(walls[0]).toEqual({ v0: 1, v1: 2, front_sector: 10, back_sector: null, tex: 'a.png', end_level: false });
+  });
+
+  it('updates fields on a sector by id', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(
+      baseDocument({
+        sectors: [
+          { id: 1, floor_z: 0, ceil_z: 4, light: 1, floor_tex: 'a.png', ceil_tex: 'b.png' },
+          { id: 2, floor_z: 1, ceil_z: 5, light: 2, floor_tex: 'c.png', ceil_tex: 'd.png' }
+        ]
+      }),
+      {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'sector', id: 2 },
+        set: { floor_z: 10, ceil_z: 20, light: 0.5 }
+      }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    const sectors = result.value.nextJson['sectors'] as unknown[];
+    expect(sectors).toEqual([
+      { id: 1, floor_z: 0, ceil_z: 4, light: 1, floor_tex: 'a.png', ceil_tex: 'b.png' },
+      { id: 2, floor_z: 10, ceil_z: 20, light: 0.5, floor_tex: 'c.png', ceil_tex: 'd.png' }
+    ]);
+  });
+
+  it('returns invalid-json when update-fields target collection is missing or not an array', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument({ lights: {}, particles: [], entities: [], doors: [] }), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 0 },
+      set: { x: 1 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns invalid-json when update-fields set contains an empty key', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 0 },
+      set: { '': 1 }
+    } as unknown as Parameters<MapCommandEngine['apply']>[1]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns invalid-json when update-fields set contains a whitespace-only key', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 0 },
+      set: { '   ': 1 }
+    } as unknown as Parameters<MapCommandEngine['apply']>[1]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns not-found when update-fields target index does not exist', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 99 },
+      set: { x: 1 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  it('returns not-found when update-fields target index is not an integer', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 1.5 },
+      set: { x: 1 }
+    } as unknown as Parameters<MapCommandEngine['apply']>[1]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  it('returns not-found when update-fields wall index does not exist', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument({ walls: [{ v0: 1, v1: 2 }] }), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'wall', index: 99 },
+      set: { tex: 'x.png' }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  it('returns invalid-json when update-fields door target collection is not an array', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument({ doors: {} }), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'door', id: 'door-1' },
+      set: { tex: 'x.png' }
+    } as unknown as Parameters<MapCommandEngine['apply']>[1]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns not-found when update-fields sector id does not exist', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument({ sectors: [{ id: 1, floor_z: 0 }] }), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'sector', id: 99 },
+      set: { floor_z: 1 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  it('returns invalid-json when update-fields sector target collection is not an array', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument({ sectors: {} }), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'sector', id: 1 },
+      set: { floor_z: 1 }
+    } as unknown as Parameters<MapCommandEngine['apply']>[1]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns invalid-json when update-fields sector id is not an integer', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument({ sectors: [{ id: 1, floor_z: 0 }] }), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'sector', id: 1.5 },
+      set: { floor_z: 1 }
+    } as unknown as Parameters<MapCommandEngine['apply']>[1]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns invalid-json when update-fields target entry is not an object', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument({ lights: [3], particles: [], entities: [], doors: [] }), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 0 },
+      set: { x: 1 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns invalid-json when update-fields set contains a non-finite number', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 0 },
+      set: { x: Number.NaN }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns invalid-json when update-fields set contains a non-primitive value', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'light', index: 0 },
+      set: { x: { nested: true } }
+    } as unknown as Parameters<MapCommandEngine['apply']>[1]);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
   it('moves an entity by index, preserving other fields', () => {
     const engine = new MapCommandEngine();
 

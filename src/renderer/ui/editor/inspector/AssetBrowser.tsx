@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from '@blueprintjs/core';
+import { Colors, Icon } from '@blueprintjs/core';
 import type { IconName } from '@blueprintjs/icons';
 
 import { useNomosStore } from '../../../store/nomosStore';
@@ -31,6 +31,34 @@ type MutableFile = {
 };
 
 type MutableNode = MutableDirectory | MutableFile;
+
+function getNodeIconColor(node: AssetTreeNode): string {
+  if (node.kind === 'directory') {
+    return Colors.BLUE5;
+  }
+
+  const lower = node.name.toLowerCase();
+  if (lower.endsWith('.png')) {
+    return Colors.RED5;
+  }
+  if (lower.endsWith('.mid') || lower.endsWith('.midi')) {
+    return Colors.GREEN5;
+  }
+  if (lower.endsWith('.sf2')) {
+    return Colors.GOLD5;
+  }
+  if (lower.endsWith('.json')) {
+    return Colors.VIOLET5;
+  }
+  if (lower.endsWith('.wav')) {
+    return Colors.ORANGE5;
+  }
+  if (lower.endsWith('.ttf')) {
+    return Colors.ROSE5;
+  }
+
+  return Colors.TURQUOISE5;
+}
 
 function getFileIconName(fileName: string): IconName {
   const lower = fileName.toLowerCase();
@@ -128,13 +156,32 @@ function buildTree(entries: readonly string[]): AssetTreeDirectoryNode {
 }
 
 function NodeRow(props: {
+  rowKey: string;
   node: AssetTreeNode;
   depth: number;
   isExpanded?: boolean;
+  isHovered?: boolean;
+  onHoverChange?: (rowKey: string | null) => void;
   onToggleDirectory?: () => void;
   onOpenFile?: (relativePath: string) => void;
 }): JSX.Element {
   const paddingLeft = 8 + props.depth * 14;
+
+  const iconColor = getNodeIconColor(props.node);
+
+  const backgroundColor = props.isHovered ? Colors.DARK_GRAY1 : 'transparent';
+  const rowStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '4px 6px',
+    paddingLeft,
+    userSelect: 'none',
+    cursor: 'default',
+    color: Colors.LIGHT_GRAY5,
+    backgroundColor,
+    borderRadius: 3
+  };
 
   if (props.node.kind === 'directory') {
     const iconName: IconName = props.isExpanded ? 'folder-open' : 'folder-close';
@@ -148,17 +195,13 @@ function NodeRow(props: {
             props.onToggleDirectory?.();
           }
         }}
+        onMouseEnter={() => props.onHoverChange?.(props.rowKey)}
+        onMouseLeave={() => props.onHoverChange?.(null)}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '4px 6px',
-          paddingLeft,
-          userSelect: 'none',
-          cursor: 'default'
+          ...rowStyle
         }}
       >
-        <Icon icon={iconName} size={14} />
+        <Icon icon={iconName} size={14} color={iconColor} />
         <span>{props.node.name}</span>
       </div>
     );
@@ -171,17 +214,13 @@ function NodeRow(props: {
       role="button"
       tabIndex={0}
       onDoubleClick={() => props.onOpenFile?.(relativePath)}
+      onMouseEnter={() => props.onHoverChange?.(props.rowKey)}
+      onMouseLeave={() => props.onHoverChange?.(null)}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '4px 6px',
-        paddingLeft,
-        userSelect: 'none',
-        cursor: 'default'
+        ...rowStyle
       }}
     >
-      <Icon icon={iconName} size={14} />
+      <Icon icon={iconName} size={14} color={iconColor} />
       <span>{props.node.name}</span>
     </div>
   );
@@ -192,6 +231,7 @@ export function AssetBrowser(props: { onOpenFile: (relativePath: string) => void
   const assetIndex = useNomosStore((state) => state.assetIndex);
 
   const [expandedDirs, setExpandedDirs] = React.useState<ReadonlySet<string>>(() => new Set(['']));
+  const [hoveredRowKey, setHoveredRowKey] = React.useState<string | null>(null);
 
   const assetsDirPath = settings.assetsDirPath;
   const isAssetsConfigured = assetsDirPath !== null && assetsDirPath.trim().length > 0;
@@ -258,9 +298,12 @@ export function AssetBrowser(props: { onOpenFile: (relativePath: string) => void
         rows.push(
           <NodeRow
             key={`dir-${childKey}`}
+            rowKey={`dir-${childKey}`}
             node={child}
             depth={depth}
             isExpanded={isExpanded}
+            isHovered={hoveredRowKey === `dir-${childKey}`}
+            onHoverChange={setHoveredRowKey}
             onToggleDirectory={() => toggleDir(childKey)}
           />
         );
@@ -272,8 +315,11 @@ export function AssetBrowser(props: { onOpenFile: (relativePath: string) => void
         rows.push(
           <NodeRow
             key={`file-${child.relativePath}`}
+            rowKey={`file-${child.relativePath}`}
             node={child}
             depth={depth}
+            isHovered={hoveredRowKey === `file-${child.relativePath}`}
+            onHoverChange={setHoveredRowKey}
             onOpenFile={props.onOpenFile}
           />
         );
@@ -283,5 +329,5 @@ export function AssetBrowser(props: { onOpenFile: (relativePath: string) => void
 
   walk(tree, '', 0);
 
-  return <div>{rows}</div>;
+  return <div style={{ color: Colors.LIGHT_GRAY5 }}>{rows}</div>;
 }

@@ -307,6 +307,87 @@ describe('MapEditService', () => {
     });
   });
 
+  it('update-fields succeeds, marks dirty, clears lastValidation, bumps revision, and supports undo/redo', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const initialJson = { ...baseMapJson(), entities: [{ x: 5, y: 6, yaw_deg: 0, def: 'a' }] };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: initialJson,
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    const service = createService(store);
+
+    const edited = service.edit({
+      baseRevision: 1,
+      command: {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'entity', index: 0 },
+        set: { x: 10, y: 20, yaw_deg: 90, def: null }
+      }
+    });
+
+    expect(edited.ok).toBe(true);
+
+    const afterEdit = getDocument();
+    expect(afterEdit).not.toBeNull();
+    expect(afterEdit?.revision).toBe(2);
+    expect(afterEdit?.dirty).toBe(true);
+    expect(afterEdit?.lastValidation).toBeNull();
+    expect(afterEdit?.json).toEqual({ ...baseMapJson(), entities: [{ x: 10, y: 20, yaw_deg: 90, def: null }] });
+
+    const undo = service.undo({ baseRevision: 2 });
+    expect(undo.ok).toBe(true);
+
+    const afterUndo = getDocument();
+    expect(afterUndo).not.toBeNull();
+    expect(afterUndo?.dirty).toBe(false);
+    expect(afterUndo?.lastValidation).toEqual(lastValidation);
+    expect(afterUndo?.json).toEqual(initialJson);
+
+    const redo = service.redo({ baseRevision: afterUndo!.revision });
+    expect(redo.ok).toBe(true);
+
+    const afterRedo = getDocument();
+    expect(afterRedo?.dirty).toBe(true);
+    expect(afterRedo?.lastValidation).toBeNull();
+    expect(afterRedo?.json).toEqual({ ...baseMapJson(), entities: [{ x: 10, y: 20, yaw_deg: 90, def: null }] });
+  });
+
+  it('update-fields rejects mismatched baseRevision with stale-revision and does not mutate store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), entities: [{ x: 5, y: 6, yaw_deg: 0, def: 'a' }] },
+      dirty: false,
+      lastValidation: null,
+      revision: 2
+    });
+
+    const service = createService(store);
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'entity', index: 0 },
+        set: { x: 10 }
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/stale-revision');
+      if (result.error.code === 'map-edit/stale-revision') {
+        expect(result.error.currentRevision).toBe(2);
+      }
+    }
+    expect(setCalls).toHaveLength(0);
+  });
+
   it('move-entity rejects mismatched baseRevision with stale-revision and does not mutate store/engine/history', () => {
     const { store, setCalls } = createMutableStore({
       filePath: '/maps/test.json',

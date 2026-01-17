@@ -92,7 +92,11 @@ The editor UI is organized like a traditional creative tool:
 	- Zoom/Pan commands control the viewport via a narrow imperative viewport API exposed by `MapEditorCanvas`.
 	- Select commands (Delete/Clone) request main-process edits via `window.nomos.map.edit(...)` and update renderer selection based on the edit result.
 - **Inspector** panel (right): contains collapsible sections, currently Asset Browser and Properties.
-	- Properties shows the selected map object (read-only) when Select tool chooses something.
+	- Asset Browser renders the current asset index entries and supports opening files via `window.nomos.assets.open(...)`.
+		- Asset icons are color-coded by file type for readability on the dark surface.
+	- Properties shows the selected map object and allows editing supported selection kinds.
+		- Edits are committed via `window.nomos.map.edit(...)` using the `map-edit/update-fields` atomic command.
+		- Walls and sectors are editable via the Properties editor.
 	- On initial app open, Inspector starts at approximately 20% of the window width.
 
 ### Non-closable core panels
