@@ -129,8 +129,9 @@ export function EditorShell(): JSX.Element {
   };
 
   return (
-    <div style={{ height: '100vh', width: '100vw' }}>
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
       <DockviewReact
+        className="dockview-theme-dark nomos-dockview"
         onReady={onDockReady}
         tabComponents={{
           nonClosable: NonClosableTab

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Intent, Position, Toaster, Tooltip } from '@blueprintjs/core';
+import { Button, Icon, Intent, Position, Toaster, Tooltip } from '@blueprintjs/core';
 import { Colors } from '@blueprintjs/core';
 
 import { MapEditorCanvas } from '../MapEditorCanvas';
@@ -26,7 +26,8 @@ function MapEditorToolBar(props: {
         gap: 8,
         padding: 8,
         minHeight: 46,
-        background: Colors.DARK_GRAY3,
+        background: Colors.DARK_GRAY2,
+        color: Colors.WHITE,
         boxSizing: 'border-box'
       }}
     >
@@ -36,6 +37,7 @@ function MapEditorToolBar(props: {
           minimal={true}
           text={command.label}
           disabled={!props.isCommandEnabled(command.id)}
+          style={{ color: Colors.WHITE }}
           onClick={() => props.onCommand(command.id)}
         />
       ))}
@@ -217,13 +219,13 @@ export function MapEditorDockPanel(): JSX.Element {
             left: 8,
             top: 8,
             bottom: 8,
-            width: 56,
+            width: 50,
             display: 'flex',
             flexDirection: 'column',
             gap: 6,
             padding: 6,
             boxSizing: 'border-box',
-            background: Colors.DARK_GRAY3,
+            background: Colors.DARK_GRAY2,
             borderRadius: 4,
             overflowY: 'auto'
           }}
@@ -231,10 +233,11 @@ export function MapEditorDockPanel(): JSX.Element {
           {MAP_EDITOR_TOOLS.map((toolDefinition) => (
             <Tooltip key={toolDefinition.id} content={toolDefinition.tooltip} placement="right">
               <Button
-                icon={toolDefinition.icon}
+                icon={<Icon icon={toolDefinition.icon} color={Colors.WHITE} />}
                 minimal={true}
+                fill={true}
                 active={toolId === toolDefinition.id}
-                style={{ height: toolButtonHeightPx }}
+                style={{ height: toolButtonHeightPx, width: '100%', justifyContent: 'center', color: Colors.WHITE }}
                 onClick={() => setToolId(toolDefinition.id)}
               />
             </Tooltip>

@@ -1,0 +1,54 @@
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+#root {
+  overflow: hidden;
+}
+
+.nomos-dockview .dv-tabs-and-actions-container {
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--dv-tab-divider-color);
+}
+
+.nomos-dockview {
+  --dv-activegroup-visiblepanel-tab-background-color: color-mix(
+    in srgb,
+    var(--dv-tabs-and-actions-container-background-color),
+    white 12%
+  );
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--dv-tabs-and-actions-container-background-color);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--dv-tabs-and-actions-container-background-color);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--dv-tabs-and-actions-container-background-color);
+}
+
+.nomos-dockview .dv-tabs-container {
+  padding-left: 6px;
+}
+
+.nomos-dockview .dv-tab {
+  box-sizing: border-box;
+  border: 1px solid var(--dv-tab-divider-color);
+  border-bottom: 0;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  margin-top: 4px;
+  margin-right: 4px;
+}
+
+.nomos-dockview .dv-tab.dv-active-tab {
+  border-color: var(--dv-tab-divider-color);
+}
+
+.nomos-dockview .dv-tab.dv-inactive-tab {
+  border-color: var(--dv-tab-divider-color);
+}

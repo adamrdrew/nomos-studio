@@ -1,0 +1,73 @@
+phase:
+  id: 0012
+  slug: gui-improvements
+  title: GUI Improvements
+  status: complete
+
+steps:
+  - id: S001
+    title: Inspect current renderer layout + style sources
+    implemented: true
+    reviewed: true
+    notes: "Entry points: root layout in src/renderer/renderer.tsx (Settings mode container) and src/renderer/ui/editor/EditorShell.tsx (100vh/100vw wrapper). Map Editor command bar + toolbox live in src/renderer/ui/editor/panels/MapEditorDockPanel.tsx (MapEditorToolBar + absolute-position toolbox). DockView tabs are from dockview CSS imported in src/renderer/renderer.tsx; classnames include .dv-tabs-and-actions-container and .dv-tab.* under .dockview-theme-*. Vertical scrollbar root cause is likely default browser body margin interacting with 100vh/100vw wrappers, causing slight overflow and app-level scroll."
+    touched:
+      - .ushabti/phases/0012-gui-improvements/progress.yaml
+  - id: S002
+    title: Fix “UI taller than window” (remove app-level scrollbar)
+    implemented: true
+    reviewed: true
+    notes: "Removed default browser body margin and prevented app-level overflow via a small global stylesheet. Switched EditorShell and Settings mode wrappers from 100vh/100vw to 100% sizing to avoid subtle overflow that caused a persistent scrollbar/trackpad scrolling the whole UI."
+    touched:
+      - src/renderer/renderer.css
+      - src/renderer/renderer.tsx
+      - src/renderer/ui/editor/EditorShell.tsx
+      - .ushabti/phases/0012-gui-improvements/progress.yaml
+  - id: S003
+    title: Toolbox width + full-width tool buttons
+    implemented: true
+    reviewed: true
+    notes: "Toolbox width reduced from 56px to 50px (~10%). Tool buttons now use fill/100% width so they span the full toolbox width instead of looking left-aligned."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0012-gui-improvements/progress.yaml
+  - id: S004
+    title: Toolbox + command bar contrast (white icons/text; matched backgrounds)
+    implemented: true
+    reviewed: true
+    notes: "Switched toolbox + command bar background to a slightly lighter dark tone (Blueprint DARK_GRAY2) and set command bar text to white for legibility. Toolbox icons are now forced to white via an explicit Blueprint Icon (Button icon color does not reliably inherit). Command bar background matches toolbox background."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0012-gui-improvements/progress.yaml
+  - id: S005
+    title: DockView tabs: borders + tab affordance
+    implemented: true
+    reviewed: true
+    notes: "Enabled DockView dark theme for the editor shell and added scoped CSS to render bordered, tab-like Map Editor/Inspector tabs. Adjusted DockView CSS variables so the active tab is visibly lighter than the tab strip background (improves tab/background separation)."
+    touched:
+      - src/renderer/ui/editor/EditorShell.tsx
+      - src/renderer/renderer.css
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0012-gui-improvements/progress.yaml
+  - id: S006
+    title: Update renderer UI subsystem docs (L09)
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer UI docs to state toolbox buttons fill the toolbox width (while still not stretching vertically)."
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0012-gui-improvements/progress.yaml
+  - id: S007
+    title: Verification (automated + manual)
+    implemented: true
+    reviewed: true
+    notes: "Automated checks: npm test PASS (26 suites, 224 tests), npm run typecheck PASS, npm run lint PASS. Manual smoke checklist confirmed: no app-level vertical scrollbar; trackpad does not scroll the entire UI; toolbox buttons fill width and toolbox is ~10% narrower; toolbox icons are white; command bar text is white and matches toolbox background; tabs have borders and tab affordance."
+    touched:
+      - .ushabti/phases/0012-gui-improvements/progress.yaml
+
+  - id: S008
+    title: Manual UI confirmation (post-fixes)
+    implemented: true
+    reviewed: true
+    notes: "Manually confirmed: toolbox tool icons render white and are legible; DockView active tab is visually distinct from the tab strip background."
+    touched:
+      - .ushabti/phases/0012-gui-improvements/progress.yaml

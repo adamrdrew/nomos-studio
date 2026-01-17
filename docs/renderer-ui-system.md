@@ -84,7 +84,7 @@ The editor UI is organized like a traditional creative tool:
 	- Move mode allows dragging the currently selected entity to a new position.
 		- The renderer maintains a local preview while dragging.
 		- On mouse-up, the renderer commits a single main-process edit (`map-edit/move-entity`) and clears the preview.
-	- Buttons are icon-based with tooltips and do not stretch to fill the vertical space.
+	- Buttons are icon-based with tooltips, fill the toolbox width, and do not stretch to fill the vertical space.
 	- The toolbox is a compact, scrollable column so additional tools can be added without odd stretching.
 
 - **Tool bar** (row above the Map Editor canvas): tool-specific commands for the currently selected tool.

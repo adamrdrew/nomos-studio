@@ -7,6 +7,7 @@ import { EditorShell } from './ui/editor/EditorShell';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
 import 'dockview/dist/styles/dockview.css';
+import './renderer.css';
 
 function isSettingsMode(): boolean {
   try {
@@ -151,7 +152,7 @@ function App(): JSX.Element {
 
   if (settingsMode) {
     return (
-      <div style={{ padding: 16, height: '100vh', boxSizing: 'border-box' }}>
+      <div style={{ padding: 16, height: '100%', boxSizing: 'border-box', overflow: 'auto' }}>
         <H1>Settings</H1>
         <SettingsPanel onDone={() => window.close()} onCancel={() => window.close()} />
       </div>
