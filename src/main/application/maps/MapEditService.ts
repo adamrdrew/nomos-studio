@@ -112,7 +112,12 @@ export class MapEditService {
 
     const command = request.command;
 
-    if (command.kind !== 'map-edit/transaction' && command.kind !== 'map-edit/delete' && command.kind !== 'map-edit/clone') {
+    if (
+      command.kind !== 'map-edit/transaction' &&
+      command.kind !== 'map-edit/delete' &&
+      command.kind !== 'map-edit/clone' &&
+      command.kind !== 'map-edit/move-entity'
+    ) {
       const unknownKind = (command as unknown as { kind?: unknown }).kind;
       return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
     }
@@ -150,6 +155,9 @@ export class MapEditService {
       case 'map-edit/delete':
       case 'map-edit/clone':
         selectionInput = { kind: 'map-edit/selection', ref: normalizedCommand.target };
+        break;
+      case 'map-edit/move-entity':
+        selectionInput = undefined;
         break;
     }
 
@@ -198,6 +206,15 @@ export class MapEditService {
         return { ok: true, value: { kind: 'map-edit/cloned', newRef: cloneNewRef! } };
       case 'map-edit/delete':
         return { ok: true, value: { kind: 'map-edit/deleted' } };
+      case 'map-edit/move-entity':
+        return {
+          ok: true,
+          value: {
+            kind: 'map-edit/applied',
+            selection: selectionAfter,
+            history: historyInfo
+          }
+        };
     }
   }
 

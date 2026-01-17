@@ -25,6 +25,7 @@ function MapEditorToolBar(props: {
         alignItems: 'center',
         gap: 8,
         padding: 8,
+        minHeight: 46,
         background: Colors.DARK_GRAY3,
         boxSizing: 'border-box'
       }}

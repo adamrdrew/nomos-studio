@@ -77,7 +77,12 @@ export type MapEditTargetRef =
 
 export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
-  | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>;
+  | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
+  | Readonly<{
+      kind: 'map-edit/move-entity';
+      target: Readonly<{ kind: 'entity'; index: number }>;
+      to: Readonly<{ x: number; y: number }>;
+    }>;
 
 export type MapEditSelectionInput = Readonly<{
   kind: 'map-edit/selection';

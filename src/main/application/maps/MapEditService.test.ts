@@ -239,6 +239,132 @@ describe('MapEditService', () => {
     expect(setCalls).toHaveLength(1);
   });
 
+  it('move-entity succeeds, marks dirty, clears lastValidation, bumps revision, and supports undo/redo', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), entities: [{ x: 5, y: 6, yaw_deg: 0, def: 'a' }] },
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    const service = createService(store);
+
+    const moved = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/move-entity', target: { kind: 'entity', index: 0 }, to: { x: 10, y: 20 } }
+    });
+
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) {
+      throw new Error('Expected success');
+    }
+    expect(moved.value.kind).toBe('map-edit/applied');
+
+    const afterMove = getDocument();
+    expect(afterMove?.revision).toBe(2);
+    expect(afterMove?.dirty).toBe(true);
+    expect(afterMove?.lastValidation).toBeNull();
+    expect(((afterMove?.json as Record<string, unknown>)?.['entities'] as unknown[])[0]).toEqual({
+      x: 10,
+      y: 20,
+      yaw_deg: 0,
+      def: 'a'
+    });
+
+    const undone = service.undo({ baseRevision: 2, steps: 1 });
+    expect(undone.ok).toBe(true);
+    if (!undone.ok) {
+      throw new Error('Expected undo success');
+    }
+    expect(undone.value.kind).toBe('map-edit/applied');
+
+    const afterUndo = getDocument();
+    expect(afterUndo?.revision).toBe(3);
+    expect(((afterUndo?.json as Record<string, unknown>)?.['entities'] as unknown[])[0]).toEqual({
+      x: 5,
+      y: 6,
+      yaw_deg: 0,
+      def: 'a'
+    });
+
+    const redone = service.redo({ baseRevision: 3, steps: 1 });
+    expect(redone.ok).toBe(true);
+    if (!redone.ok) {
+      throw new Error('Expected redo success');
+    }
+    expect(redone.value.kind).toBe('map-edit/applied');
+
+    const afterRedo = getDocument();
+    expect(afterRedo?.revision).toBe(4);
+    expect(((afterRedo?.json as Record<string, unknown>)?.['entities'] as unknown[])[0]).toEqual({
+      x: 10,
+      y: 20,
+      yaw_deg: 0,
+      def: 'a'
+    });
+  });
+
+  it('move-entity rejects mismatched baseRevision with stale-revision and does not mutate store/engine/history', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), entities: [{ x: 1, y: 2, yaw_deg: 0, def: 'a' }] },
+      dirty: false,
+      lastValidation: null,
+      revision: 2
+    });
+
+    let applyCalls = 0;
+    const engine: MapCommandEngine = {
+      apply: () => {
+        applyCalls += 1;
+        return {
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson() },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      }
+    } as unknown as MapCommandEngine;
+
+    let recordEditCalls = 0;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {
+        recordEditCalls += 1;
+      },
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, engine, history);
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/move-entity', target: { kind: 'entity', index: 0 }, to: { x: 9, y: 9 } }
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/stale-revision');
+      if (result.error.code === 'map-edit/stale-revision') {
+        expect(result.error.currentRevision).toBe(2);
+      }
+    }
+    expect(applyCalls).toBe(0);
+    expect(recordEditCalls).toBe(0);
+    expect(setCalls).toHaveLength(0);
+  });
+
   it('edit returns invalid-json when a clone does not produce selection/set and does not mutate the store', () => {
     const { store, setCalls } = createMutableStore({
       filePath: '/maps/test.json',

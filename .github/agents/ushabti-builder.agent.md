@@ -1,7 +1,7 @@
 ---
 description: Develop the code for a development plan phase.
 name: Ushabti Builder
-tools: ['vscode/getProjectSetupInfo', 'vscode/runCommand', 'read', 'edit', 'search', 'web']
+tools: ['vscode/getProjectSetupInfo', 'vscode/runCommand', 'read', 'edit', 'search', 'web', 'execute']
 model: GPT-5.2 (copilot)
 handoffs:
   - label: Review Implmentation

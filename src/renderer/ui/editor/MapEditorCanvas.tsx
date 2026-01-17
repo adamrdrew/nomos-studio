@@ -8,7 +8,7 @@ import { decodeMapViewModel } from './map/mapDecoder';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
 
-export type MapEditorInteractionMode = 'select' | 'pan' | 'zoom';
+export type MapEditorInteractionMode = 'select' | 'move' | 'pan' | 'zoom';
 
 export type MapEditorViewportApi = Readonly<{
   zoomIn: () => void;
@@ -316,6 +316,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const mapDocument = useNomosStore((state) => state.mapDocument);
   const mapRenderMode = useNomosStore((state) => state.mapRenderMode);
   const mapGridSettings = useNomosStore((state) => state.mapGridSettings);
+  const mapSelection = useNomosStore((state) => state.mapSelection);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
 
   const mapFilePath = mapDocument?.filePath ?? null;
@@ -538,6 +539,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   );
 
   const lastFramedMapRef = React.useRef<string | null>(null);
+  const lastInitialScaleMapRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const container = containerRef.current;
@@ -565,6 +567,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   React.useEffect(() => {
     if (mapFilePath === null) {
       lastFramedMapRef.current = null;
+      lastInitialScaleMapRef.current = null;
       return;
     }
 
@@ -580,6 +583,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
     }));
 
     lastFramedMapRef.current = mapFilePath;
+    lastInitialScaleMapRef.current = null;
   }, [mapFilePath, size.height, size.width]);
 
   React.useEffect(() => {
@@ -592,6 +596,17 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
     }
 
     if (mapBounds === null) {
+      return;
+    }
+
+    // Apply the initial fit-to-map scale once per opened map.
+    // Tool switching can change layout height and trigger a resize; we should not reset user zoom.
+    if (lastInitialScaleMapRef.current === mapFilePath) {
+      return;
+    }
+
+    // Wait for real layout size; the initial state is { width: 1, height: 1 }.
+    if (size.width <= 1 || size.height <= 1) {
       return;
     }
 
@@ -610,14 +625,56 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       ...current,
       scale: initialScale
     }));
+
+    lastInitialScaleMapRef.current = mapFilePath;
   }, [mapBounds, mapFilePath, size.height, size.width]);
 
   const isPanEnabled = props.interactionMode === 'pan';
   const isZoomEnabled = props.interactionMode === 'zoom';
   const isSelectEnabled = props.interactionMode === 'select';
+  const isMoveEnabled = props.interactionMode === 'move';
 
   const isDraggingRef = React.useRef<boolean>(false);
   const lastPointerRef = React.useRef<Readonly<{ x: number; y: number }> | null>(null);
+
+  const [movePreview, setMovePreview] = React.useState<Readonly<{ index: number; x: number; y: number }> | null>(null);
+  const movePreviewRef = React.useRef<Readonly<{ index: number; x: number; y: number }> | null>(null);
+  React.useEffect(() => {
+    movePreviewRef.current = movePreview;
+  }, [movePreview]);
+
+  const isMoveDraggingRef = React.useRef<boolean>(false);
+  const moveDragOffsetRef = React.useRef<Point | null>(null);
+
+  React.useEffect(() => {
+    if (!isMoveEnabled) {
+      isMoveDraggingRef.current = false;
+      moveDragOffsetRef.current = null;
+      setMovePreview(null);
+    }
+  }, [isMoveEnabled]);
+
+  React.useEffect(() => {
+    if (mapSelection?.kind !== 'entity') {
+      isMoveDraggingRef.current = false;
+      moveDragOffsetRef.current = null;
+      setMovePreview(null);
+      return;
+    }
+
+    if (movePreview !== null && movePreview.index !== mapSelection.index) {
+      isMoveDraggingRef.current = false;
+      moveDragOffsetRef.current = null;
+      setMovePreview(null);
+    }
+  }, [mapSelection, movePreview]);
+
+  React.useEffect(() => {
+    // Clear any local preview when the authoritative snapshot changes.
+    isMoveDraggingRef.current = false;
+    moveDragOffsetRef.current = null;
+    setMovePreview(null);
+  }, [mapDocument?.revision, mapFilePath]);
 
   const onMouseDown = (event: KonvaEventObject<MouseEvent>): void => {
     if (isSelectEnabled) {
@@ -642,6 +699,53 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       return;
     }
 
+    if (isMoveEnabled) {
+      if (mapDocument === null) {
+        return;
+      }
+
+      if (mapSelection === null || mapSelection.kind !== 'entity') {
+        return;
+      }
+
+      if (!decodedMap?.ok) {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      const entity = decodedMap.value.entities[mapSelection.index];
+      if (!entity) {
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+
+      const activePreview = movePreviewRef.current;
+      const currentX = activePreview !== null && activePreview.index === mapSelection.index ? activePreview.x : entity.x;
+      const currentY = activePreview !== null && activePreview.index === mapSelection.index ? activePreview.y : entity.y;
+
+      const markerHitRadiusScreen = 10;
+      const markerHitRadiusWorld = markerHitRadiusScreen / view.scale;
+      const d2 = distanceSquared(authoredWorldPoint, { x: currentX, y: currentY });
+      if (d2 > markerHitRadiusWorld * markerHitRadiusWorld) {
+        return;
+      }
+
+      isMoveDraggingRef.current = true;
+      moveDragOffsetRef.current = { x: currentX - authoredWorldPoint.x, y: currentY - authoredWorldPoint.y };
+      setMovePreview({ index: mapSelection.index, x: currentX, y: currentY });
+      return;
+    }
+
     if (!isPanEnabled) {
       return;
     }
@@ -659,9 +763,86 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const onMouseUp = (): void => {
     isDraggingRef.current = false;
     lastPointerRef.current = null;
+
+    if (!isMoveDraggingRef.current) {
+      return;
+    }
+
+    isMoveDraggingRef.current = false;
+    moveDragOffsetRef.current = null;
+
+    if (mapDocument === null) {
+      setMovePreview(null);
+      return;
+    }
+    if (mapSelection === null || mapSelection.kind !== 'entity') {
+      setMovePreview(null);
+      return;
+    }
+    const preview = movePreviewRef.current;
+    if (preview === null || preview.index !== mapSelection.index) {
+      setMovePreview(null);
+      return;
+    }
+
+    void (async () => {
+      const result = await window.nomos.map.edit({
+        baseRevision: mapDocument.revision,
+        command: {
+          kind: 'map-edit/move-entity',
+          target: { kind: 'entity', index: mapSelection.index },
+          to: { x: preview.x, y: preview.y }
+        }
+      });
+
+      if (!result.ok) {
+        if (result.error.code === 'map-edit/stale-revision') {
+          await useNomosStore.getState().refreshFromMain();
+          setMovePreview(null);
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error('[nomos] map move-entity failed', result.error);
+        setMovePreview(null);
+        return;
+      }
+
+      setMovePreview(null);
+    })();
   };
 
   const onMouseMove = (event: KonvaEventObject<MouseEvent>): void => {
+    if (isMoveEnabled && isMoveDraggingRef.current) {
+      if (mapSelection === null || mapSelection.kind !== 'entity') {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      const offset = moveDragOffsetRef.current;
+      if (offset === null) {
+        moveDragOffsetRef.current = { x: 0, y: 0 };
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+
+      setMovePreview({
+        index: mapSelection.index,
+        x: authoredWorldPoint.x + offset.x,
+        y: authoredWorldPoint.y + offset.y
+      });
+      return;
+    }
+
     if (!isPanEnabled || !isDraggingRef.current) {
       return;
     }
@@ -1012,17 +1193,20 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
     }
 
     for (const entity of map.entities) {
+      const preview = movePreview;
+      const entityX = preview !== null && preview.index === entity.index ? preview.x : entity.x;
+      const entityY = preview !== null && preview.index === entity.index ? preview.y : entity.y;
       const half = entityMarkerSizeWorld / 2;
       entityMarkers.push(
         <Line
           key={`entity-${entity.index}`}
           points={[
-            toRenderX(entity.x),
-            toRenderY(entity.y) - half,
-            toRenderX(entity.x) + half,
-            toRenderY(entity.y) + half,
-            toRenderX(entity.x) - half,
-            toRenderY(entity.y) + half
+            toRenderX(entityX),
+            toRenderY(entityY) - half,
+            toRenderX(entityX) + half,
+            toRenderY(entityY) + half,
+            toRenderX(entityX) - half,
+            toRenderY(entityY) + half
           ]}
           closed={true}
           fill={Colors.CERULEAN4}

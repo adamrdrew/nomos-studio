@@ -227,11 +227,68 @@ export class MapCommandEngine {
           }
         };
       }
+      case 'map-edit/move-entity': {
+        const toX = command.to.x;
+        const toY = command.to.y;
+        if (!isFiniteNumber(toX) || !isFiniteNumber(toY)) {
+          return err('map-edit/invalid-json', 'move-entity.to must have finite number x/y');
+        }
+
+        const moveResult = this.moveEntityInJson(json, command.target.index, { x: toX, y: toY });
+        if (!moveResult.ok) {
+          return moveResult;
+        }
+
+        return {
+          ok: true,
+          value: {
+            nextJson: moveResult.value,
+            selection: { kind: 'map-edit/selection/keep' },
+            nextSelection: currentSelection ?? null
+          }
+        };
+      }
       default: {
         const unknownKind = (command as unknown as { kind?: unknown }).kind;
         return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
       }
     }
+  }
+
+  private moveEntityInJson(
+    json: Record<string, unknown>,
+    index: number,
+    to: Readonly<{ x: number; y: number }>
+  ): Result<Record<string, unknown>, MapEditError> {
+    if (!Number.isInteger(index) || index < 0) {
+      return err('map-edit/not-found', `No entities entry exists at index ${index}.`);
+    }
+
+    const entities = asArray(json['entities'], 'entities');
+    if (!entities.ok) {
+      return entities;
+    }
+
+    const source = entities.value[index];
+    if (source === undefined) {
+      return err('map-edit/not-found', `No entities entry exists at index ${index}.`);
+    }
+
+    const sourceRecord = asXyRecord(source, `entities[${index}]`);
+    if (!sourceRecord.ok) {
+      return sourceRecord;
+    }
+
+    const nextEntry: Record<string, unknown> = {
+      ...sourceRecord.value,
+      x: to.x,
+      y: to.y
+    };
+
+    const nextEntities = entities.value.slice();
+    nextEntities[index] = nextEntry;
+
+    return { ok: true, value: { ...json, entities: nextEntities } };
   }
 
   private deleteFromJson(json: Record<string, unknown>, target: MapEditTargetRef): Result<Record<string, unknown>, MapEditError> {

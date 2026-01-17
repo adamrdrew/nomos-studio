@@ -1,7 +1,7 @@
 ---
 description: Review the existing code and ensure it obeys the law, style, and the phase requirements
 name: Ushabti Overseer
-tools: ['vscode/getProjectSetupInfo', 'vscode/runCommand', 'read', 'edit', 'search', 'web']
+tools: ['vscode/getProjectSetupInfo', 'vscode/runCommand', 'read', 'edit', 'search', 'web', 'execute']
 model: GPT-5.2 (copilot)
 handoffs:
   - label: Refine Code

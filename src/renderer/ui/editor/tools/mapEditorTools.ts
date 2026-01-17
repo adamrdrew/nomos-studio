@@ -1,7 +1,7 @@
 import type { MapEditorInteractionMode } from '../MapEditorCanvas';
 import type { IconName } from '@blueprintjs/icons';
 
-export type MapEditorToolId = 'select' | 'zoom' | 'pan';
+export type MapEditorToolId = 'select' | 'move' | 'zoom' | 'pan';
 
 export type MapEditorToolbarCommandId =
   | 'select/delete'
@@ -37,6 +37,14 @@ export const MAP_EDITOR_TOOLS: readonly MapEditorToolDefinition[] = [
       { id: 'select/delete', label: 'Delete' },
       { id: 'select/clone', label: 'Clone' }
     ]
+  },
+  {
+    id: 'move',
+    label: 'Move',
+    tooltip: 'Move',
+    icon: 'move',
+    interactionMode: 'move',
+    toolbarCommands: []
   },
   {
     id: 'zoom',

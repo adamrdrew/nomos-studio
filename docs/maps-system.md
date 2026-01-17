@@ -23,7 +23,7 @@ The maps system spans application services, infrastructure seams for filesystem/
 	- `MapValidationService` validates a map path by running the configured game executable.
 	- `OpenMapService` enforces prerequisite settings, validates the map, reads JSON from disk, constructs a `MapDocument`, and stores it in `AppStore`.
 	- `SaveMapService` serializes the current `MapDocument.json` and performs a safe write back to disk.
-	- `MapEditService` applies a narrow set of in-memory edits (Delete/Clone) to `MapDocument.json` and marks the document dirty.
+	- `MapEditService` applies a narrow set of in-memory edits (Delete/Clone/Move Entity) to `MapDocument.json` and marks the document dirty.
 	- `MapCommandEngine` applies map edit commands (including transactional batches) against a working clone of `MapDocument.json` and returns explicit selection effects.
 	- `MapEditHistory` stores bounded undo/redo stacks for the currently-open map.
 	- `UserNotifier` is injected so user-visible errors can be shown without binding services directly to Electron UI.

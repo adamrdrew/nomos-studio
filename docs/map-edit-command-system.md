@@ -40,8 +40,22 @@ Atomic commands are the building blocks for edits.
 
 - `map-edit/delete`
 - `map-edit/clone`
+- `map-edit/move-entity`
 
 Each atomic command includes a `target: MapEditTargetRef`.
+
+`map-edit/move-entity` moves a single entity by index:
+```ts
+{
+  kind: 'map-edit/move-entity';
+  target: { kind: 'entity'; index: number };
+  to: { x: number; y: number };
+}
+```
+
+Move semantics:
+- Only `x` and `y` are updated; other entity fields are preserved.
+- Selection effect is `map-edit/selection/keep` (no implicit selection changes).
 
 ### Transaction command
 A transaction bundles multiple atomic commands into a single atomic operation.

@@ -1,0 +1,159 @@
+phase:
+  id: 0011
+  slug: move-entity-tool
+  title: Move Entity Tool
+  status: complete
+
+steps:
+  - id: S001
+    title: Confirm command + data shape
+    implemented: true
+    reviewed: true
+    notes: "Confirmed entity JSON shape uses numeric x/y plus optional yaw_deg and def; selection uses { kind: 'entity', index } via hit-testing. Command shape chosen: { kind: 'map-edit/move-entity', target: { kind: 'entity', index }, to: { x, y } } where x/y are authored (JSON) coordinates." 
+    touched:
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S002
+    title: Extend shared IPC command union
+    implemented: true
+    reviewed: true
+    notes: "Extended MapEditAtomicCommand with map-edit/move-entity: { target: { kind: 'entity', index }, to: { x, y } }." 
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S003
+    title: Implement move in MapCommandEngine
+    implemented: true
+    reviewed: true
+    notes: "Implemented map-edit/move-entity in MapCommandEngine with validation (finite to.x/to.y, entities array, in-range index, entity has finite x/y) and atomic JSON update of only x/y." 
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S004
+    title: Unit tests: MapCommandEngine move-entity
+    implemented: true
+    reviewed: true
+    notes: "Added MapCommandEngine tests for map-edit/move-entity including negative and non-integer target.index cases (map-edit/not-found), plus existing success and failure coverage." 
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S005
+    title: Integrate move into MapEditService
+    implemented: true
+    reviewed: true
+    notes: "MapEditService now accepts map-edit/move-entity, records history, bumps revision, and returns a map-edit/applied result with history (consistent with other non-clone/delete edits)." 
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S006
+    title: Unit tests: MapEditService move behavior
+    implemented: true
+    reviewed: true
+    notes: "Added MapEditService tests for move-entity: success bumps revision/dirty, clears lastValidation, supports undo/redo restoring coords, and stale baseRevision rejects atomically without engine/history/store mutation." 
+    touched:
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S007
+    title: Add Move tool to renderer tool registry
+    implemented: true
+    reviewed: true
+    notes: "Added Move tool to tool registry and extended MapEditorInteractionMode to include 'move'." 
+    touched:
+      - src/renderer/ui/editor/tools/mapEditorTools.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S008
+    title: Implement Move interaction in MapEditorCanvas
+    implemented: true
+    reviewed: true
+    notes: "Implemented Move interaction mode with renderer-local preview during drag and a single map-edit/move-entity commit on mouse-up; stale-revision refreshes snapshot and clears preview." 
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S009
+    title: Documentation updates (L09)
+    implemented: true
+    reviewed: true
+    notes: "Updated docs to document the map-edit/move-entity command and Move tool behavior." 
+    touched:
+      - docs/map-edit-command-system.md
+      - docs/renderer-ui-system.md
+      - docs/maps-system.md
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+  - id: S010
+    title: Verification
+    implemented: true
+    reviewed: true
+    notes: "Automated checks recorded: npm test PASS (26 suites, 224 tests), npm run typecheck PASS, npm run lint PASS (exit code 0). Manual smoke is still pending under S012." 
+    touched:
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+
+  - id: S011
+    title: Unit tests: MapCommandEngine move-entity (missing coverage)
+    implemented: true
+    reviewed: true
+    notes: "MapCommandEngine move-entity test coverage implemented (success + expected failure cases including negative/non-integer index)." 
+    touched:
+      - .ushabti/phases/0011-move-entity-tool/steps.md
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+
+  - id: S012a
+    title: Fix viewport zoom reset when switching tools
+    implemented: true
+    reviewed: true
+    notes: "Adjusted MapEditorCanvas initial fit-to-map scale initialization to apply once per opened map (guards against resize-triggered tool-switch zoom resets). Tests: npm test PASS (26 suites, 224 tests)." 
+    touched:
+      - .ushabti/phases/0011-move-entity-tool/steps.md
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+
+  - id: S012b
+    title: Keep Map Editor toolbar visible for tools with no commands
+    implemented: true
+    reviewed: true
+    notes: "Added a stable minimum height to the toolbar row so tools with zero commands (Move) don't collapse it and shift the canvas. Checks: npm run typecheck PASS; npm run lint PASS." 
+    touched:
+      - .ushabti/phases/0011-move-entity-tool/steps.md
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+
+  - id: S012
+    title: Manual smoke verification (UI + save/reopen)
+    implemented: true
+    reviewed: true
+    notes: "Manual smoke confirmed: editing/moving entities works, undo/redo works, saving and reopening preserves edits; zoom/tool-switch and toolbar layout issues resolved." 
+    touched:
+      - .ushabti/phases/0011-move-entity-tool/steps.md
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+
+  - id: S013
+    title: Revert unrelated agent configuration changes
+    implemented: true
+    reviewed: true
+    notes: "User-approved exception: .github/agents diffs are intentional for development purposes and are retained; approval is recorded in review.md." 
+    touched:
+      - .ushabti/phases/0011-move-entity-tool/steps.md
+      - .github/agents/ushabti-builder.agent.md
+      - .github/agents/ushabti-overseer.agent.md
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+
+  - id: S014
+    title: Update Phase review record
+    implemented: true
+    reviewed: true
+    notes: "Updated review.md to reflect current follow-ups and status; recorded remaining blockers (S010/S012)." 
+    touched:
+      - .ushabti/phases/0011-move-entity-tool/steps.md
+      - .ushabti/phases/0011-move-entity-tool/review.md
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml
+
+  - id: S015
+    title: Unit tests: MapCommandEngine move-entity index validation
+    implemented: true
+    reviewed: true
+    notes: "Added MapCommandEngine tests for move-entity where target.index is negative and non-integer; expect map-edit/not-found." 
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0011-move-entity-tool/steps.md
+      - .ushabti/phases/0011-move-entity-tool/review.md
+      - .ushabti/phases/0011-move-entity-tool/progress.yaml

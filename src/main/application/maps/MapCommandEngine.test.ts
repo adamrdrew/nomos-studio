@@ -259,6 +259,147 @@ describe('MapCommandEngine', () => {
     expect(result.value.selection.ref.id).toBe('door-1-copy');
   });
 
+  it('moves an entity by index, preserving other fields', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(result.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+    expect((result.value.nextJson['entities'] as unknown[])[0]).toEqual({ x: 10, y: 20, yaw_deg: 0, def: 'a' });
+  });
+
+  it('returns invalid-json when move-entity target has non-finite to.x/to.y', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: 0 },
+      to: { x: Number.NaN, y: 1 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns invalid-json when entities is missing or not an array (move-entity)', () => {
+    const engine = new MapCommandEngine();
+
+    const missingEntities = { ...baseMapJson() } as Record<string, unknown>;
+    delete missingEntities['entities'];
+
+    const missing = engine.apply(baseDocument(missingEntities), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(missing.ok).toBe(false);
+    if (missing.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(missing.error.code).toBe('map-edit/invalid-json');
+
+    const notArray = engine.apply(baseDocument({ ...baseMapJson(), entities: {} }), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(notArray.ok).toBe(false);
+    if (notArray.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(notArray.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns not-found when move-entity index is out of range', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: 99 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  it('returns invalid-json when move-entity source entry is not an object or has invalid x/y', () => {
+    const engine = new MapCommandEngine();
+
+    const notObject = engine.apply(baseDocument({ ...baseMapJson(), entities: [null] }), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(notObject.ok).toBe(false);
+    if (notObject.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(notObject.error.code).toBe('map-edit/invalid-json');
+
+    const invalidXy = engine.apply(baseDocument({ ...baseMapJson(), entities: [{ x: 'nope', y: 2 }] }), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(invalidXy.ok).toBe(false);
+    if (invalidXy.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(invalidXy.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns not-found when move-entity index is negative', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: -1 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  it('returns not-found when move-entity index is not an integer', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-entity',
+      target: { kind: 'entity', index: 0.5 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
   it('returns unsupported-target for an unknown map-edit command kind', () => {
     const engine = new MapCommandEngine();
 
