@@ -358,6 +358,85 @@ describe('MapEditService', () => {
     expect(afterRedo?.json).toEqual({ ...baseMapJson(), entities: [{ x: 10, y: 20, yaw_deg: 90, def: null }] });
   });
 
+  it('update-fields on a door round-trips required_item fields through undo/redo and preserves document metadata', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const initialJson = {
+      ...baseMapJson(),
+      doors: [{ id: 'door-1', wall_index: 0, tex: 'door.png', starts_closed: false }]
+    };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: initialJson,
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    const service = createService(store);
+
+    const edited = service.edit({
+      baseRevision: 1,
+      command: {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'door', id: 'door-1' },
+        set: {
+          required_item: 'orange_key',
+          required_item_missing_message: 'The door is locked. You need the orange key.'
+        }
+      }
+    });
+
+    expect(edited.ok).toBe(true);
+
+    const afterEdit = getDocument();
+    expect(afterEdit?.revision).toBe(2);
+    expect(afterEdit?.dirty).toBe(true);
+    expect(afterEdit?.lastValidation).toBeNull();
+    expect(afterEdit?.json).toEqual({
+      ...baseMapJson(),
+      doors: [
+        {
+          id: 'door-1',
+          wall_index: 0,
+          tex: 'door.png',
+          starts_closed: false,
+          required_item: 'orange_key',
+          required_item_missing_message: 'The door is locked. You need the orange key.'
+        }
+      ]
+    });
+
+    const undone = service.undo({ baseRevision: 2 });
+    expect(undone.ok).toBe(true);
+
+    const afterUndo = getDocument();
+    expect(afterUndo?.dirty).toBe(false);
+    expect(afterUndo?.lastValidation).toEqual(lastValidation);
+    expect(afterUndo?.json).toEqual(initialJson);
+
+    const redone = service.redo({ baseRevision: afterUndo!.revision });
+    expect(redone.ok).toBe(true);
+
+    const afterRedo = getDocument();
+    expect(afterRedo?.dirty).toBe(true);
+    expect(afterRedo?.lastValidation).toBeNull();
+    expect(afterRedo?.json).toEqual({
+      ...baseMapJson(),
+      doors: [
+        {
+          id: 'door-1',
+          wall_index: 0,
+          tex: 'door.png',
+          starts_closed: false,
+          required_item: 'orange_key',
+          required_item_missing_message: 'The door is locked. You need the orange key.'
+        }
+      ]
+    });
+  });
+
   it('update-fields rejects mismatched baseRevision with stale-revision and does not mutate store', () => {
     const { store, setCalls } = createMutableStore({
       filePath: '/maps/test.json',

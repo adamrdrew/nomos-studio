@@ -322,7 +322,12 @@ describe('MapCommandEngine', () => {
     const result = engine.apply(baseDocument(baseMapJson()), {
       kind: 'map-edit/update-fields',
       target: { kind: 'door', id: 'door-1' },
-      set: { tex: 'next.png', starts_closed: true }
+      set: {
+        tex: 'next.png',
+        starts_closed: true,
+        required_item: 'orange_key',
+        required_item_missing_message: 'The door is locked. You need the orange key.'
+      }
     });
 
     expect(result.ok).toBe(true);
@@ -332,7 +337,14 @@ describe('MapCommandEngine', () => {
 
     const doors = result.value.nextJson['doors'] as unknown[];
     expect(doors.length).toBe(1);
-    expect(doors[0]).toEqual({ id: 'door-1', wall_index: 0, tex: 'next.png', starts_closed: true });
+    expect(doors[0]).toEqual({
+      id: 'door-1',
+      wall_index: 0,
+      tex: 'next.png',
+      starts_closed: true,
+      required_item: 'orange_key',
+      required_item_missing_message: 'The door is locked. You need the orange key.'
+    });
   });
 
   it('updates fields on a wall by index', () => {

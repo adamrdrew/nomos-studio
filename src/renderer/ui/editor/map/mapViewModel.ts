@@ -26,6 +26,8 @@ export type MapDoor = Readonly<{
   wallIndex: number;
   tex: string;
   startsClosed: boolean;
+  requiredItem: string | null;
+  requiredItemMissingMessage: string | null;
 }>;
 
 export type RgbColor = Readonly<{ r: number; g: number; b: number }>; // 0..255

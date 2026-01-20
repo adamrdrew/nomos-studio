@@ -263,7 +263,30 @@ function decodeDoor(value: unknown, index: number): Result<MapDoor, MapDecodeErr
     return startsClosed;
   }
 
-  return { ok: true, value: { id: id.value, wallIndex: wallIndex.value, tex: tex.value, startsClosed: startsClosed.value } };
+  const requiredItem = asOptionalString(value['required_item'], `doors[${index}].required_item`);
+  if (!requiredItem.ok) {
+    return requiredItem;
+  }
+
+  const requiredItemMissingMessage = asOptionalString(
+    value['required_item_missing_message'],
+    `doors[${index}].required_item_missing_message`
+  );
+  if (!requiredItemMissingMessage.ok) {
+    return requiredItemMissingMessage;
+  }
+
+  return {
+    ok: true,
+    value: {
+      id: id.value,
+      wallIndex: wallIndex.value,
+      tex: tex.value,
+      startsClosed: startsClosed.value,
+      requiredItem: requiredItem.value,
+      requiredItemMissingMessage: requiredItemMissingMessage.value
+    }
+  };
 }
 
 function decodeLight(value: unknown, index: number): Result<MapLight, MapDecodeError> {

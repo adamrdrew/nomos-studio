@@ -1,5 +1,5 @@
 import React from 'react';
-import { Colors, FormGroup, HTMLSelect, InputGroup, Intent, Position, Switch, Toaster } from '@blueprintjs/core';
+import { Colors, FormGroup, HTMLSelect, InputGroup, Intent, Position, Switch, TextArea, Toaster } from '@blueprintjs/core';
 
 import type { AssetIndex, MapDocument } from '../../../../shared/domain/models';
 import type { MapEditPrimitiveValue, MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
@@ -458,11 +458,31 @@ function DoorEditor(props: {
 
   const [tex, setTex] = React.useState<string>(props.door.tex);
   const [startsClosed, setStartsClosed] = React.useState<boolean>(props.door.startsClosed);
+  const [requiredItemText, setRequiredItemText] = React.useState<string>(props.door.requiredItem ?? '');
+  const [requiredItemMissingMessageText, setRequiredItemMissingMessageText] = React.useState<string>(props.door.requiredItemMissingMessage ?? '');
 
   React.useEffect(() => {
     setTex(props.door.tex);
     setStartsClosed(props.door.startsClosed);
+    setRequiredItemText(props.door.requiredItem ?? '');
+    setRequiredItemMissingMessageText(props.door.requiredItemMissingMessage ?? '');
   }, [selectionKey, props.door]);
+
+  const commitOptionalString = React.useCallback(
+    async (jsonKey: string, rawText: string, currentValue: string | null, setText: (next: string) => void): Promise<void> => {
+      const trimmed = rawText.trim();
+      const nextValue = trimmed.length === 0 ? null : trimmed;
+
+      if (nextValue === currentValue) {
+        setText(currentValue ?? '');
+        return;
+      }
+
+      setText(nextValue ?? '');
+      await commitUpdateFields(props.target, { [jsonKey]: nextValue });
+    },
+    [commitUpdateFields, props.target]
+  );
 
   return (
     <div>
@@ -501,6 +521,31 @@ function DoorEditor(props: {
             }
           }}
           style={{ color: Colors.LIGHT_GRAY5 }}
+        />
+      </FormGroup>
+
+      <EditorTextInput
+        label="requiredItem"
+        value={requiredItemText}
+        onChange={setRequiredItemText}
+        onCommit={() => {
+          void commitOptionalString('required_item', requiredItemText, props.door.requiredItem, setRequiredItemText);
+        }}
+      />
+
+      <FormGroup label="requiredItemMissingMessage" style={{ marginBottom: 10 }}>
+        <TextArea
+          value={requiredItemMissingMessageText}
+          onChange={(event) => setRequiredItemMissingMessageText(event.currentTarget.value)}
+          onBlur={() => {
+            void commitOptionalString(
+              'required_item_missing_message',
+              requiredItemMissingMessageText,
+              props.door.requiredItemMissingMessage,
+              setRequiredItemMissingMessageText
+            );
+          }}
+          style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5, minHeight: 80 }}
         />
       </FormGroup>
     </div>

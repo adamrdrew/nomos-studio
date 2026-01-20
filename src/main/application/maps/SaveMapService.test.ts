@@ -95,6 +95,74 @@ describe('SaveMapService', () => {
     expect(storedDirty).toBe(false);
   });
 
+  it('round-trips door required-item fields through save serialization', async () => {
+    let savedText: string | null = null;
+
+    const store: AppStore = {
+      getState: () => ({
+        settings: { assetsDirPath: null, gameExecutablePath: null },
+        assetIndex: null,
+        assetIndexError: null,
+        mapDocument: {
+          filePath: '/maps/test.json',
+          json: {
+            doors: [
+              {
+                id: 'right_door',
+                wall_index: 5,
+                tex: 'DOOR_1A.PNG',
+                starts_closed: true,
+                required_item: 'orange_key',
+                required_item_missing_message: 'The door is locked. You need the orange key.'
+              }
+            ]
+          },
+          dirty: true,
+          lastValidation: null,
+          revision: 1
+        }
+      }),
+      subscribe: () => () => {},
+      setSettings: () => {},
+      setAssetIndex: () => {},
+      setAssetIndexError: () => {},
+      setMapDocument: () => {}
+    } as unknown as AppStore;
+
+    const fs: FileSystem = {
+      readFile: async () => '',
+      writeFile: async (_filePath, data) => {
+        savedText = data;
+      },
+      rename: async () => {},
+      unlink: async () => {},
+      mkdir: async () => {}
+    };
+
+    const notifier: UserNotifier = {
+      showError: async () => {},
+      showInfo: async () => {}
+    };
+
+    const service = new SaveMapService(store, fs, notifier);
+
+    const result = await service.saveCurrentDocument();
+    expect(result.ok).toBe(true);
+
+    expect(savedText).not.toBeNull();
+    const parsed = JSON.parse(savedText ?? 'null') as Record<string, unknown>;
+    expect(parsed['doors']).toEqual([
+      {
+        id: 'right_door',
+        wall_index: 5,
+        tex: 'DOOR_1A.PNG',
+        starts_closed: true,
+        required_item: 'orange_key',
+        required_item_missing_message: 'The door is locked. You need the orange key.'
+      }
+    ]);
+  });
+
   it('returns write-failed when writeFile throws', async () => {
     const store: AppStore = {
       getState: () => ({

@@ -98,7 +98,8 @@ The editor UI is organized like a traditional creative tool:
 		- Asset icons are color-coded by file type for readability on the dark surface.
 	- Properties shows the selected map object and allows editing supported selection kinds.
 		- Edits are committed via `window.nomos.map.edit(...)` using the `map-edit/update-fields` atomic command.
-		- Walls and sectors are editable via the Properties editor.
+		- Walls, sectors, entities, and doors are editable via the Properties editor.
+			- Door fields include `tex`, `starts_closed`, `required_item`, and `required_item_missing_message`.
 	- On initial app open, Inspector starts at approximately 20% of the window width.
 
 ### Non-closable core panels

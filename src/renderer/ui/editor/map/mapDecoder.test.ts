@@ -28,7 +28,16 @@ describe('decodeMapViewModel', () => {
           end_level: true
         }
       ],
-      doors: [{ id: 'door-1', wall_index: 0, tex: 'door.png', starts_closed: false }],
+      doors: [
+        {
+          id: 'door-1',
+          wall_index: 0,
+          tex: 'door.png',
+          starts_closed: false,
+          required_item: 'orange_key',
+          required_item_missing_message: 'The door is locked.'
+        }
+      ],
       lights: [{ x: 2, y: 3, radius: 5, intensity: 0.8, color: '#3366cc' }],
       particles: [{ x: 4, y: 5 }],
       entities: [{ x: 6, y: 7, yaw_deg: 90, def: 'player' }]
@@ -48,6 +57,14 @@ describe('decodeMapViewModel', () => {
     expect(result.value.lights).toHaveLength(1);
     expect(result.value.particles).toHaveLength(1);
     expect(result.value.entities).toHaveLength(1);
+
+    const door0 = result.value.doors[0];
+    expect(door0).toBeDefined();
+    if (!door0) {
+      return;
+    }
+    expect(door0.requiredItem).toBe('orange_key');
+    expect(door0.requiredItemMissingMessage).toBe('The door is locked.');
 
     const wall0 = result.value.walls[0];
     expect(wall0).toBeDefined();
@@ -108,6 +125,31 @@ describe('decodeMapViewModel', () => {
       return;
     }
     expect(wall0.endLevel).toBe(false);
+  });
+
+  it('defaults optional door required-item fields to null when missing', () => {
+    const json = {
+      vertices: [{ x: 0, y: 0 }],
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, floor_tex: 'floor.png', ceil_tex: 'ceil.png', light: 1 }],
+      walls: [{ v0: 0, v1: 0, front_sector: 1, back_sector: -1, tex: 'wall.png' }],
+      doors: [{ id: 'door-1', wall_index: 0, tex: 'door.png', starts_closed: true }]
+    };
+
+    const result = decodeMapViewModel(json);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.value.doors).toHaveLength(1);
+    const door0 = result.value.doors[0];
+    expect(door0).toBeDefined();
+    if (!door0) {
+      return;
+    }
+    expect(door0.requiredItem).toBeNull();
+    expect(door0.requiredItemMissingMessage).toBeNull();
   });
 
   it('fails when top-level is not an object', () => {

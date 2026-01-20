@@ -1,0 +1,89 @@
+phase:
+  id: 0015
+  slug: door-properties-editor
+  title: Door Properties Editor (Required Item Fields)
+  status: complete
+
+steps:
+  - id: S001
+    title: Confirm current door schema and current Properties behavior
+    implemented: true
+    reviewed: true
+    notes: |-
+      Confirmed existing implementation: door Properties editor is DoorEditor in src/renderer/ui/editor/inspector/PropertiesEditor.tsx; it currently shows id + wallIndex read-only and edits tex (key 'tex') and startsClosed (key 'starts_closed') via map-edit/update-fields.
+
+      Renderer door decode/view model: MapDoor in src/renderer/ui/editor/map/mapViewModel.ts contains { id, wallIndex, tex, startsClosed } and decodeDoor in src/renderer/ui/editor/map/mapDecoder.ts reads doors[].{id, wall_index, tex, starts_closed}.
+
+      Main edits target doors by id using MapEditTargetRef { kind: 'door', id } (docs/map-edit-command-system.md) and MapCommandEngine supports door target refs (e.g., delete/clone by id in src/main/application/maps/MapCommandEngine.ts).
+
+      Representative door JSON sample (to support new fields):
+      {
+        "doors": [
+          {
+            "id": "right_door",
+            "wall_index": 5,
+            "tex": "DOOR_1A.PNG",
+            "starts_closed": true,
+            "required_item": "orange_key",
+            "required_item_missing_message": "The door is locked. You need the orange key."
+          }
+        ]
+      }
+    touched:
+      - .ushabti/phases/0015-door-properties-editor/progress.yaml
+
+  - id: S002
+    title: Extend renderer map decoding/view model for optional door fields
+    implemented: true
+    reviewed: true
+    notes: "Extended renderer MapDoor view model and door decoder to surface optional door lock fields. MapDoor now includes requiredItem and requiredItemMissingMessage (string|null). decodeDoor reads JSON keys required_item and required_item_missing_message via asOptionalString (null when missing) so older maps still decode unchanged."
+    touched:
+      - src/renderer/ui/editor/map/mapViewModel.ts
+      - src/renderer/ui/editor/map/mapDecoder.ts
+      - .ushabti/phases/0015-door-properties-editor/progress.yaml
+
+  - id: S003
+    title: Add required-item fields to the door Properties editor
+    implemented: true
+    reviewed: true
+    notes: "Extended DoorEditor (Inspector Properties) to display/edit required_item and required_item_missing_message. Both fields commit via map-edit/update-fields using snake_case JSON keys; empty/whitespace-only input commits null. UI state resets on selection changes via the existing selectionKey pattern."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0015-door-properties-editor/progress.yaml
+
+  - id: S004
+    title: Round-trip + undo/redo validation (automated)
+    implemented: true
+    reviewed: true
+    notes: "Added automated coverage to demonstrate edit → undo/redo and save serialization round-trip for required_item and required_item_missing_message. MapEditService test verifies update-fields on a door target by id sets both fields, bumps revision/dirty, clears lastValidation, and undo/redo restores prior JSON + metadata. SaveMapService test verifies saved JSON includes the new door keys and values (reload via JSON.parse)."
+    touched:
+      - src/main/application/maps/MapEditService.test.ts
+      - src/main/application/maps/SaveMapService.test.ts
+      - .ushabti/phases/0015-door-properties-editor/progress.yaml
+
+  - id: S005
+    title: Unit tests for door decoding + update-fields behavior
+    implemented: true
+    reviewed: true
+    notes: "Extended renderer decoder tests to cover decoding doors with required_item/required_item_missing_message and defaulting those fields to null when missing. Extended MapCommandEngine update-fields-on-door test to include setting and persisting both new keys in the output JSON."
+    touched:
+      - src/renderer/ui/editor/map/mapDecoder.test.ts
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0015-door-properties-editor/progress.yaml
+
+  - id: S006
+    title: Docs update (only if needed)
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer UI subsystem documentation to reflect that door Properties are editable and now include required_item and required_item_missing_message."
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0015-door-properties-editor/progress.yaml
+
+  - id: S007
+    title: Verification pass
+    implemented: true
+    reviewed: true
+    notes: "Automated checks PASS: npm test, npm run typecheck, npm run lint. Manual smoke PASS (user-verified): ran the editor, confirmed door properties are displayed/editable/saved; verified the modified doors work in the engine runtime."
+    touched:
+      - .ushabti/phases/0015-door-properties-editor/progress.yaml
