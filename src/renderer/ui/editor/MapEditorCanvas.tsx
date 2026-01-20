@@ -29,7 +29,9 @@ type Bounds = Readonly<{ minX: number; minY: number; maxX: number; maxY: number 
 const MIN_VIEW_SCALE = 0.1;
 const MAX_VIEW_SCALE = 24;
 
-const TEXTURE_TILE_WORLD_UNITS = 32;
+// World-space size of one repeated texture tile.
+// Tuned so even small rooms show multiple repeats.
+const TEXTURE_TILE_WORLD_UNITS = 4;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -73,21 +75,26 @@ function guessMimeType(fileName: string): string {
   return 'application/octet-stream';
 }
 
-function buildTextureTilePatternSource(image: HTMLImageElement): HTMLCanvasElement {
-  const tileSize = Math.max(1, Math.round(TEXTURE_TILE_WORLD_UNITS));
-  const canvas = document.createElement('canvas');
-  canvas.width = tileSize;
-  canvas.height = tileSize;
-
-  const context = canvas.getContext('2d');
-  if (context !== null) {
-    // Keep the pixel-sharp look when scaling textures into the pattern tile.
-    context.imageSmoothingEnabled = false;
-    context.clearRect(0, 0, tileSize, tileSize);
-    context.drawImage(image, 0, 0, tileSize, tileSize);
+function buildRepeatPattern(native: CanvasRenderingContext2D, image: HTMLImageElement): CanvasPattern | null {
+  const pattern = native.createPattern(image, 'repeat');
+  if (pattern === null) {
+    return null;
   }
 
-  return canvas;
+  const safeWidth = Math.max(1, image.width);
+  const safeHeight = Math.max(1, image.height);
+
+  // By default, a CanvasPattern is in the same units as the canvas coordinate space (our world space).
+  // Use a pattern transform so one image tile maps to a chosen world size, forcing repeats.
+  const scaleX = TEXTURE_TILE_WORLD_UNITS / safeWidth;
+  const scaleY = TEXTURE_TILE_WORLD_UNITS / safeHeight;
+
+  const maybeSetTransform = (pattern as unknown as { setTransform?: (transform: DOMMatrix2DInit) => void }).setTransform;
+  if (typeof maybeSetTransform === 'function') {
+    maybeSetTransform.call(pattern, new DOMMatrix([scaleX, 0, 0, scaleY, 0, 0]));
+  }
+
+  return pattern;
 }
 
 function getNative2dContext(context: Context): CanvasRenderingContext2D | null {
@@ -381,7 +388,6 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const textureCacheRef = React.useRef<Map<string, Readonly<{ image: HTMLImageElement; objectUrl: string }>>>(
     new Map()
   );
-  const texturePatternSourceCacheRef = React.useRef<Map<string, HTMLCanvasElement>>(new Map());
   const [textureImages, setTextureImages] = React.useState<Readonly<Record<string, HTMLImageElement>>>({});
 
   const clearTextureCache = React.useCallback(() => {
@@ -389,7 +395,6 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       URL.revokeObjectURL(entry.objectUrl);
     }
     textureCacheRef.current.clear();
-    texturePatternSourceCacheRef.current.clear();
     setTextureImages({});
   }, []);
 
@@ -463,7 +468,6 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
             }
             const evicted = textureCacheRef.current.get(oldestKey);
             textureCacheRef.current.delete(oldestKey);
-            texturePatternSourceCacheRef.current.delete(oldestKey);
             if (evicted) {
               URL.revokeObjectURL(evicted.objectUrl);
             }
@@ -1047,10 +1051,6 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           continue;
         }
 
-        const patternSourceCanvas =
-          texturePatternSourceCacheRef.current.get(sector.floorTex) ?? buildTextureTilePatternSource(image);
-        texturePatternSourceCacheRef.current.set(sector.floorTex, patternSourceCanvas);
-
         texturedFloors.push(
           <Shape
             key={`floor-${sector.id}`}
@@ -1060,7 +1060,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
                 return;
               }
 
-              const pattern = native.createPattern(patternSourceCanvas, 'repeat');
+              const pattern = buildRepeatPattern(native, image);
               if (pattern === null) {
                 return;
               }
@@ -1116,9 +1116,6 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           continue;
         }
 
-        const patternSourceCanvas = texturePatternSourceCacheRef.current.get(wall.tex) ?? buildTextureTilePatternSource(image);
-        texturePatternSourceCacheRef.current.set(wall.tex, patternSourceCanvas);
-
         texturedWalls.push(
           <Shape
             key={`wall-tex-${wall.index}`}
@@ -1131,7 +1128,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
                 return;
               }
 
-              const pattern = native.createPattern(patternSourceCanvas, 'repeat');
+              const pattern = buildRepeatPattern(native, image);
               if (pattern === null) {
                 return;
               }

@@ -1,0 +1,80 @@
+phase:
+  id: 0014
+  slug: entity-properties-texture-fixes
+  title: Entity Properties + Textured Rendering Fixes
+  status: complete
+
+steps:
+  - id: S001
+    title: Confirm current behavior + locate the responsible code paths
+    implemented: true
+    reviewed: true
+    notes: "Repro (entity dropdown): open a map with an enemy entity, click/select the entity marker in Map Editor, then view Inspector → Properties. Observed defName dropdown shows '(none)' even for enemies. Root causes located: src/renderer/ui/editor/inspector/PropertiesEditor.tsx EntityEditor loads manifest from Entities/entities_manifest.json but parseEntityManifestDefNames does not support the manifest shape { files: string[] } (it only supports arrays or {entities}/{defs}). Additionally, EntityEditor commits update-fields using key 'def' while the UI state is named defName; must confirm the map JSON key used by decoding and ensure commit key matches. Render-mode default located in src/main/application/store/AppStore.ts (default mapRenderMode currently 'wireframe') and src/renderer/store/nomosStore.ts (initial mapRenderMode 'wireframe' before snapshot refresh). Textured rendering located in src/renderer/ui/editor/MapEditorCanvas.tsx (textured floors/walls use Konva fillPatternRepeat='repeat'; need to adjust pattern scale/tiling to avoid one huge blurry texture)."
+    touched:
+      - .ushabti/phases/0014-entity-properties-texture-fixes/progress.yaml
+
+  - id: S002
+    title: Fix entities manifest loading and option mapping for the dropdown
+    implemented: true
+    reviewed: true
+    notes: "Updated Properties entity defs loader to correctly parse Assets/Entities/entities_manifest.json shape { files: string[] } (while preserving back-compat parsing). Dropdown options are now derived from manifest files with user-friendly labels (basename without .json), and the current entity def value is always included as an option so the <select> no longer falls back to '(none)' when the manifest list is empty/mismatched. Commit path continues to use map-edit/update-fields with JSON key 'def' to match map decoding (entities[].def)."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0014-entity-properties-texture-fixes/progress.yaml
+
+  - id: S003
+    title: Rename the Properties label from defName to Entity
+    implemented: true
+    reviewed: true
+    notes: "Updated the entity definition field label in the Properties editor from 'defName' to 'Entity' (label-only change; underlying map JSON key remains entities[].def)."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0014-entity-properties-texture-fixes/progress.yaml
+
+  - id: S004
+    title: Ensure editing Entity commits correctly and remains undoable
+    implemented: true
+    reviewed: true
+    notes: "Confirmed Entity dropdown commits via window.nomos.map.edit using the existing map-edit/update-fields atomic command (key 'def') with baseRevision gating and stale-revision refresh behavior. Undo/redo + persistence remain owned by main MapEditService/MapCommandEngine and are already covered by existing unit tests for update-fields and history orchestration."
+    touched:
+      - .ushabti/phases/0014-entity-properties-texture-fixes/progress.yaml
+
+  - id: S005
+    title: Set mapRenderMode default to textured
+    implemented: true
+    reviewed: true
+    notes: "Changed the default mapRenderMode to 'textured' at the source of truth (main AppStore default state) and aligned the renderer store initial value to 'textured' so the UI starts in textured mode even before the first snapshot refresh. Updated affected unit tests and fixtures that assumed 'wireframe' default."
+    touched:
+      - src/main/application/store/AppStore.ts
+      - src/renderer/store/nomosStore.ts
+      - src/main/application/store/AppStore.test.ts
+      - src/main/application/assets/ReadAssetFileBytesService.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/application/maps/OpenMapService.test.ts
+      - .ushabti/phases/0014-entity-properties-texture-fixes/progress.yaml
+
+  - id: S006
+    title: Fix textured mode rendering to tile textures at a legible scale
+    implemented: true
+    reviewed: true
+    notes: "Implemented textured tiling fix using native CanvasPattern repeat with CanvasPattern.setTransform so one source image maps to a fixed world-space tile size (TEXTURE_TILE_WORLD_UNITS=4). Floors/walls now repeat (tile) rather than stretching; image smoothing is disabled for crisp pixels. Wall outline stroke width is compensated by 1/view.scale to prevent zoom-induced black blobs. Manual smoke confirmed tiling + zoom behavior look correct and legible."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0014-entity-properties-texture-fixes/progress.yaml
+
+  - id: S007
+    title: Docs update (only if behavior described becomes inaccurate)
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer UI subsystem documentation to reflect that the default mapRenderMode is now 'textured' and that textured rendering tiles patterns at a consistent world scale for legibility."
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0014-entity-properties-texture-fixes/progress.yaml
+
+  - id: S008
+    title: Verification pass
+    implemented: true
+    reviewed: true
+    notes: "Automated checks PASS: npm test (26/26 suites), npm run typecheck, npm run lint (TypeScript version support warning only; eslint exits clean with --max-warnings=0). Manual smoke PASS (interactive Electron): selecting enemy entity shows correct current Entity value; changing Entity persists, undo/redo works; opening map defaults to textured; textured mode tiles textures at a legible scale; zoom behavior remains correct without wall outline blow-up."
+    touched:
+      - .ushabti/phases/0014-entity-properties-texture-fixes/progress.yaml
