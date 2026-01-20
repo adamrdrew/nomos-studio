@@ -10,7 +10,7 @@ describe('ReadAssetFileBytesService', () => {
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null,
-        mapRenderMode: 'wireframe'
+            mapRenderMode: 'textured'
       }),
       subscribe: () => () => {},
       setSettings: () => {},

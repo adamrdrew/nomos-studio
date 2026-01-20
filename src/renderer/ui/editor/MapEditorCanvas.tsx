@@ -1,6 +1,7 @@
 import React from 'react';
-import { Circle, Layer, Line, Rect, Stage } from 'react-konva';
+import { Circle, Layer, Line, Rect, Shape, Stage } from 'react-konva';
 import { Colors } from '@blueprintjs/core';
+import type { Context } from 'konva/lib/Context';
 import type { KonvaEventObject } from 'konva/lib/Node';
 
 import { useNomosStore } from '../../store/nomosStore';
@@ -27,6 +28,8 @@ type Bounds = Readonly<{ minX: number; minY: number; maxX: number; maxY: number 
 
 const MIN_VIEW_SCALE = 0.1;
 const MAX_VIEW_SCALE = 24;
+
+const TEXTURE_TILE_WORLD_UNITS = 32;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -68,6 +71,28 @@ function guessMimeType(fileName: string): string {
     return 'image/webp';
   }
   return 'application/octet-stream';
+}
+
+function buildTextureTilePatternSource(image: HTMLImageElement): HTMLCanvasElement {
+  const tileSize = Math.max(1, Math.round(TEXTURE_TILE_WORLD_UNITS));
+  const canvas = document.createElement('canvas');
+  canvas.width = tileSize;
+  canvas.height = tileSize;
+
+  const context = canvas.getContext('2d');
+  if (context !== null) {
+    // Keep the pixel-sharp look when scaling textures into the pattern tile.
+    context.imageSmoothingEnabled = false;
+    context.clearRect(0, 0, tileSize, tileSize);
+    context.drawImage(image, 0, 0, tileSize, tileSize);
+  }
+
+  return canvas;
+}
+
+function getNative2dContext(context: Context): CanvasRenderingContext2D | null {
+  const native = (context as unknown as { _context?: CanvasRenderingContext2D })._context;
+  return native ?? null;
 }
 
 function distancePointToSegment(worldPoint: Point, a: Point, b: Point): number {
@@ -356,6 +381,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const textureCacheRef = React.useRef<Map<string, Readonly<{ image: HTMLImageElement; objectUrl: string }>>>(
     new Map()
   );
+  const texturePatternSourceCacheRef = React.useRef<Map<string, HTMLCanvasElement>>(new Map());
   const [textureImages, setTextureImages] = React.useState<Readonly<Record<string, HTMLImageElement>>>({});
 
   const clearTextureCache = React.useCallback(() => {
@@ -363,6 +389,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       URL.revokeObjectURL(entry.objectUrl);
     }
     textureCacheRef.current.clear();
+    texturePatternSourceCacheRef.current.clear();
     setTextureImages({});
   }, []);
 
@@ -436,6 +463,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
             }
             const evicted = textureCacheRef.current.get(oldestKey);
             textureCacheRef.current.delete(oldestKey);
+            texturePatternSourceCacheRef.current.delete(oldestKey);
             if (evicted) {
               URL.revokeObjectURL(evicted.objectUrl);
             }
@@ -1018,14 +1046,38 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           // Walls still render below, keeping the view usable.
           continue;
         }
+
+        const patternSourceCanvas =
+          texturePatternSourceCacheRef.current.get(sector.floorTex) ?? buildTextureTilePatternSource(image);
+        texturePatternSourceCacheRef.current.set(sector.floorTex, patternSourceCanvas);
+
         texturedFloors.push(
-          <Line
+          <Shape
             key={`floor-${sector.id}`}
-            points={points}
-            closed={true}
-            fillPatternImage={image}
-            fillPatternRepeat="repeat"
-            strokeEnabled={false}
+            sceneFunc={(context, shape) => {
+              const native = getNative2dContext(context);
+              if (native === null) {
+                return;
+              }
+
+              const pattern = native.createPattern(patternSourceCanvas, 'repeat');
+              if (pattern === null) {
+                return;
+              }
+
+              native.imageSmoothingEnabled = false;
+              native.fillStyle = pattern;
+
+              native.beginPath();
+              native.moveTo(points[0] ?? 0, points[1] ?? 0);
+              for (let index = 2; index < points.length; index += 2) {
+                native.lineTo(points[index] ?? 0, points[index + 1] ?? 0);
+              }
+              native.closePath();
+              native.fill();
+
+              context.fillStrokeShape(shape);
+            }}
           />
         );
       }
@@ -1064,21 +1116,44 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           continue;
         }
 
+        const patternSourceCanvas = texturePatternSourceCacheRef.current.get(wall.tex) ?? buildTextureTilePatternSource(image);
+        texturePatternSourceCacheRef.current.set(wall.tex, patternSourceCanvas);
+
         texturedWalls.push(
-          <Rect
+          <Shape
             key={`wall-tex-${wall.index}`}
             x={midX}
             y={midY}
-            width={length}
-            height={texturedWallThicknessWorld}
-            offsetX={length / 2}
-            offsetY={texturedWallThicknessWorld / 2}
             rotation={angleDeg}
-            fillPatternImage={image}
-            fillPatternRepeat="repeat"
-            stroke={Colors.BLACK}
-            strokeWidth={1}
-            strokeScaleEnabled={false}
+            sceneFunc={(context, shape) => {
+              const native = getNative2dContext(context);
+              if (native === null) {
+                return;
+              }
+
+              const pattern = native.createPattern(patternSourceCanvas, 'repeat');
+              if (pattern === null) {
+                return;
+              }
+
+              native.imageSmoothingEnabled = false;
+              native.fillStyle = pattern;
+
+              native.beginPath();
+              native.rect(-length / 2, -texturedWallThicknessWorld / 2, length, texturedWallThicknessWorld);
+              native.closePath();
+              native.fill();
+
+              // Keep the existing outline behavior.
+              native.strokeStyle = Colors.BLACK;
+              // The render layer is scaled by view.scale. Compensate so the outline stays ~1px on screen,
+              // matching the previous Rect strokeScaleEnabled={false} behavior.
+              const safeScale = Math.max(0.0001, view.scale);
+              native.lineWidth = 1 / safeScale;
+              native.stroke();
+
+              context.fillStrokeShape(shape);
+            }}
           />
         );
       }
@@ -1250,6 +1325,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           y={view.offsetY}
           scaleX={view.scale}
           scaleY={view.scale}
+          imageSmoothingEnabled={false}
         >
           {texturedFloors}
           {texturedWalls}

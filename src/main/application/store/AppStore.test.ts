@@ -13,7 +13,7 @@ describe('AppStore', () => {
     expect(state.assetIndex).toBeNull();
     expect(state.assetIndexError).toBeNull();
     expect(state.mapDocument).toBeNull();
-    expect(state.mapRenderMode).toBe('wireframe');
+    expect(state.mapRenderMode).toBe('textured');
     expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.3 });
   });
 

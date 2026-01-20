@@ -72,6 +72,8 @@ The editor UI is organized like a traditional creative tool:
 - **Map Editor** panel (center): a React Konva surface (`Stage`/`Layer`) that renders a graph-paper grid and supports pan/zoom.
 	- When a map is open, `MapEditorCanvas` decodes `mapDocument.json` and renders the map.
 	- Rendering style is controlled by `mapRenderMode` (`wireframe` / `textured`).
+		- Default is `textured`.
+		- Textured rendering uses repeated (tiled) patterns at a consistent world-units-per-tile scale so textures remain legible rather than appearing as a single stretched image.
 		- **Wall thickness rules:**
 			- Wireframe walls use non-scaling strokes (thin at any zoom).
 			- Textured walls use a screen-space thickness (approximately constant pixels on screen) so textures are visible without walls becoming enormous at high zoom.

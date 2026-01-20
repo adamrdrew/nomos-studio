@@ -72,7 +72,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   settings: defaultSettings,
   assetIndex: null,
   mapDocument: null,
-  mapRenderMode: 'wireframe',
+  mapRenderMode: 'textured',
   mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
   mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 },
   mapSelection: null,

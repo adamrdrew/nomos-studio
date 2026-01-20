@@ -65,7 +65,7 @@ describe('registerNomosIpcHandlers', () => {
             settings: { assetsDirPath: null, gameExecutablePath: null },
             assetIndex: null,
             mapDocument: null,
-            mapRenderMode: 'wireframe',
+            mapRenderMode: 'textured',
             mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
             mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }
           }

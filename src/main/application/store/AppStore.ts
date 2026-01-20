@@ -44,7 +44,7 @@ export class AppStore {
     assetIndex: null,
     assetIndexError: null,
     mapDocument: null,
-    mapRenderMode: 'wireframe',
+    mapRenderMode: 'textured',
     mapGridSettings: defaultMapGridSettings()
   };
 

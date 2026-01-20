@@ -37,48 +37,83 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function parseEntityManifestDefNames(json: unknown): readonly string[] {
-  const names: string[] = [];
+function parseEntityManifestFiles(json: unknown): readonly string[] {
+  const files: string[] = [];
 
-  if (Array.isArray(json)) {
-    for (const entry of json) {
+  // Primary supported shape:
+  // { files: ["defs/shambler.json", ...] }
+  if (isRecord(json) && Array.isArray(json['files'])) {
+    for (const entry of json['files']) {
       if (typeof entry === 'string' && entry.trim().length > 0) {
-        names.push(entry.trim());
+        files.push(entry.trim());
+      }
+    }
+  }
+
+  // Back-compat shapes from earlier experiments:
+  // - raw array
+  // - { entities: [...] } or { defs: [...] }
+  const rawList: unknown[] | null =
+    Array.isArray(json) ? json : isRecord(json) && Array.isArray(json['entities']) ? (json['entities'] as unknown[]) : isRecord(json) && Array.isArray(json['defs']) ? (json['defs'] as unknown[]) : null;
+
+  if (rawList !== null) {
+    for (const entry of rawList) {
+      if (typeof entry === 'string' && entry.trim().length > 0) {
+        files.push(entry.trim());
       } else if (isRecord(entry)) {
         const def = entry['def'];
         const name = entry['name'];
         const id = entry['id'];
         const candidate = typeof def === 'string' ? def : typeof name === 'string' ? name : typeof id === 'string' ? id : null;
         if (candidate && candidate.trim().length > 0) {
-          names.push(candidate.trim());
-        }
-      }
-    }
-  } else if (isRecord(json)) {
-    const entities = json['entities'];
-    const defs = json['defs'];
-    const rawList = Array.isArray(entities) ? entities : Array.isArray(defs) ? defs : null;
-
-    if (rawList !== null) {
-      for (const entry of rawList) {
-        if (typeof entry === 'string' && entry.trim().length > 0) {
-          names.push(entry.trim());
-        } else if (isRecord(entry)) {
-          const def = entry['def'];
-          const name = entry['name'];
-          const id = entry['id'];
-          const candidate = typeof def === 'string' ? def : typeof name === 'string' ? name : typeof id === 'string' ? id : null;
-          if (candidate && candidate.trim().length > 0) {
-            names.push(candidate.trim());
-          }
+          files.push(candidate.trim());
         }
       }
     }
   }
 
-  const unique = Array.from(new Set(names));
+  const unique = Array.from(new Set(files));
   unique.sort((a, b) => a.localeCompare(b));
   return unique;
+}
+
+type EntityDefOption = Readonly<{ value: string; label: string }>;
+
+function fileToEntityLabel(filePath: string): string {
+  const trimmed = filePath.trim();
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
+  const lastSlash = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
+  const base = lastSlash >= 0 ? trimmed.slice(lastSlash + 1) : trimmed;
+  return base.toLowerCase().endsWith('.json') ? base.slice(0, -'.json'.length) : base;
+}
+
+function entityDefValueLooksLikeFilePath(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.includes('/') || trimmed.includes('\\') || trimmed.toLowerCase().endsWith('.json');
+}
+
+function buildEntityDefOptions(manifestFiles: readonly string[], currentValue: string | null): readonly EntityDefOption[] {
+  const useFilePathValues = currentValue !== null && entityDefValueLooksLikeFilePath(currentValue);
+
+  const options: EntityDefOption[] = [];
+  for (const filePath of manifestFiles) {
+    const label = fileToEntityLabel(filePath);
+    const value = useFilePathValues ? filePath : label;
+    options.push({ value, label });
+  }
+
+  // Ensure the current value remains selectable/displayable even if it isn't in the manifest list.
+  if (currentValue && currentValue.trim().length > 0) {
+    const alreadyPresent = options.some((opt) => opt.value === currentValue);
+    if (!alreadyPresent) {
+      options.push({ value: currentValue, label: currentValue });
+    }
+  }
+
+  options.sort((a, b) => a.label.localeCompare(b.label));
+  return options;
 }
 
 function getTextureFileNames(assetIndex: AssetIndex | null): readonly string[] {
@@ -779,7 +814,7 @@ function EntityEditor(props: {
         try {
           const text = new TextDecoder('utf-8').decode(new Uint8Array(result.value));
           const parsed: unknown = JSON.parse(text);
-          const next = parseEntityManifestDefNames(parsed);
+          const next = parseEntityManifestFiles(parsed);
 
           if (!cancelled) {
             setDefNames(next);
@@ -846,6 +881,8 @@ function EntityEditor(props: {
 
   const options = defNames ?? [];
 
+  const entityDefOptions = buildEntityDefOptions(options, props.entity.defName);
+
   return (
     <div>
       <EditorTextInput
@@ -878,7 +915,7 @@ function EntityEditor(props: {
       />
 
       <FormGroup
-        label="defName"
+        label="Entity"
         helperText={
           defNamesStatus === 'loading'
             ? 'Loading entity defs…'
@@ -900,14 +937,11 @@ function EntityEditor(props: {
           style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
         >
           <option value="">(none)</option>
-          {options.map((name) => (
-            <option key={name} value={name}>
-              {name}
+          {entityDefOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
-          {defNamesStatus !== 'loaded' && props.entity.defName && options.indexOf(props.entity.defName) < 0 ? (
-            <option value={props.entity.defName}>{props.entity.defName}</option>
-          ) : null}
         </HTMLSelect>
       </FormGroup>
     </div>

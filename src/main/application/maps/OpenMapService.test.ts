@@ -175,7 +175,8 @@ describe('OpenMapService', () => {
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null,
-        mapRenderMode: 'wireframe'
+        mapRenderMode: 'textured',
+        mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 }
       }),
       subscribe: () => () => {},
       setSettings: () => {},
@@ -237,7 +238,8 @@ describe('OpenMapService', () => {
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null,
-        mapRenderMode: 'wireframe'
+        mapRenderMode: 'textured',
+        mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 }
       }),
       subscribe: () => () => {},
       setSettings: () => {},
