@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 
-import type { AssetIndex, EditorSettings, MapDocument, MapGridSettings, MapRenderMode } from '../../shared/domain/models';
+import type {
+  AssetIndex,
+  EditorSettings,
+  MapDocument,
+  MapDoorVisibility,
+  MapGridSettings,
+  MapRenderMode
+} from '../../shared/domain/models';
 import type { MapEditHistoryInfo, MapEditSelectionEffect, MapEditTargetRef } from '../../shared/ipc/nomosIpc';
 import type { MapSelection } from '../ui/editor/map/mapSelection';
 
@@ -10,6 +17,8 @@ export type NomosStoreState = {
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
   mapGridSettings: MapGridSettings;
+  mapHighlightPortals: boolean;
+  mapDoorVisibility: MapDoorVisibility;
   mapHistory: MapEditHistoryInfo;
   mapSelection: MapSelection | null;
   refreshFromMain: () => Promise<void>;
@@ -74,6 +83,8 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   mapDocument: null,
   mapRenderMode: 'textured',
   mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+  mapHighlightPortals: false,
+  mapDoorVisibility: 'visible',
   mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 },
   mapSelection: null,
   refreshFromMain: async () => {
@@ -88,6 +99,8 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
       mapDocument: snapshotResult.value.mapDocument,
       mapRenderMode: snapshotResult.value.mapRenderMode,
       mapGridSettings: snapshotResult.value.mapGridSettings,
+      mapHighlightPortals: snapshotResult.value.mapHighlightPortals,
+      mapDoorVisibility: snapshotResult.value.mapDoorVisibility,
       mapHistory: snapshotResult.value.mapHistory
     });
   },

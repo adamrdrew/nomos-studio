@@ -1,6 +1,7 @@
 import type {
   AssetIndex,
   EditorSettings,
+  MapDoorVisibility,
   MapDocument,
   MapDocumentRevision,
   MapGridSettings,
@@ -42,6 +43,8 @@ export type AppStateSnapshot = Readonly<{
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
   mapGridSettings: MapGridSettings;
+  mapHighlightPortals: boolean;
+  mapDoorVisibility: MapDoorVisibility;
   mapHistory: MapEditHistoryInfo;
 }>;
 

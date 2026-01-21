@@ -10,6 +10,8 @@ describe('createApplicationMenuTemplate', () => {
       canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
@@ -17,6 +19,8 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
       onDecreaseMapGridOpacity: () => {}
@@ -47,6 +51,8 @@ describe('createApplicationMenuTemplate', () => {
       canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
@@ -54,6 +60,8 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
       onDecreaseMapGridOpacity: () => {}
@@ -83,6 +91,8 @@ describe('createApplicationMenuTemplate', () => {
       canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
@@ -90,6 +100,8 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
       onDecreaseMapGridOpacity: () => {}
@@ -116,6 +128,8 @@ describe('createApplicationMenuTemplate', () => {
       canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
@@ -123,6 +137,8 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
       onDecreaseMapGridOpacity: () => {}
@@ -149,6 +165,8 @@ describe('createApplicationMenuTemplate', () => {
       canRedo: false,
       mapRenderMode: 'textured',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
@@ -156,6 +174,8 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
       onDecreaseMapGridOpacity: () => {}
@@ -191,6 +211,8 @@ describe('createApplicationMenuTemplate', () => {
       canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: false, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
@@ -198,6 +220,8 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
       onDecreaseMapGridOpacity: () => {}
@@ -247,6 +271,8 @@ describe('createApplicationMenuTemplate', () => {
       canRedo: false,
       mapRenderMode: 'wireframe',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onOpenMap: () => {},
       onSave: () => {},
@@ -254,6 +280,8 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
       onToggleMapGrid,
       onIncreaseMapGridOpacity,
       onDecreaseMapGridOpacity
@@ -291,5 +319,105 @@ describe('createApplicationMenuTemplate', () => {
     expect(onToggleMapGrid).toHaveBeenCalledTimes(1);
     expect(onIncreaseMapGridOpacity).toHaveBeenCalledTimes(1);
     expect(onDecreaseMapGridOpacity).toHaveBeenCalledTimes(1);
+  });
+
+  it('includes View highlight items and checked state reflects options', () => {
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      canUndo: false,
+      canRedo: false,
+      mapRenderMode: 'wireframe',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: true,
+      mapDoorVisibility: 'hidden',
+      onOpenSettings: () => {},
+      onOpenMap: () => {},
+      onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const viewMenu = template.find((item) => item.label === 'View');
+    if (viewMenu === undefined || viewMenu.submenu === undefined || !Array.isArray(viewMenu.submenu)) {
+      throw new Error('Expected View menu submenu');
+    }
+
+    const highlightPortalsItem = viewMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Highlight Portals'
+    ) as { checked?: boolean; type?: string } | undefined;
+
+    const toggleDoorVisibilityItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Toggle Door Visibility'
+    ) as { checked?: boolean; type?: string } | undefined;
+
+    expect(highlightPortalsItem?.type).toBe('checkbox');
+    expect(highlightPortalsItem?.checked).toBe(true);
+    expect(toggleDoorVisibilityItem?.type).toBe('checkbox');
+    expect(toggleDoorVisibilityItem?.checked).toBe(true);
+  });
+
+  it('wires View highlight item clicks to the provided callbacks', () => {
+    const onToggleMapHighlightPortals = jest.fn();
+    const onToggleMapDoorVisibility = jest.fn();
+
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      canUndo: false,
+      canRedo: false,
+      mapRenderMode: 'wireframe',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onOpenMap: () => {},
+      onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onToggleMapHighlightPortals,
+      onToggleMapDoorVisibility,
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const viewMenu = template.find((item) => item.label === 'View');
+    if (viewMenu === undefined || viewMenu.submenu === undefined || !Array.isArray(viewMenu.submenu)) {
+      throw new Error('Expected View menu submenu');
+    }
+
+    const highlightPortalsItem = viewMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Highlight Portals'
+    ) as { click?: () => void } | undefined;
+
+    const toggleDoorVisibilityItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Toggle Door Visibility'
+    ) as { click?: () => void } | undefined;
+
+    highlightPortalsItem?.click?.();
+    toggleDoorVisibilityItem?.click?.();
+
+    expect(onToggleMapHighlightPortals).toHaveBeenCalledTimes(1);
+    expect(onToggleMapDoorVisibility).toHaveBeenCalledTimes(1);
   });
 });

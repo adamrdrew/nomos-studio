@@ -1,6 +1,6 @@
 import type { MenuItemConstructorOptions } from 'electron';
 
-import type { MapGridSettings, MapRenderMode } from '../../../shared/domain/models';
+import type { MapDoorVisibility, MapGridSettings, MapRenderMode } from '../../../shared/domain/models';
 
 export type CreateApplicationMenuTemplateOptions = Readonly<{
   appName: string;
@@ -10,6 +10,8 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   canRedo: boolean;
   mapRenderMode: MapRenderMode;
   mapGridSettings: MapGridSettings;
+  mapHighlightPortals: boolean;
+  mapDoorVisibility: MapDoorVisibility;
   onOpenSettings: () => void;
   onOpenMap: () => void;
   onSave: () => void;
@@ -17,6 +19,8 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   onRedo: () => void;
   onRefreshAssetsIndex: () => void;
   onSetMapRenderMode: (mode: MapRenderMode) => void;
+  onToggleMapHighlightPortals: () => void;
+  onToggleMapDoorVisibility: () => void;
   onToggleMapGrid: () => void;
   onIncreaseMapGridOpacity: () => void;
   onDecreaseMapGridOpacity: () => void;
@@ -83,6 +87,19 @@ export function createApplicationMenuTemplate(
         type: 'radio',
         checked: options.mapRenderMode === 'textured',
         click: () => options.onSetMapRenderMode('textured')
+      },
+      { type: 'separator' },
+      {
+        label: 'Highlight Portals',
+        type: 'checkbox',
+        checked: options.mapHighlightPortals,
+        click: () => options.onToggleMapHighlightPortals()
+      },
+      {
+        label: 'Toggle Door Visibility',
+        type: 'checkbox',
+        checked: options.mapDoorVisibility === 'hidden',
+        click: () => options.onToggleMapDoorVisibility()
       },
       { type: 'separator' },
       {

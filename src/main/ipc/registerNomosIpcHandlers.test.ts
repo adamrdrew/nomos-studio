@@ -67,6 +67,8 @@ describe('registerNomosIpcHandlers', () => {
             mapDocument: null,
             mapRenderMode: 'textured',
             mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+            mapHighlightPortals: false,
+            mapDoorVisibility: 'visible',
             mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }
           }
         })

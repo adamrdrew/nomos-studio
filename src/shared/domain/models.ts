@@ -37,6 +37,8 @@ export type MapDocument = Readonly<{
 
 export type MapRenderMode = 'wireframe' | 'textured';
 
+export type MapDoorVisibility = 'visible' | 'hidden';
+
 export type MapGridSettings = Readonly<{
   isGridVisible: boolean;
   gridOpacity: number;

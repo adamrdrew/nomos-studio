@@ -36,8 +36,12 @@ Current responsibilities:
 	- Renders:
 		- wireframe walls + doors
 		- textured floors + walls (best-effort)
-		- entity/emitter markers
+		- door/entity/light/particle markers
 	- Implements Select-mode hit-testing and updates the selection state.
+	- View overlays:
+		- portal walls can be highlighted with a blue/cyan overlay (walls with `backSector > -1`)
+		- the active selection is outlined in red (wall/sector/door/entity/light/particle)
+		- door markers can be hidden in textured mode via `mapDoorVisibility`
 	- **Textured rendering + CSP constraints:**
 		- The renderer requests texture bytes via `window.nomos.assets.readFileBytes({ relativePath })`.
 		- Bytes are converted to an image by creating a `blob:` object URL and loading it into an `HTMLImageElement`.
@@ -56,6 +60,8 @@ Renderer state is intentionally small:
 		- `mapSelection` (selected map object identity)
 	- Includes snapshot fields used by UI enablement and rendering:
 		- `mapGridSettings`
+		- `mapHighlightPortals`
+		- `mapDoorVisibility`
 		- `mapHistory`
 
 ### Preload/IPC integration
@@ -88,7 +94,9 @@ The editor UI is organized like a traditional creative tool:
 		- To achieve this for arbitrary authored coordinates, the renderer may apply a render-only origin offset derived from decoded map bounds; this does not mutate `MapDocument.json`.
 	- The editor grid adapts its spacing to zoom so line density stays readable.
 	- Grid visibility and opacity are controlled by main-process state (`mapGridSettings`) and updated via the View menu.
-	- Object markers (doors/entities/emitters) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
+	- Portal highlighting and textured-mode door visibility are controlled by main-process snapshot state via the View menu.
+	- Object markers (doors/entities/lights/particles) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
+	- The active selection is outlined in red to improve focus.
 - **Toolbox** (left overlay within the Map Editor): Select / Zoom / Pan tool modes.
 	- Move mode allows dragging the currently selected entity to a new position.
 		- The renderer maintains a local preview while dragging.
@@ -137,6 +145,8 @@ Settings UI uses two strings (nullable in persisted settings):
 - `mapDocument: MapDocument | null`
 - `mapRenderMode: MapRenderMode`
 - `mapGridSettings: MapGridSettings`
+- `mapHighlightPortals: boolean`
+- `mapDoorVisibility: MapDoorVisibility`
 - `mapHistory: MapEditHistoryInfo`
 
 ## Boundaries & invariants

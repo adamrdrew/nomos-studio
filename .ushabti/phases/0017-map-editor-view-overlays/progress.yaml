@@ -1,0 +1,138 @@
+phase:
+  id: 0017
+  slug: map-editor-view-overlays
+  title: Map Editor View Overlays (Portals, Selection, Doors)
+  status: review
+
+steps:
+  - id: S001
+    title: Confirm existing render + selection plumbing and define target visuals
+    implemented: true
+    reviewed: false
+    notes: |-
+      Confirmed existing plumbing: View menu toggles update main AppStore; renderer consumes via AppStateSnapshot -> useNomosStore. Rendering + hit-testing live in MapEditorCanvas.
+
+      Visual decisions:
+      - Portal highlight color: Blueprint Colors.BLUE4.
+      - Textured portal highlight treatment: apply a semi-transparent Blueprint Colors.CERULEAN4 overlay fill over the portal wall strip.
+      - Selection outline color: Blueprint Colors.RED4.
+      - Selection outline stroke width: 3px (strokeScaleEnabled=false) so it stays readable across zoom.
+      - Layering: draw selection outlines last in the render layer so they appear on top of textured fills and markers.
+      - Door visibility: add door markers to textured mode; hide only those markers when door visibility is hidden; hit-testing remains unchanged. If a door is selected while doors are hidden, the red selection outline still renders for that door.
+    touched:
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S002
+    title: Extend shared models for new view flags
+    implemented: true
+    reviewed: false
+    notes: |-
+      Added shared MapDoorVisibility type and extended AppStateSnapshot to include mapHighlightPortals and mapDoorVisibility.
+    touched:
+      - src/shared/domain/models.ts
+      - src/shared/ipc/nomosIpc.ts
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S003
+    title: Add defaults + setters in main AppStore
+    implemented: true
+    reviewed: false
+    notes: |-
+      Added mapHighlightPortals (default false) and mapDoorVisibility (default 'visible') to AppStore state.
+      Implemented public setters + toggles for both, with unit tests covering default values and toggle behavior.
+    touched:
+      - src/main/application/store/AppStore.ts
+      - src/main/application/store/AppStore.test.ts
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S004
+    title: Thread new view flags through snapshot and renderer store
+    implemented: true
+    reviewed: false
+    notes: |-
+      AppStateSnapshot now includes mapHighlightPortals and mapDoorVisibility from main AppStore, and the renderer store caches these values on refresh.
+    touched:
+      - src/main/main.ts
+      - src/renderer/store/nomosStore.ts
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S005
+    title: Add View menu items and wire callbacks
+    implemented: true
+    reviewed: false
+    notes: |-
+      Extended the View menu with Highlight Portals and Toggle Door Visibility checkbox items.
+      Checked states reflect mapHighlightPortals and mapDoorVisibility, and clicks toggle main-store state via callbacks.
+      Menu template tests updated and pass.
+    touched:
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
+      - src/main/main.ts
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S006
+    title: Implement portal highlighting in wireframe rendering
+    implemented: true
+    reviewed: false
+    notes: |-
+      In wireframe mode, portal walls (backSector > -1) render with a blue stroke when mapHighlightPortals is enabled.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S007
+    title: Implement portal highlighting in textured rendering
+    implemented: true
+    reviewed: false
+    notes: |-
+      In textured mode, portal walls render with a visible blue/cyan overlay fill (drawn over the wall strip texture) when mapHighlightPortals is enabled; missing-texture fallback segments render in portal blue.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S008
+    title: Implement selected-object red outline overlay
+    implemented: true
+    reviewed: false
+    notes: |-
+      Added a selection overlay pass in MapEditorCanvas that draws a red, non-scaling outline for the active selection (wall/sector/door/entity/light/particle). The overlay is rendered last so it stays visible.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S009
+    title: Implement Toggle door visibility behavior (textured only)
+    implemented: true
+    reviewed: false
+    notes: |-
+      Added textured-mode door markers (same geometry as wireframe) and gated them on mapDoorVisibility; wireframe rendering remains unchanged. Selection outlines for doors always render regardless of visibility.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S010
+    title: Update docs (L09)
+    implemented: true
+    reviewed: false
+    notes: |-
+      Updated Menu System and Renderer UI subsystem docs to reflect the new View menu toggles and renderer snapshot-driven overlay behavior.
+    touched:
+      - docs/menu-system.md
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml
+
+  - id: S011
+    title: Quality gates
+    implemented: true
+    reviewed: false
+    notes: |-
+      Commands:
+      - npm test: PASS (after updating mocked snapshot shape in IPC handler test)
+      - npm run typecheck: PASS
+      - npm run lint: PASS (with a TypeScript version support warning from @typescript-eslint)
+
+      Manual verification: confirmed in-app (highlight portals in both modes, selection outlines, door visibility toggle in textured mode).
+    touched:
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0017-map-editor-view-overlays/progress.yaml

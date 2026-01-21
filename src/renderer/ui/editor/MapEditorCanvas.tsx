@@ -9,6 +9,7 @@ import { decodeMapViewModel } from './map/mapDecoder';
 import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
+import type { WallStripPolygon } from './map/wallStripGeometry';
 
 export type MapEditorInteractionMode = 'select' | 'move' | 'pan' | 'zoom';
 
@@ -101,6 +102,23 @@ function buildRepeatPattern(native: CanvasRenderingContext2D, image: HTMLImageEl
 function getNative2dContext(context: Context): CanvasRenderingContext2D | null {
   const native = (context as unknown as { _context?: CanvasRenderingContext2D })._context;
   return native ?? null;
+}
+
+function hexToRgba(hexColor: string, alpha: number): string {
+  const normalized = hexColor.trim();
+  if (!normalized.startsWith('#') || normalized.length !== 7) {
+    return `rgba(0, 0, 0, ${clamp01(alpha)})`;
+  }
+
+  const r = parseInt(normalized.slice(1, 3), 16);
+  const g = parseInt(normalized.slice(3, 5), 16);
+  const b = parseInt(normalized.slice(5, 7), 16);
+
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+    return `rgba(0, 0, 0, ${clamp01(alpha)})`;
+  }
+
+  return `rgba(${r}, ${g}, ${b}, ${clamp01(alpha)})`;
 }
 
 function distancePointToSegment(worldPoint: Point, a: Point, b: Point): number {
@@ -349,6 +367,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const mapDocument = useNomosStore((state) => state.mapDocument);
   const mapRenderMode = useNomosStore((state) => state.mapRenderMode);
   const mapGridSettings = useNomosStore((state) => state.mapGridSettings);
+  const mapHighlightPortals = useNomosStore((state) => state.mapHighlightPortals);
+  const mapDoorVisibility = useNomosStore((state) => state.mapDoorVisibility);
   const mapSelection = useNomosStore((state) => state.mapSelection);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
 
@@ -956,7 +976,11 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const backgroundFill = Colors.DARK_GRAY1;
 
   const wallStroke = Colors.LIGHT_GRAY3;
+  const portalWallStroke = Colors.BLUE4;
+  const portalWallOverlayFill = hexToRgba(Colors.CERULEAN4, 0.35);
   const wallStrokeWidth = 2;
+  const selectionStroke = Colors.RED4;
+  const selectionStrokeWidth = 3;
   const doorStroke = Colors.ORANGE4;
   const doorStrokeWidth = 2;
   const doorMarkerSizePx = 10;
@@ -1006,6 +1030,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const doorMarkers: JSX.Element[] = [];
   const texturedFloors: JSX.Element[] = [];
   const texturedWalls: JSX.Element[] = [];
+  const selectionOverlays: JSX.Element[] = [];
   const lightRadiusCircles: JSX.Element[] = [];
   const lightMarkers: JSX.Element[] = [];
   const particleMarkers: JSX.Element[] = [];
@@ -1013,6 +1038,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
 
   if (decodedMap?.ok) {
     const map = decodedMap.value;
+
+    let texturedWallPolygons: readonly WallStripPolygon[] | null = null;
 
     const toRenderX = (authoredX: number): number => authoredX - mapOrigin.x;
     const toRenderY = (authoredY: number): number => authoredY - mapOrigin.y;
@@ -1084,6 +1111,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       }
 
       const wallPolygons = computeTexturedWallStripPolygons(map, texturedWallThicknessWorld);
+      texturedWallPolygons = wallPolygons;
       const sortedWallPolygons = [...wallPolygons].sort((a, b) => a.wallIndex - b.wallIndex);
 
       for (const polygon of sortedWallPolygons) {
@@ -1091,6 +1119,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         if (!wall) {
           continue;
         }
+
+        const isPortalHighlighted = mapHighlightPortals && wall.backSector > -1;
 
         const v0 = map.vertices[wall.v0];
         const v1 = map.vertices[wall.v1];
@@ -1151,7 +1181,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
             <Line
               key={`wall-tex-fallback-${wall.index}`}
               points={[toRenderX(v0.x), toRenderY(v0.y), toRenderX(v1.x), toRenderY(v1.y)]}
-              stroke={wallStroke}
+              stroke={isPortalHighlighted ? portalWallStroke : wallStroke}
               strokeWidth={wallStrokeWidth}
               strokeScaleEnabled={false}
               lineCap="round"
@@ -1188,8 +1218,19 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
               native.closePath();
               native.fill();
 
+              if (isPortalHighlighted) {
+                native.fillStyle = portalWallOverlayFill;
+                native.beginPath();
+                native.moveTo(localPoints[0] ?? 0, localPoints[1] ?? 0);
+                for (let index = 2; index < localPoints.length; index += 2) {
+                  native.lineTo(localPoints[index] ?? 0, localPoints[index + 1] ?? 0);
+                }
+                native.closePath();
+                native.fill();
+              }
+
               // Keep the existing outline behavior.
-              native.strokeStyle = Colors.BLACK;
+              native.strokeStyle = isPortalHighlighted ? portalWallStroke : Colors.BLACK;
               // The render layer is scaled by view.scale. Compensate so the outline stays ~1px on screen.
               const safeScale = Math.max(0.0001, view.scale);
               native.lineWidth = 1 / safeScale;
@@ -1199,6 +1240,44 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
             }}
           />
         );
+      }
+
+      if (mapDoorVisibility === 'visible') {
+        for (const door of map.doors) {
+          const wall = map.walls[door.wallIndex];
+          if (!wall) {
+            continue;
+          }
+          const v0 = map.vertices[wall.v0];
+          const v1 = map.vertices[wall.v1];
+          if (!v0 || !v1) {
+            continue;
+          }
+
+          const midX = toRenderX((v0.x + v1.x) / 2);
+          const midY = toRenderY((v0.y + v1.y) / 2);
+
+          doorMarkers.push(
+            <Line
+              key={`door-${door.id}`}
+              points={[
+                midX - doorMarkerSizeWorld / 2,
+                midY - doorMarkerSizeWorld / 2,
+                midX + doorMarkerSizeWorld / 2,
+                midY + doorMarkerSizeWorld / 2,
+                midX + doorMarkerSizeWorld / 2,
+                midY - doorMarkerSizeWorld / 2,
+                midX - doorMarkerSizeWorld / 2,
+                midY + doorMarkerSizeWorld / 2
+              ]}
+              stroke={doorStroke}
+              strokeWidth={doorStrokeWidth}
+              strokeScaleEnabled={false}
+              lineCap="round"
+              lineJoin="round"
+            />
+          );
+        }
       }
     }
 
@@ -1210,11 +1289,13 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           continue;
         }
 
+        const stroke = mapHighlightPortals && wall.backSector > -1 ? portalWallStroke : wallStroke;
+
         wallLines.push(
           <Line
             key={`wall-${wall.index}`}
             points={[toRenderX(v0.x), toRenderY(v0.y), toRenderX(v1.x), toRenderY(v1.y)]}
-            stroke={wallStroke}
+            stroke={stroke}
             strokeWidth={wallStrokeWidth}
             strokeScaleEnabled={false}
             lineCap="round"
@@ -1335,6 +1416,183 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         />
       );
     }
+
+    if (mapSelection !== null) {
+      if (mapSelection.kind === 'sector') {
+        const loop = buildSectorLoop(map, mapSelection.id);
+        if (loop !== null) {
+          const points: number[] = [];
+          for (const vertexIndex of loop) {
+            const vertex = map.vertices[vertexIndex];
+            if (!vertex) {
+              continue;
+            }
+            points.push(toRenderX(vertex.x), toRenderY(vertex.y));
+          }
+
+          if (points.length >= 6) {
+            selectionOverlays.push(
+              <Line
+                key={`selection-sector-${mapSelection.id}`}
+                points={points}
+                closed={true}
+                stroke={selectionStroke}
+                strokeWidth={selectionStrokeWidth}
+                strokeScaleEnabled={false}
+                lineCap="round"
+                lineJoin="round"
+              />
+            );
+          }
+        }
+      }
+
+      if (mapSelection.kind === 'wall') {
+        const wall = map.walls[mapSelection.index];
+        if (wall) {
+          const v0 = map.vertices[wall.v0];
+          const v1 = map.vertices[wall.v1];
+          if (v0 && v1) {
+            if (mapRenderMode === 'textured' && texturedWallPolygons !== null) {
+              const polygon = texturedWallPolygons.find((candidate) => candidate.wallIndex === wall.index) ?? null;
+              if (polygon !== null) {
+                const points: number[] = [];
+                for (const point of polygon.points) {
+                  points.push(toRenderX(point.x), toRenderY(point.y));
+                }
+
+                if (points.length >= 6) {
+                  selectionOverlays.push(
+                    <Line
+                      key={`selection-wall-${wall.index}`}
+                      points={points}
+                      closed={true}
+                      stroke={selectionStroke}
+                      strokeWidth={selectionStrokeWidth}
+                      strokeScaleEnabled={false}
+                      lineCap="round"
+                      lineJoin="round"
+                    />
+                  );
+                }
+              }
+            } else {
+              selectionOverlays.push(
+                <Line
+                  key={`selection-wall-${wall.index}`}
+                  points={[toRenderX(v0.x), toRenderY(v0.y), toRenderX(v1.x), toRenderY(v1.y)]}
+                  stroke={selectionStroke}
+                  strokeWidth={selectionStrokeWidth}
+                  strokeScaleEnabled={false}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              );
+            }
+          }
+        }
+      }
+
+      if (mapSelection.kind === 'door') {
+        const door = map.doors.find((candidate) => candidate.id === mapSelection.id) ?? null;
+        const wall = door ? map.walls[door.wallIndex] : null;
+        if (wall) {
+          const v0 = map.vertices[wall.v0];
+          const v1 = map.vertices[wall.v1];
+          if (v0 && v1) {
+            const midX = toRenderX((v0.x + v1.x) / 2);
+            const midY = toRenderY((v0.y + v1.y) / 2);
+            selectionOverlays.push(
+              <Line
+                key={`selection-door-${mapSelection.id}`}
+                points={[
+                  midX - doorMarkerSizeWorld / 2,
+                  midY - doorMarkerSizeWorld / 2,
+                  midX + doorMarkerSizeWorld / 2,
+                  midY + doorMarkerSizeWorld / 2,
+                  midX + doorMarkerSizeWorld / 2,
+                  midY - doorMarkerSizeWorld / 2,
+                  midX - doorMarkerSizeWorld / 2,
+                  midY + doorMarkerSizeWorld / 2
+                ]}
+                stroke={selectionStroke}
+                strokeWidth={selectionStrokeWidth}
+                strokeScaleEnabled={false}
+                lineCap="round"
+                lineJoin="round"
+              />
+            );
+          }
+        }
+      }
+
+      if (mapSelection.kind === 'entity') {
+        const entity = map.entities[mapSelection.index];
+        if (entity) {
+          const preview = movePreview;
+          const entityX = preview !== null && preview.index === entity.index ? preview.x : entity.x;
+          const entityY = preview !== null && preview.index === entity.index ? preview.y : entity.y;
+          const half = entityMarkerSizeWorld / 2;
+          selectionOverlays.push(
+            <Line
+              key={`selection-entity-${entity.index}`}
+              points={[
+                toRenderX(entityX),
+                toRenderY(entityY) - half,
+                toRenderX(entityX) + half,
+                toRenderY(entityY) + half,
+                toRenderX(entityX) - half,
+                toRenderY(entityY) + half
+              ]}
+              closed={true}
+              fill="rgba(0,0,0,0)"
+              stroke={selectionStroke}
+              strokeWidth={selectionStrokeWidth}
+              strokeScaleEnabled={false}
+              lineJoin="round"
+            />
+          );
+        }
+      }
+
+      if (mapSelection.kind === 'light') {
+        const light = map.lights[mapSelection.index];
+        if (light) {
+          selectionOverlays.push(
+            <Circle
+              key={`selection-light-${light.index}`}
+              x={toRenderX(light.x)}
+              y={toRenderY(light.y)}
+              radius={lightMarkerRadiusWorld}
+              fill="rgba(0,0,0,0)"
+              stroke={selectionStroke}
+              strokeWidth={selectionStrokeWidth}
+              strokeScaleEnabled={false}
+            />
+          );
+        }
+      }
+
+      if (mapSelection.kind === 'particle') {
+        const particle = map.particles[mapSelection.index];
+        if (particle) {
+          const half = particleMarkerSizeWorld / 2;
+          selectionOverlays.push(
+            <Rect
+              key={`selection-particle-${particle.index}`}
+              x={toRenderX(particle.x) - half}
+              y={toRenderY(particle.y) - half}
+              width={particleMarkerSizeWorld}
+              height={particleMarkerSizeWorld}
+              fill="rgba(0,0,0,0)"
+              stroke={selectionStroke}
+              strokeWidth={selectionStrokeWidth}
+              strokeScaleEnabled={false}
+            />
+          );
+        }
+      }
+    }
   }
 
   return (
@@ -1378,6 +1636,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           {lightMarkers}
           {particleMarkers}
           {entityMarkers}
+          {selectionOverlays}
         </Layer>
       </Stage>
     </div>

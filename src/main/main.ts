@@ -44,6 +44,8 @@ const setApplicationMenu = (
     onRedo: () => Promise<void>;
     onRefreshAssetsIndex: () => Promise<void>;
     onSetMapRenderMode: (mode: MapRenderMode) => void;
+    onToggleMapHighlightPortals: () => void;
+    onToggleMapDoorVisibility: () => void;
     onToggleMapGrid: () => void;
     onIncreaseMapGridOpacity: () => void;
     onDecreaseMapGridOpacity: () => void;
@@ -54,6 +56,8 @@ const setApplicationMenu = (
   const canRedo = options.canRedo;
   const mapRenderMode = options.store.getState().mapRenderMode;
   const mapGridSettings = options.store.getState().mapGridSettings;
+  const mapHighlightPortals = options.store.getState().mapHighlightPortals;
+  const mapDoorVisibility = options.store.getState().mapDoorVisibility;
 
   const template = createApplicationMenuTemplate({
     appName: app.name,
@@ -63,6 +67,8 @@ const setApplicationMenu = (
     canRedo,
     mapRenderMode,
     mapGridSettings,
+    mapHighlightPortals,
+    mapDoorVisibility,
     onOpenSettings: options.onOpenSettings,
     onOpenMap: () => void options.onOpenMap(),
     onSave: () => void options.onSave(),
@@ -70,6 +76,8 @@ const setApplicationMenu = (
     onRedo: () => void options.onRedo(),
     onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex(),
     onSetMapRenderMode: (mode) => options.onSetMapRenderMode(mode),
+    onToggleMapHighlightPortals: () => options.onToggleMapHighlightPortals(),
+    onToggleMapDoorVisibility: () => options.onToggleMapDoorVisibility(),
     onToggleMapGrid: () => options.onToggleMapGrid(),
     onIncreaseMapGridOpacity: () => options.onIncreaseMapGridOpacity(),
     onDecreaseMapGridOpacity: () => options.onDecreaseMapGridOpacity()
@@ -282,6 +290,8 @@ app.on('ready', () => {
           mapDocument: store.getState().mapDocument,
           mapRenderMode: store.getState().mapRenderMode,
           mapGridSettings: store.getState().mapGridSettings,
+          mapHighlightPortals: store.getState().mapHighlightPortals,
+          mapDoorVisibility: store.getState().mapDoorVisibility,
           mapHistory: mapEditHistory.getInfo()
         }
       };
@@ -372,6 +382,8 @@ app.on('ready', () => {
     },
     onRefreshAssetsIndex: refreshAssetsIndex,
     onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
+    onToggleMapHighlightPortals: () => store.toggleMapHighlightPortals(),
+    onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
     onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
     onIncreaseMapGridOpacity: () =>
       store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity + GRID_OPACITY_STEP)),
@@ -401,6 +413,8 @@ app.on('ready', () => {
       },
       onRefreshAssetsIndex: refreshAssetsIndex,
       onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
+      onToggleMapHighlightPortals: () => store.toggleMapHighlightPortals(),
+      onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
       onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
       onIncreaseMapGridOpacity: () =>
         store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity + GRID_OPACITY_STEP)),

@@ -1,4 +1,11 @@
-import type { AssetIndex, EditorSettings, MapDocument, MapGridSettings, MapRenderMode } from '../../../shared/domain/models';
+import type {
+  AssetIndex,
+  EditorSettings,
+  MapDocument,
+  MapDoorVisibility,
+  MapGridSettings,
+  MapRenderMode
+} from '../../../shared/domain/models';
 import type { AssetIndexError } from '../../../shared/domain/results';
 
 export type AppState = Readonly<{
@@ -8,6 +15,8 @@ export type AppState = Readonly<{
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
   mapGridSettings: MapGridSettings;
+  mapHighlightPortals: boolean;
+  mapDoorVisibility: MapDoorVisibility;
 }>;
 
 export type AppStoreListener = (state: AppState) => void;
@@ -45,7 +54,9 @@ export class AppStore {
     assetIndexError: null,
     mapDocument: null,
     mapRenderMode: 'textured',
-    mapGridSettings: defaultMapGridSettings()
+    mapGridSettings: defaultMapGridSettings(),
+    mapHighlightPortals: false,
+    mapDoorVisibility: 'visible'
   };
 
   private readonly listeners = new Set<AppStoreListener>();
@@ -103,6 +114,24 @@ export class AppStore {
       }
     };
     this.emit();
+  }
+
+  public setMapHighlightPortals(isEnabled: boolean): void {
+    this.state = { ...this.state, mapHighlightPortals: isEnabled };
+    this.emit();
+  }
+
+  public toggleMapHighlightPortals(): void {
+    this.setMapHighlightPortals(!this.state.mapHighlightPortals);
+  }
+
+  public setMapDoorVisibility(visibility: MapDoorVisibility): void {
+    this.state = { ...this.state, mapDoorVisibility: visibility };
+    this.emit();
+  }
+
+  public toggleMapDoorVisibility(): void {
+    this.setMapDoorVisibility(this.state.mapDoorVisibility === 'visible' ? 'hidden' : 'visible');
   }
 
   private emit(): void {

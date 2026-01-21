@@ -15,6 +15,8 @@ describe('AppStore', () => {
     expect(state.mapDocument).toBeNull();
     expect(state.mapRenderMode).toBe('textured');
     expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.3 });
+    expect(state.mapHighlightPortals).toBe(false);
+    expect(state.mapDoorVisibility).toBe('visible');
   });
 
   it('notifies subscribers on state changes and unsubscribe stops notifications', () => {
@@ -147,5 +149,45 @@ describe('AppStore', () => {
 
     store.setMapGridOpacity(0.36);
     expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.4 });
+  });
+
+  it('setMapHighlightPortals stores the flag', () => {
+    const store = new AppStore();
+
+    store.setMapHighlightPortals(true);
+    expect(store.getState().mapHighlightPortals).toBe(true);
+
+    store.setMapHighlightPortals(false);
+    expect(store.getState().mapHighlightPortals).toBe(false);
+  });
+
+  it('toggleMapHighlightPortals flips the flag', () => {
+    const store = new AppStore();
+
+    expect(store.getState().mapHighlightPortals).toBe(false);
+    store.toggleMapHighlightPortals();
+    expect(store.getState().mapHighlightPortals).toBe(true);
+    store.toggleMapHighlightPortals();
+    expect(store.getState().mapHighlightPortals).toBe(false);
+  });
+
+  it('setMapDoorVisibility stores the visibility', () => {
+    const store = new AppStore();
+
+    store.setMapDoorVisibility('hidden');
+    expect(store.getState().mapDoorVisibility).toBe('hidden');
+
+    store.setMapDoorVisibility('visible');
+    expect(store.getState().mapDoorVisibility).toBe('visible');
+  });
+
+  it('toggleMapDoorVisibility flips between visible and hidden', () => {
+    const store = new AppStore();
+
+    expect(store.getState().mapDoorVisibility).toBe('visible');
+    store.toggleMapDoorVisibility();
+    expect(store.getState().mapDoorVisibility).toBe('hidden');
+    store.toggleMapDoorVisibility();
+    expect(store.getState().mapDoorVisibility).toBe('visible');
   });
 });

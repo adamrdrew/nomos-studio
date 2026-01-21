@@ -9,6 +9,7 @@ Current responsibilities:
 - Enable/disable Save based on whether a map document is currently loaded.
 - Enable/disable Undo/Redo based on main-owned edit history state.
 - Provide a View menu to switch map render mode and control map grid display.
+- Provide View menu toggles that control Map Editor overlays (portal highlighting, textured door visibility).
 
 ## Architecture
 
@@ -43,6 +44,8 @@ Current responsibilities:
 - View menu:
 	- Wireframe
 	- Textured
+	- Highlight Portals
+	- Toggle Door Visibility
 	- Toggle Grid
 	- Increase Grid Opacity
 	- Decrease Grid Opacity
@@ -63,6 +66,8 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	canRedo: boolean;
 	mapRenderMode: MapRenderMode;
 	mapGridSettings: MapGridSettings;
+	mapHighlightPortals: boolean;
+	mapDoorVisibility: MapDoorVisibility;
 	onOpenSettings: () => void;
 	onOpenMap: () => void;
 	onSave: () => void;
@@ -70,6 +75,8 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	onRedo: () => void;
 	onRefreshAssetsIndex: () => void;
 	onSetMapRenderMode: (mode: MapRenderMode) => void;
+	onToggleMapHighlightPortals: () => void;
+	onToggleMapDoorVisibility: () => void;
 	onToggleMapGrid: () => void;
 	onIncreaseMapGridOpacity: () => void;
 	onDecreaseMapGridOpacity: () => void;
@@ -93,6 +100,10 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 ### Grid menu items reflect store state
 - The View menu includes a Toggle Grid checkbox whose checked state reflects `mapGridSettings.isGridVisible`.
 - The Increase/Decrease Grid Opacity items adjust `mapGridSettings.gridOpacity` in bounded steps.
+
+### Overlay menu items reflect store state
+- The View menu includes a Highlight Portals checkbox whose checked state reflects `mapHighlightPortals`.
+- The View menu includes a Toggle Door Visibility checkbox whose checked state reflects whether `mapDoorVisibility === 'hidden'`.
 
 ## How to extend safely
 
