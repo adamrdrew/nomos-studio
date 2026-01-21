@@ -55,6 +55,23 @@ function normalize(a: Vec2): Vec2 | null {
   return { x: a.x / len, y: a.y / len };
 }
 
+function signedPolygonArea(points: readonly Vec2[]): number {
+  if (points.length < 3) {
+    return 0;
+  }
+
+  let sum = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const a = points[index];
+    const b = points[(index + 1) % points.length];
+    if (!a || !b) {
+      continue;
+    }
+    sum += a.x * b.y - b.x * a.y;
+  }
+  return sum / 2;
+}
+
 function leftNormal(unitDir: Vec2): Vec2 {
   return { x: -unitDir.y, y: unitDir.x };
 }
@@ -155,7 +172,6 @@ function computeCappedStripPolygon(
 
   const half = thicknessWorld / 2;
   const n = leftNormal(unitDir);
-
   const startLeft = add(start, mul(n, half));
   const startRight = sub(start, mul(n, half));
   const endLeft = add(end, mul(n, half));
@@ -167,25 +183,55 @@ function computeCappedStripPolygon(
   };
 }
 
+function computeOneSidedCappedStripPolygon(
+  start: Vec2,
+  end: Vec2,
+  wallIndex: number,
+  thicknessWorld: number,
+  inwardNormalSign: 1 | -1,
+  minSegmentLength: number
+): WallStripPolygon | null {
+  const delta = sub(end, start);
+  const segLen = length(delta);
+  if (segLen <= minSegmentLength) {
+    return null;
+  }
+
+  const unitDir = normalize(delta);
+  if (unitDir === null) {
+    return null;
+  }
+
+  const inward = mul(leftNormal(unitDir), inwardNormalSign);
+
+  const startOffset = add(start, mul(inward, thicknessWorld));
+  const endOffset = add(end, mul(inward, thicknessWorld));
+
+  return {
+    wallIndex,
+    points: [start, end, endOffset, startOffset]
+  };
+}
+
 function computeJoinPointForSide(params: {
   vertex: Vec2;
   prevDir: Vec2;
   nextDir: Vec2;
   prevNormal: Vec2;
   nextNormal: Vec2;
-  halfThickness: number;
+  offsetDistance: number;
   miterLimit: number;
   parallelEpsilon: number;
 }): Vec2 {
-  const { vertex, prevDir, nextDir, prevNormal, nextNormal, halfThickness, miterLimit, parallelEpsilon } = params;
+  const { vertex, prevDir, nextDir, prevNormal, nextNormal, offsetDistance, miterLimit, parallelEpsilon } = params;
 
-  const prevOffsetPoint = add(vertex, mul(prevNormal, halfThickness));
-  const nextOffsetPoint = add(vertex, mul(nextNormal, halfThickness));
+  const prevOffsetPoint = add(vertex, mul(prevNormal, offsetDistance));
+  const nextOffsetPoint = add(vertex, mul(nextNormal, offsetDistance));
 
   const intersection = lineIntersection(prevOffsetPoint, prevDir, nextOffsetPoint, nextDir, parallelEpsilon);
   if (intersection !== null) {
     const miterDistance = length(sub(intersection, vertex));
-    if (Number.isFinite(miterDistance) && miterDistance <= miterLimit * halfThickness) {
+    if (Number.isFinite(miterDistance) && miterDistance <= miterLimit * offsetDistance) {
       return intersection;
     }
   }
@@ -193,7 +239,7 @@ function computeJoinPointForSide(params: {
   // Fallback ("bevel" in the Phase definition): pick a bounded join point along the normal bisector.
   const normalSum = add(prevNormal, nextNormal);
   const bisector = normalize(normalSum) ?? prevNormal;
-  return add(vertex, mul(bisector, miterLimit * halfThickness));
+  return add(vertex, mul(bisector, miterLimit * offsetDistance));
 }
 
 function computeJoinedPolygonsForSector(
@@ -206,6 +252,26 @@ function computeJoinedPolygonsForSector(
   if (loop === null || loop.length < 4) {
     return [];
   }
+
+  const loopPoints: Vec2[] = [];
+  for (let index = 0; index < loop.length - 1; index += 1) {
+    const vertexIndex = loop[index];
+    if (vertexIndex === undefined) {
+      continue;
+    }
+    const vertex = map.vertices[vertexIndex];
+    if (!vertex) {
+      continue;
+    }
+    loopPoints.push({ x: vertex.x, y: vertex.y });
+  }
+  if (loopPoints.length < 3) {
+    return [];
+  }
+
+  // Determine loop orientation; interior is on the left for CCW, right for CW.
+  const area = signedPolygonArea(loopPoints);
+  const inwardNormalSign: 1 | -1 = area >= 0 ? 1 : -1;
 
   const segments: DirectedSegment[] = [];
   for (let index = 0; index < loop.length - 1; index += 1) {
@@ -235,13 +301,10 @@ function computeJoinedPolygonsForSector(
     });
   }
 
-  // A valid closed boundary requires at least 3 edges.
   if (segments.length < 3) {
     return [];
   }
 
-  // Safety: if the collected segments are not contiguous (due to missing edges/walls),
-  // do not attempt join-aware math for this sector.
   for (let index = 0; index < segments.length; index += 1) {
     const current = segments[index];
     const next = segments[(index + 1) % segments.length];
@@ -253,11 +316,8 @@ function computeJoinedPolygonsForSector(
     }
   }
 
-  const half = thicknessWorld / 2;
-
-  // Compute shared join points per vertex index for left/right sides.
-  const joinLeftByVertex = new Map<number, Vec2>();
-  const joinRightByVertex = new Map<number, Vec2>();
+  // Compute shared join points for the offset-side edge only.
+  const joinOffsetByVertex = new Map<number, Vec2>();
 
   for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex += 1) {
     const prev = segments[(segmentIndex - 1 + segments.length) % segments.length];
@@ -269,10 +329,9 @@ function computeJoinedPolygonsForSector(
 
     const vertexIndex = next.startVertexIndex;
     if (prev.endVertexIndex !== vertexIndex) {
-      // Malformed adjacency; abort join-aware geometry for this vertex.
       continue;
     }
-    if (joinLeftByVertex.has(vertexIndex) && joinRightByVertex.has(vertexIndex)) {
+    if (joinOffsetByVertex.has(vertexIndex)) {
       continue;
     }
 
@@ -283,7 +342,6 @@ function computeJoinedPolygonsForSector(
 
     const prevDelta = sub(prev.end, prev.start);
     const nextDelta = sub(next.end, next.start);
-
     const prevLen = length(prevDelta);
     const nextLen = length(nextDelta);
     if (prevLen <= options.minSegmentLength || nextLen <= options.minSegmentLength) {
@@ -296,52 +354,29 @@ function computeJoinedPolygonsForSector(
       continue;
     }
 
-    // Detect near-collinear edges: treat as stable average-normal join.
     const isNearParallel = Math.abs(cross(prevDir, nextDir)) < options.parallelEpsilon;
 
-    const prevLeft = leftNormal(prevDir);
-    const nextLeft = leftNormal(nextDir);
-
-    const prevRight = mul(prevLeft, -1);
-    const nextRight = mul(nextLeft, -1);
+    const prevInward = mul(leftNormal(prevDir), inwardNormalSign);
+    const nextInward = mul(leftNormal(nextDir), inwardNormalSign);
 
     const vertexVec: Vec2 = { x: vertex.x, y: vertex.y };
 
     if (isNearParallel) {
-      const leftSum = add(prevLeft, nextLeft);
-      const rightSum = add(prevRight, nextRight);
-
-      const leftBisector = normalize(leftSum) ?? prevLeft;
-      const rightBisector = normalize(rightSum) ?? prevRight;
-
-      joinLeftByVertex.set(vertexIndex, add(vertexVec, mul(leftBisector, half)));
-      joinRightByVertex.set(vertexIndex, add(vertexVec, mul(rightBisector, half)));
+      const inwardSum = add(prevInward, nextInward);
+      const inwardBisector = normalize(inwardSum) ?? prevInward;
+      joinOffsetByVertex.set(vertexIndex, add(vertexVec, mul(inwardBisector, thicknessWorld)));
       continue;
     }
 
-    joinLeftByVertex.set(
+    joinOffsetByVertex.set(
       vertexIndex,
       computeJoinPointForSide({
         vertex: vertexVec,
         prevDir,
         nextDir,
-        prevNormal: prevLeft,
-        nextNormal: nextLeft,
-        halfThickness: half,
-        miterLimit: options.miterLimit,
-        parallelEpsilon: options.parallelEpsilon
-      })
-    );
-
-    joinRightByVertex.set(
-      vertexIndex,
-      computeJoinPointForSide({
-        vertex: vertexVec,
-        prevDir,
-        nextDir,
-        prevNormal: prevRight,
-        nextNormal: nextRight,
-        halfThickness: half,
+        prevNormal: prevInward,
+        nextNormal: nextInward,
+        offsetDistance: thicknessWorld,
         miterLimit: options.miterLimit,
         parallelEpsilon: options.parallelEpsilon
       })
@@ -350,24 +385,23 @@ function computeJoinedPolygonsForSector(
 
   const polygons: WallStripPolygon[] = [];
   for (const segment of segments) {
-    const startLeft = joinLeftByVertex.get(segment.startVertexIndex);
-    const startRight = joinRightByVertex.get(segment.startVertexIndex);
-    const endLeft = joinLeftByVertex.get(segment.endVertexIndex);
-    const endRight = joinRightByVertex.get(segment.endVertexIndex);
+    const startOffset = joinOffsetByVertex.get(segment.startVertexIndex);
+    const endOffset = joinOffsetByVertex.get(segment.endVertexIndex);
 
-    if (startLeft && startRight && endLeft && endRight) {
+    if (startOffset && endOffset) {
       polygons.push({
         wallIndex: segment.wallIndex,
-        points: [startLeft, endLeft, endRight, startRight]
+        points: [segment.start, segment.end, endOffset, startOffset]
       });
       continue;
     }
 
-    const fallback = computeCappedStripPolygon(
+    const fallback = computeOneSidedCappedStripPolygon(
       segment.start,
       segment.end,
       segment.wallIndex,
       thicknessWorld,
+      inwardNormalSign,
       options.minSegmentLength
     );
     if (fallback) {

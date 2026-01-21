@@ -220,7 +220,6 @@ describe('computeTexturedWallStripPolygons', () => {
     };
 
     const thickness = 2;
-    const half = thickness / 2;
     const miterLimit = 1.5;
 
     const polys = computeTexturedWallStripPolygons(map, thickness, { miterLimit });
@@ -234,15 +233,11 @@ describe('computeTexturedWallStripPolygons', () => {
     // Acute vertex is vertex 1.
     const v = map.vertices[1]!;
 
-    const distances = [
-      distance(w0!.points[1]!, v),
-      distance(w0!.points[2]!, v),
-      distance(w1!.points[0]!, v),
-      distance(w1!.points[3]!, v)
-    ];
+    // For one-sided strips the "join" is on the offset edge only.
+    const distances = [distance(w0!.points[2]!, v), distance(w1!.points[3]!, v)];
 
     const max = Math.max(...distances);
-    expect(max).toBeLessThanOrEqual(miterLimit * half + 1e-3);
+    expect(max).toBeLessThanOrEqual(miterLimit * thickness + 1e-3);
   });
 
   test('thickness <= 0: returns empty', () => {

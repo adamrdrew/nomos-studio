@@ -103,6 +103,24 @@ steps:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
       - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
+  - id: S011
+    title: Prevent inter-sector overlap (one-sided wall rendering)
+    implemented: true
+    reviewed: false
+    notes: |-
+      Updated textured wall strip geometry to be one-sided (centerline + inward offset) per sector boundary loop,
+      so adjacent sectors sharing a boundary render their strips offset into their own interiors rather than overlapping.
+      Implementation details:
+      - Determine sector loop winding via signed polygon area; choose inward normal accordingly.
+      - Compute join points only for the offset edge (miter join with miter limit), keeping the centerline edge on the wall segment.
+      - Preserve safe fallback to capped strips when a loop cannot be built or join data is missing.
+      Updated unit test expectations for miter-limit bounds to match one-sided thickness.
+      Verified: wallStripGeometry tests, typecheck, and lint pass.
+    touched:
+      - src/renderer/ui/editor/map/wallStripGeometry.ts
+      - src/renderer/ui/editor/map/wallStripGeometry.test.ts
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
+
   - id: S006
     title: Validate selection/hit-testing ergonomics remain correct
     implemented: true
@@ -135,7 +153,8 @@ steps:
     reviewed: false
     notes: |-
       Updated renderer UI subsystem documentation to describe join-aware textured wall geometry,
-      the miter-limit behavior, and the malformed-topology fallback to capped strips.
+      the miter-limit behavior, one-sided (sector-interior) strips to prevent inter-sector overlap,
+      and the malformed-topology fallback to capped strips.
     touched:
       - docs/renderer-ui-system.md
       - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml

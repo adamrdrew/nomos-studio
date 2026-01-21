@@ -61,6 +61,7 @@ This Phase exists now because current wall strips are drawn as per-wall axis-ali
 - For a simple rectangle room (4 walls), textured walls meet at all 4 corners with:
   - no visible gaps (“cut-off corners”)
   - no overlapping double-thickness blobs at corners
+- For adjacent sectors that share a boundary, textured walls do not overlap each other; each side renders offset into its own sector interior.
 - For at least one concave corner case, the join remains stable (no spikes), and walls do not overlap adjacent wall strips.
 - Wall strips visually appear “full length” (the strip reaches the corner join rather than stopping short).
 

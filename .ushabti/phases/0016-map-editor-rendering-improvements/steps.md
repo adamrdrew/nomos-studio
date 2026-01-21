@@ -50,6 +50,14 @@
   - Preserve missing-texture fallback behavior.
 - **Done when:** Textured walls render via join-aware polygons and existing behaviors remain intact.
 
+## S011 — Prevent inter-sector overlap (one-sided wall rendering)
+- **Intent:** In textured mode, prevent walls from visually overlapping where sectors butt up against each other.
+- **Work:**
+  - Adjust wall strip geometry so wall thickness is rendered on the interior side of the wall for the owning sector boundary loop, rather than centered on the centerline.
+  - Ensure shared boundaries render without overlap by offsetting each sector’s wall strip into that sector’s interior.
+  - Preserve clean joins at corners (miter + limit) for the offset-side edge.
+- **Done when:** Textured walls do not overlap across adjacent sectors; rooms and boundaries read clearly.
+
 ## S006 — Validate selection/hit-testing ergonomics remain correct
 - **Intent:** Ensure improved visuals do not degrade editor interaction.
 - **Work:**
