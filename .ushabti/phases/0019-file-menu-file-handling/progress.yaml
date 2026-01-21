@@ -1,0 +1,83 @@
+phase:
+  id: 0019
+  slug: file-menu-file-handling
+  title: File Menu + File Handling Enhancements
+  status: planned
+
+steps:
+  - id: S001
+    title: Inspect current file workflows and state owners
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define a testable unsaved-changes guard (core orchestration)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Unit tests for the guard (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Implement New Map command (menu + state reset)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Implement Save As… (dialog + save-to-new-path)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Unit tests for Save As and save-to-path logic (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Implement guarded Open Map… and persistent Recent Maps
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Asset Browser: extensible double-click action router (maps first)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Unit tests for open-from-assets and recent persistence (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Quit/close guard for unsaved changes
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Docs updates (L09) + quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
