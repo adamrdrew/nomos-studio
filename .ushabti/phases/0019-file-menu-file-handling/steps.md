@@ -160,3 +160,12 @@
     - `readFile` throws non-`ENOENT` → returns empty list.
     - `saveRecentMapPaths` error paths → tmp cleanup attempted when applicable.
 - **Done when:** All conditional paths in the above public methods are exercised by unit tests.
+
+## S014 — Add L04 tests for JsonFileRecentMapsRepository Windows-safe-replace behavior
+- **Intent:** Satisfy L04 for the cross-platform safe-replace logic used when renaming a tmp file onto an existing destination fails on Windows.
+- **Work:**
+  - Extend `JsonFileRecentMapsRepository.test.ts` to cover the Windows-style rename-error branch (EPERM/EEXIST) inside `saveRecentMapPaths(...)`:
+    - initial `rename(tmp, dest)` throws EPERM/EEXIST → repository moves existing `dest` to an available backup path (retry on backup name collisions), then renames tmp to dest.
+    - backup cleanup succeeds (unlink called) and also the best-effort cleanup failure path (unlink throws but save still completes).
+    - restore best-effort path: if the second rename (tmp→dest) fails after backup is created, repository attempts to restore the backup to dest.
+- **Done when:** Branch-complete tests exist for Windows-safe-replace behavior in `JsonFileRecentMapsRepository.saveRecentMapPaths`.

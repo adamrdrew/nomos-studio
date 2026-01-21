@@ -2,7 +2,7 @@ phase:
   id: 0019
   slug: file-menu-file-handling
   title: File Menu + File Handling Enhancements
-  status: building
+  status: review
 
 steps:
   - id: S001
@@ -132,14 +132,29 @@ steps:
 
   - id: S012
     title: Add missing L04 tests for new public renderer/router API
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: "routeAssetDoubleClick is a new exported public API and currently has no unit tests; add branch-complete tests for map vs non-map routing and path normalization."
-    touched: []
+    notes: "Added branch-complete unit tests for routeAssetDoubleClick covering map vs non-map routing, case-insensitive match, path separator normalization, and trimming."
+    touched:
+      - src/renderer/ui/editor/inspector/assetActionRouter.test.ts
+      - .ushabti/phases/0019-file-menu-file-handling/progress.yaml
 
   - id: S013
     title: Close remaining L04 branch gaps in new map-open + recents public APIs
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: "Add unit tests for uncovered conditional paths in OpenMapFromAssetsService (null-byte invalid path; relative-to-base absolute check), RecentMapsService.bump (repository save throws best-effort path), and JsonFileRecentMapsRepository (non-ENOENT read error; save error paths incl tmp cleanup)."
-    touched: []
+    notes: "Added unit tests to cover remaining conditional paths: OpenMapFromAssetsService rejects null-byte and relative-to-base absolute paths; RecentMapsService.bump persists best-effort when save throws; JsonFileRecentMapsRepository handles non-ENOENT read errors and save tmp cleanup/no-tmp cleanup paths." 
+    touched:
+      - src/main/application/maps/OpenMapFromAssetsService.test.ts
+      - src/main/application/maps/RecentMapsService.test.ts
+      - src/main/infrastructure/maps/JsonFileRecentMapsRepository.test.ts
+      - .ushabti/phases/0019-file-menu-file-handling/progress.yaml
+
+  - id: S014
+    title: Add L04 tests for JsonFileRecentMapsRepository Windows-safe-replace behavior
+    implemented: true
+    reviewed: false
+    notes: "Added unit tests covering Windows-safe-replace branches: initial EPERM/EEXIST tmp→dest rename enters backup flow, backup name collision retry, backup cleanup best-effort (unlink throws), and restore attempt when second tmp→dest rename fails after backup creation. Quality gates: tests, lint, typecheck." 
+    touched:
+      - src/main/infrastructure/maps/JsonFileRecentMapsRepository.test.ts
+      - .ushabti/phases/0019-file-menu-file-handling/progress.yaml

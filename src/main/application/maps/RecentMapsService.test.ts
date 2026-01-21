@@ -47,4 +47,21 @@ describe('RecentMapsService', () => {
 
     expect(result).toEqual(['6', '1', '2', '3', '4']);
   });
+
+  it('still bumps and returns the updated list when persistence throws', async () => {
+    const repository: RecentMapsRepository = {
+      loadRecentMapPaths: async () => [],
+      saveRecentMapPaths: async () => {
+        throw new Error('disk full');
+      }
+    };
+
+    const service = new RecentMapsService(repository, 5);
+    await service.load();
+
+    const result = await service.bump('a');
+
+    expect(result).toEqual(['a']);
+    expect(service.getRecentMapPaths()).toEqual(['a']);
+  });
 });

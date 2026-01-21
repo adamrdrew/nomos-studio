@@ -94,6 +94,41 @@ describe('OpenMapFromAssetsService', () => {
     }
   });
 
+  it('rejects relativePath containing a null byte', async () => {
+    const store = createStore('/assets');
+
+    const pathService: PathService = {
+      isAbsolute: () => false,
+      resolve: () => {
+        throw new Error('should not be called');
+      },
+      relative: () => {
+        throw new Error('should not be called');
+      }
+    };
+
+    const notifier: UserNotifier = {
+      showError: async () => {},
+      showInfo: async () => {}
+    };
+
+    const openMapService: OpenMapService = {
+      openMap: async () => {
+        throw new Error('should not be called');
+      }
+    } as unknown as OpenMapService;
+
+    const service = new OpenMapFromAssetsService(store, pathService, notifier, openMapService);
+
+    const result = await service.openMapFromAssets('Levels/a\u0000.json');
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe('open-map-from-assets-error');
+      expect(result.error.code).toBe('open-map-from-assets/invalid-relative-path');
+    }
+  });
+
   it('rejects absolute paths', async () => {
     const store = createStore('/assets');
 
@@ -148,6 +183,37 @@ describe('OpenMapFromAssetsService', () => {
     const service = new OpenMapFromAssetsService(store, pathService, notifier, openMapService);
 
     const result = await service.openMapFromAssets('Levels/../secret.json');
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.kind).toBe('open-map-from-assets-error');
+      expect(result.error.code).toBe('open-map-from-assets/outside-base-dir');
+    }
+  });
+
+  it('rejects when resolved path is not under base dir (relative returns absolute)', async () => {
+    const store = createStore('/assets');
+
+    const pathService: PathService = {
+      isAbsolute: (value: string) => value.startsWith('/'),
+      resolve: () => '/assets/Levels/a.json',
+      relative: () => '/outside'
+    };
+
+    const notifier: UserNotifier = {
+      showError: async () => {},
+      showInfo: async () => {}
+    };
+
+    const openMapService: OpenMapService = {
+      openMap: async () => {
+        throw new Error('should not be called');
+      }
+    } as unknown as OpenMapService;
+
+    const service = new OpenMapFromAssetsService(store, pathService, notifier, openMapService);
+
+    const result = await service.openMapFromAssets('Levels/a.json');
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
