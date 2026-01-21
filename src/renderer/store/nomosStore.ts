@@ -6,7 +6,8 @@ import type {
   MapDocument,
   MapDoorVisibility,
   MapGridSettings,
-  MapRenderMode
+  MapRenderMode,
+  MapSectorSurface
 } from '../../shared/domain/models';
 import type { MapEditHistoryInfo, MapEditSelectionEffect, MapEditTargetRef } from '../../shared/ipc/nomosIpc';
 import type { MapSelection } from '../ui/editor/map/mapSelection';
@@ -16,6 +17,7 @@ export type NomosStoreState = {
   assetIndex: AssetIndex | null;
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
+  mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
   mapDoorVisibility: MapDoorVisibility;
@@ -82,6 +84,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   assetIndex: null,
   mapDocument: null,
   mapRenderMode: 'textured',
+  mapSectorSurface: 'floor',
   mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
   mapHighlightPortals: false,
   mapDoorVisibility: 'visible',
@@ -98,6 +101,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
       assetIndex: snapshotResult.value.assetIndex,
       mapDocument: snapshotResult.value.mapDocument,
       mapRenderMode: snapshotResult.value.mapRenderMode,
+      mapSectorSurface: snapshotResult.value.mapSectorSurface,
       mapGridSettings: snapshotResult.value.mapGridSettings,
       mapHighlightPortals: snapshotResult.value.mapHighlightPortals,
       mapDoorVisibility: snapshotResult.value.mapDoorVisibility,

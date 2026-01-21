@@ -26,7 +26,7 @@ import { MapCommandEngine } from './application/maps/MapCommandEngine';
 import { MapEditHistory } from './application/maps/MapEditHistory';
 import type { NomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
 import { createApplicationMenuTemplate } from './infrastructure/menu/createApplicationMenuTemplate';
-import type { MapRenderMode } from '../shared/domain/models';
+import type { MapRenderMode, MapSectorSurface } from '../shared/domain/models';
 import type { StateChangedPayload } from '../shared/ipc/nomosIpc';
 
 let mainWindow: BrowserWindow | null = null;
@@ -44,6 +44,7 @@ const setApplicationMenu = (
     onRedo: () => Promise<void>;
     onRefreshAssetsIndex: () => Promise<void>;
     onSetMapRenderMode: (mode: MapRenderMode) => void;
+    onSetMapSectorSurface: (surface: MapSectorSurface) => void;
     onToggleMapHighlightPortals: () => void;
     onToggleMapDoorVisibility: () => void;
     onToggleMapGrid: () => void;
@@ -55,6 +56,7 @@ const setApplicationMenu = (
   const canUndo = options.canUndo;
   const canRedo = options.canRedo;
   const mapRenderMode = options.store.getState().mapRenderMode;
+  const mapSectorSurface = options.store.getState().mapSectorSurface;
   const mapGridSettings = options.store.getState().mapGridSettings;
   const mapHighlightPortals = options.store.getState().mapHighlightPortals;
   const mapDoorVisibility = options.store.getState().mapDoorVisibility;
@@ -66,6 +68,7 @@ const setApplicationMenu = (
     canUndo,
     canRedo,
     mapRenderMode,
+    mapSectorSurface,
     mapGridSettings,
     mapHighlightPortals,
     mapDoorVisibility,
@@ -76,6 +79,7 @@ const setApplicationMenu = (
     onRedo: () => void options.onRedo(),
     onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex(),
     onSetMapRenderMode: (mode) => options.onSetMapRenderMode(mode),
+    onSetMapSectorSurface: (surface) => options.onSetMapSectorSurface(surface),
     onToggleMapHighlightPortals: () => options.onToggleMapHighlightPortals(),
     onToggleMapDoorVisibility: () => options.onToggleMapDoorVisibility(),
     onToggleMapGrid: () => options.onToggleMapGrid(),
@@ -289,6 +293,7 @@ app.on('ready', () => {
           assetIndex: store.getState().assetIndex,
           mapDocument: store.getState().mapDocument,
           mapRenderMode: store.getState().mapRenderMode,
+          mapSectorSurface: store.getState().mapSectorSurface,
           mapGridSettings: store.getState().mapGridSettings,
           mapHighlightPortals: store.getState().mapHighlightPortals,
           mapDoorVisibility: store.getState().mapDoorVisibility,
@@ -382,6 +387,7 @@ app.on('ready', () => {
     },
     onRefreshAssetsIndex: refreshAssetsIndex,
     onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
+    onSetMapSectorSurface: (surface) => store.setMapSectorSurface(surface),
     onToggleMapHighlightPortals: () => store.toggleMapHighlightPortals(),
     onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
     onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
@@ -413,6 +419,7 @@ app.on('ready', () => {
       },
       onRefreshAssetsIndex: refreshAssetsIndex,
       onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
+      onSetMapSectorSurface: (surface) => store.setMapSectorSurface(surface),
       onToggleMapHighlightPortals: () => store.toggleMapHighlightPortals(),
       onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
       onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),

@@ -21,6 +21,7 @@ describe('computeTexturedWallStripPolygons', () => {
   test('CW loop winding: inward offset flips to the right side of directed edges', () => {
     // CW square: (0,0)->(0,10)->(10,10)->(10,0)->(0,0)
     const map: MapViewModel = {
+      sky: null,
       vertices: [
         { x: 0, y: 0 },
         { x: 0, y: 10 },
@@ -60,6 +61,7 @@ describe('computeTexturedWallStripPolygons', () => {
 
   test('square loop: adjacent walls share join points (no corner gaps)', () => {
     const map: MapViewModel = {
+      sky: null,
       vertices: [
         { x: 0, y: 0 },
         { x: 10, y: 0 },
@@ -112,6 +114,7 @@ describe('computeTexturedWallStripPolygons', () => {
   test('concave loop: join points are finite and shared at the concave corner', () => {
     // L-shape: concave vertex at (6,2)
     const map: MapViewModel = {
+      sky: null,
       vertices: [
         { x: 0, y: 0 },
         { x: 10, y: 0 },
@@ -163,6 +166,7 @@ describe('computeTexturedWallStripPolygons', () => {
   test('near-collinear corner: join stays near the vertex (no numeric explosion)', () => {
     // Slight bend at vertex 1.
     const map: MapViewModel = {
+      sky: null,
       vertices: [
         { x: 0, y: 0 },
         { x: 10, y: 0 },
@@ -210,6 +214,7 @@ describe('computeTexturedWallStripPolygons', () => {
 
   test('degenerate wall: zero-length segment is skipped', () => {
     const map: MapViewModel = {
+      sky: null,
       vertices: [
         { x: 0, y: 0 },
         { x: 10, y: 0 },
@@ -238,6 +243,7 @@ describe('computeTexturedWallStripPolygons', () => {
 
   test('miter limit: acute corner clamps join distance', () => {
     const map: MapViewModel = {
+      sky: null,
       vertices: [
         { x: 0, y: 0 },
         { x: 10, y: 0 },
@@ -282,6 +288,7 @@ describe('computeTexturedWallStripPolygons', () => {
 
   test('thickness <= 0: returns empty', () => {
     const map: MapViewModel = {
+      sky: null,
       vertices: [],
       sectors: [],
       walls: [],
@@ -297,6 +304,7 @@ describe('computeTexturedWallStripPolygons', () => {
 
   test('simple capped strip fallback emits a quad', () => {
     const map: MapViewModel = {
+      sky: null,
       vertices: [{ x: 0, y: 0 }, { x: 10, y: 0 }],
       sectors: [],
       walls: [{ index: 0, v0: 0, v1: 1, frontSector: 123, backSector: -1, tex: 'W.PNG', endLevel: false }],
@@ -323,6 +331,7 @@ describe('computeTexturedWallStripPolygons', () => {
     // Sector 2 (right): (10,0)->(20,0)->(20,10)->(10,10)
     // Shared boundary is represented by two walls (one per sector) with opposite directions.
     const map: MapViewModel = {
+      sky: null,
       vertices: [
         { x: 0, y: 0 },
         { x: 10, y: 0 },

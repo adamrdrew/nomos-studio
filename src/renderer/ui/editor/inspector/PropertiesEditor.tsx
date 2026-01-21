@@ -736,6 +736,30 @@ function SectorEditor(props: {
     await commitUpdateFields(props.target, { [jsonKey]: parsed });
   };
 
+  const commitSectorLight = async (): Promise<void> => {
+    const parsed = Number.parseFloat(lightText);
+    if (!Number.isFinite(parsed)) {
+      setError('light must be a finite number');
+      setLightText(String(props.sector.light));
+      return;
+    }
+
+    const clamped = clamp(parsed, 0, 1);
+    if (clamped !== parsed) {
+      toaster.show({ message: 'Clamped light to [0, 1].', intent: Intent.WARNING });
+    }
+
+    if (clamped === props.sector.light) {
+      setError(null);
+      setLightText(String(clamped));
+      return;
+    }
+
+    setError(null);
+    setLightText(String(clamped));
+    await commitUpdateFields(props.target, { light: clamped });
+  };
+
   return (
     <div>
       <ReadOnlyField label="id" value={String(props.sector.id)} />
@@ -759,11 +783,11 @@ function SectorEditor(props: {
         error={error}
       />
       <EditorTextInput
-        label="light"
+        label="light (0..1)"
         value={lightText}
         onChange={setLightText}
         onCommit={() => {
-          void commitNumber('light', lightText, props.sector.light, setLightText);
+          void commitSectorLight();
         }}
         error={error}
       />
@@ -1009,17 +1033,52 @@ export function PropertiesEditor(props: {
       <div style={{ fontWeight: 600, marginBottom: 6 }}>{selection.title}</div>
 
       {selection.kind === 'light' ? (
-        <LightEditor mapDocument={props.mapDocument} assetIndex={props.assetIndex} light={selection.value} target={selection.target} />
+        <LightEditor
+          key={`light:${selection.value.index}`}
+          mapDocument={props.mapDocument}
+          assetIndex={props.assetIndex}
+          light={selection.value}
+          target={selection.target}
+        />
       ) : selection.kind === 'particle' ? (
-        <ParticleEditor mapDocument={props.mapDocument} particle={selection.value} target={selection.target} />
+        <ParticleEditor
+          key={`particle:${selection.value.index}`}
+          mapDocument={props.mapDocument}
+          particle={selection.value}
+          target={selection.target}
+        />
       ) : selection.kind === 'entity' ? (
-        <EntityEditor mapDocument={props.mapDocument} assetIndex={props.assetIndex} entity={selection.value} target={selection.target} />
+        <EntityEditor
+          key={`entity:${selection.value.index}`}
+          mapDocument={props.mapDocument}
+          assetIndex={props.assetIndex}
+          entity={selection.value}
+          target={selection.target}
+        />
       ) : selection.kind === 'door' ? (
-        <DoorEditor mapDocument={props.mapDocument} assetIndex={props.assetIndex} door={selection.value} target={selection.target} />
+        <DoorEditor
+          key={`door:${selection.value.id}`}
+          mapDocument={props.mapDocument}
+          assetIndex={props.assetIndex}
+          door={selection.value}
+          target={selection.target}
+        />
       ) : selection.kind === 'wall' ? (
-        <WallEditor mapDocument={props.mapDocument} assetIndex={props.assetIndex} wall={selection.value} target={selection.target} />
+        <WallEditor
+          key={`wall:${selection.value.index}`}
+          mapDocument={props.mapDocument}
+          assetIndex={props.assetIndex}
+          wall={selection.value}
+          target={selection.target}
+        />
       ) : selection.kind === 'sector' ? (
-        <SectorEditor mapDocument={props.mapDocument} assetIndex={props.assetIndex} sector={selection.value} target={selection.target} />
+        <SectorEditor
+          key={`sector:${selection.value.id}`}
+          mapDocument={props.mapDocument}
+          assetIndex={props.assetIndex}
+          sector={selection.value}
+          target={selection.target}
+        />
       ) : (
         (() => {
           const neverSelection: never = selection;

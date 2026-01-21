@@ -409,6 +409,11 @@ export function decodeMapViewModel(json: unknown): MapDecodeResult {
     return err('Map JSON must be an object');
   }
 
+  const sky = asOptionalString(json['sky'], 'sky');
+  if (!sky.ok) {
+    return sky;
+  }
+
   const verticesRaw = asArray(json['vertices'], 'vertices');
   if (!verticesRaw.ok) {
     return verticesRaw;
@@ -520,6 +525,7 @@ export function decodeMapViewModel(json: unknown): MapDecodeResult {
   }
 
   const viewModel: MapViewModel = {
+    sky: sky.value,
     vertices,
     sectors,
     walls,

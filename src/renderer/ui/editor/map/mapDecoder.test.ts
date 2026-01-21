@@ -1,6 +1,59 @@
 import { decodeMapViewModel } from './mapDecoder';
 
 describe('decodeMapViewModel', () => {
+  it('decodes optional root sky as null when absent', () => {
+    const json = {
+      vertices: [{ x: 0, y: 0 }],
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, floor_tex: 'floor.png', ceil_tex: 'ceil.png', light: 1 }],
+      walls: [{ v0: 0, v1: 0, front_sector: 1, back_sector: -1, tex: 'wall.png' }]
+    };
+
+    const result = decodeMapViewModel(json);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.value.sky).toBeNull();
+  });
+
+  it('decodes optional root sky as null when empty', () => {
+    const json = {
+      sky: '   ',
+      vertices: [{ x: 0, y: 0 }],
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, floor_tex: 'floor.png', ceil_tex: 'ceil.png', light: 1 }],
+      walls: [{ v0: 0, v1: 0, front_sector: 1, back_sector: -1, tex: 'wall.png' }]
+    };
+
+    const result = decodeMapViewModel(json);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.value.sky).toBeNull();
+  });
+
+  it('decodes optional root sky when set', () => {
+    const json = {
+      sky: 'overcast.png',
+      vertices: [{ x: 0, y: 0 }],
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, floor_tex: 'floor.png', ceil_tex: 'ceil.png', light: 1 }],
+      walls: [{ v0: 0, v1: 0, front_sector: 1, back_sector: -1, tex: 'wall.png' }]
+    };
+
+    const result = decodeMapViewModel(json);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.value.sky).toBe('overcast.png');
+  });
+
   it('decodes required keys (vertices, sectors, walls) and optional keys', () => {
     const json = {
       vertices: [
@@ -57,6 +110,8 @@ describe('decodeMapViewModel', () => {
     expect(result.value.lights).toHaveLength(1);
     expect(result.value.particles).toHaveLength(1);
     expect(result.value.entities).toHaveLength(1);
+
+    expect(result.value.sky).toBeNull();
 
     const door0 = result.value.doors[0];
     expect(door0).toBeDefined();
@@ -119,6 +174,7 @@ describe('decodeMapViewModel', () => {
     expect(result.value.lights).toEqual([]);
     expect(result.value.particles).toEqual([]);
     expect(result.value.entities).toEqual([]);
+    expect(result.value.sky).toBeNull();
     const wall0 = result.value.walls[0];
     expect(wall0).toBeDefined();
     if (!wall0) {
@@ -143,6 +199,7 @@ describe('decodeMapViewModel', () => {
     }
 
     expect(result.value.doors).toHaveLength(1);
+    expect(result.value.sky).toBeNull();
     const door0 = result.value.doors[0];
     expect(door0).toBeDefined();
     if (!door0) {

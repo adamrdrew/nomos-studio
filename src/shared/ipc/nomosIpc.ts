@@ -5,7 +5,8 @@ import type {
   MapDocument,
   MapDocumentRevision,
   MapGridSettings,
-  MapRenderMode
+  MapRenderMode,
+  MapSectorSurface
 } from '../domain/models';
 import type {
   AssetIndexError,
@@ -42,6 +43,7 @@ export type AppStateSnapshot = Readonly<{
   assetIndex: AssetIndex | null;
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
+  mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
   mapDoorVisibility: MapDoorVisibility;

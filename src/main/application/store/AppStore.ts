@@ -4,7 +4,8 @@ import type {
   MapDocument,
   MapDoorVisibility,
   MapGridSettings,
-  MapRenderMode
+  MapRenderMode,
+  MapSectorSurface
 } from '../../../shared/domain/models';
 import type { AssetIndexError } from '../../../shared/domain/results';
 
@@ -14,6 +15,7 @@ export type AppState = Readonly<{
   assetIndexError: AssetIndexError | null;
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
+  mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
   mapDoorVisibility: MapDoorVisibility;
@@ -54,6 +56,7 @@ export class AppStore {
     assetIndexError: null,
     mapDocument: null,
     mapRenderMode: 'textured',
+    mapSectorSurface: 'floor',
     mapGridSettings: defaultMapGridSettings(),
     mapHighlightPortals: false,
     mapDoorVisibility: 'visible'
@@ -95,6 +98,15 @@ export class AppStore {
   public setMapRenderMode(mapRenderMode: MapRenderMode): void {
     this.state = { ...this.state, mapRenderMode };
     this.emit();
+  }
+
+  public setMapSectorSurface(mapSectorSurface: MapSectorSurface): void {
+    this.state = { ...this.state, mapSectorSurface };
+    this.emit();
+  }
+
+  public toggleMapSectorSurface(): void {
+    this.setMapSectorSurface(this.state.mapSectorSurface === 'floor' ? 'ceiling' : 'floor');
   }
 
   public setMapGridIsVisible(isGridVisible: boolean): void {

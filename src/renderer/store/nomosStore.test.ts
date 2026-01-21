@@ -5,6 +5,10 @@ describe('useNomosStore selection', () => {
     useNomosStore.setState({ mapSelection: null });
   });
 
+  it("defaults mapSectorSurface to 'floor'", () => {
+    expect(useNomosStore.getState().mapSectorSurface).toBe('floor');
+  });
+
   it('defaults mapSelection to null', () => {
     expect(useNomosStore.getState().mapSelection).toBeNull();
   });

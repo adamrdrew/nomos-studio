@@ -10,6 +10,7 @@ Current responsibilities:
 - Enable/disable Undo/Redo based on main-owned edit history state.
 - Provide a View menu to switch map render mode and control map grid display.
 - Provide View menu toggles that control Map Editor overlays (portal highlighting, textured door visibility).
+- Provide a View menu control to choose which sector surface is displayed in textured mode (floor vs ceiling).
 
 ## Architecture
 
@@ -44,6 +45,8 @@ Current responsibilities:
 - View menu:
 	- Wireframe
 	- Textured
+	- Floor Textures
+	- Ceiling Textures
 	- Highlight Portals
 	- Toggle Door Visibility
 	- Toggle Grid
@@ -80,6 +83,8 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	onToggleMapGrid: () => void;
 	onIncreaseMapGridOpacity: () => void;
 	onDecreaseMapGridOpacity: () => void;
+	mapSectorSurface: MapSectorSurface;
+	onSetMapSectorSurface: (surface: MapSectorSurface) => void;
 }>;
 ```
 
@@ -104,6 +109,10 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 ### Overlay menu items reflect store state
 - The View menu includes a Highlight Portals checkbox whose checked state reflects `mapHighlightPortals`.
 - The View menu includes a Toggle Door Visibility checkbox whose checked state reflects whether `mapDoorVisibility === 'hidden'`.
+
+### Sector surface menu items reflect store state
+- The View menu includes a Floor/Ceiling radio pair whose selected value reflects `mapSectorSurface`.
+- The floor/ceiling selection affects textured-mode sector fills only; wireframe rendering is unchanged.
 
 ## How to extend safely
 

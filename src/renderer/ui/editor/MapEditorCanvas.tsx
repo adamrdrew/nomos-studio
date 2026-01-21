@@ -29,7 +29,7 @@ type Point = Readonly<{ x: number; y: number }>;
 type Bounds = Readonly<{ minX: number; minY: number; maxX: number; maxY: number }>;
 
 const MIN_VIEW_SCALE = 0.1;
-const MAX_VIEW_SCALE = 24;
+const MAX_VIEW_SCALE = 64;
 
 // World-space size of one repeated texture tile.
 // Tuned so even small rooms show multiple repeats.
@@ -366,6 +366,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
 
   const mapDocument = useNomosStore((state) => state.mapDocument);
   const mapRenderMode = useNomosStore((state) => state.mapRenderMode);
+  const mapSectorSurface = useNomosStore((state) => state.mapSectorSurface);
   const mapGridSettings = useNomosStore((state) => state.mapGridSettings);
   const mapHighlightPortals = useNomosStore((state) => state.mapHighlightPortals);
   const mapDoorVisibility = useNomosStore((state) => state.mapDoorVisibility);
@@ -439,37 +440,71 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       return;
     }
 
-    const needed = new Set<string>();
-    for (const sector of decodedMap.value.sectors) {
-      if (sector.floorTex.trim().length > 0) {
-        needed.add(sector.floorTex);
+    type NeededTexture = Readonly<{ cacheKey: string; fileName: string; relativePath: string }>;
+
+    const needed: NeededTexture[] = [];
+    const addTexture = (fileName: string): void => {
+      const trimmed = fileName.trim();
+      if (trimmed.length === 0) {
+        return;
+      }
+      needed.push({ cacheKey: trimmed, fileName: trimmed, relativePath: `Images/Textures/${trimmed}` });
+    };
+    const addSkyTexture = (fileName: string): void => {
+      const trimmed = fileName.trim();
+      if (trimmed.length === 0) {
+        return;
+      }
+      const relativePath = `Images/Sky/${trimmed}`;
+      needed.push({ cacheKey: relativePath, fileName: trimmed, relativePath });
+    };
+
+    if (mapSectorSurface === 'floor') {
+      for (const sector of decodedMap.value.sectors) {
+        addTexture(sector.floorTex);
+      }
+    } else {
+      let needsSky = false;
+      for (const sector of decodedMap.value.sectors) {
+        if (sector.ceilTex.trim().toLowerCase() === 'sky') {
+          needsSky = true;
+          continue;
+        }
+        addTexture(sector.ceilTex);
+      }
+
+      if (needsSky && decodedMap.value.sky !== null) {
+        addSkyTexture(decodedMap.value.sky);
       }
     }
+
     for (const wall of decodedMap.value.walls) {
-      if (wall.tex.trim().length > 0) {
-        needed.add(wall.tex);
-      }
+      addTexture(wall.tex);
+    }
+
+    const uniqueNeededByKey = new Map<string, NeededTexture>();
+    for (const entry of needed) {
+      uniqueNeededByKey.set(entry.cacheKey, entry);
     }
 
     let cancelled = false;
 
     void (async () => {
-      for (const fileName of needed) {
+      for (const entry of uniqueNeededByKey.values()) {
         if (cancelled) {
           return;
         }
 
-        if (textureCacheRef.current.has(fileName)) {
+        if (textureCacheRef.current.has(entry.cacheKey)) {
           continue;
         }
 
-        const relativePath = `Images/Textures/${fileName}`;
-        const bytesResult = await window.nomos.assets.readFileBytes({ relativePath });
+        const bytesResult = await window.nomos.assets.readFileBytes({ relativePath: entry.relativePath });
         if (!bytesResult.ok) {
           continue;
         }
 
-        const mimeType = guessMimeType(fileName);
+        const mimeType = guessMimeType(entry.fileName);
         const bytesCopy = new Uint8Array(bytesResult.value);
         const objectUrl = URL.createObjectURL(new Blob([bytesCopy.buffer], { type: mimeType }));
 
@@ -477,7 +512,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           const image = await new Promise<HTMLImageElement>((resolve, reject) => {
             const img = new Image();
             img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error(`Failed to load image: ${fileName}`));
+            img.onerror = () => reject(new Error(`Failed to load image: ${entry.fileName}`));
             img.src = objectUrl;
           });
 
@@ -494,7 +529,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
             }
           }
 
-          textureCacheRef.current.set(fileName, { image, objectUrl });
+          textureCacheRef.current.set(entry.cacheKey, { image, objectUrl });
 
           setTextureImages(() => {
             const next: Record<string, HTMLImageElement> = {};
@@ -512,7 +547,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
     return () => {
       cancelled = true;
     };
-  }, [decodedMap, mapRenderMode]);
+  }, [decodedMap, mapRenderMode, mapSectorSurface]);
 
   const [view, setView] = React.useState<ViewTransform>({
     offsetX: 0,
@@ -1072,7 +1107,26 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           continue;
         }
 
-        const image = textureImages[sector.floorTex];
+        const { resolvedTextureKey, isSkyFill } = (() => {
+          if (mapSectorSurface === 'floor') {
+            return { resolvedTextureKey: sector.floorTex, isSkyFill: false };
+          }
+
+          if (sector.ceilTex.trim().toLowerCase() === 'sky') {
+            if (map.sky === null) {
+              return { resolvedTextureKey: null, isSkyFill: true };
+            }
+            return { resolvedTextureKey: `Images/Sky/${map.sky}`, isSkyFill: true };
+          }
+
+          return { resolvedTextureKey: sector.ceilTex, isSkyFill: false };
+        })();
+
+        if (resolvedTextureKey === null) {
+          continue;
+        }
+
+        const image = textureImages[resolvedTextureKey];
         if (!image) {
           // While textures are loading (or missing), avoid drawing large fallback fills.
           // Walls still render below, keeping the view usable.
@@ -1103,6 +1157,21 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
               }
               native.closePath();
               native.fill();
+
+              if (!isSkyFill) {
+                const brightness = clamp01(sector.light);
+                const darkness = 1 - brightness;
+                if (darkness > 0) {
+                  native.fillStyle = `rgba(0, 0, 0, ${clamp01(darkness)})`;
+                  native.beginPath();
+                  native.moveTo(points[0] ?? 0, points[1] ?? 0);
+                  for (let index = 2; index < points.length; index += 2) {
+                    native.lineTo(points[index] ?? 0, points[index + 1] ?? 0);
+                  }
+                  native.closePath();
+                  native.fill();
+                }
+              }
 
               context.fillStrokeShape(shape);
             }}

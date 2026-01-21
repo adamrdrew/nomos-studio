@@ -37,6 +37,8 @@ export type MapDocument = Readonly<{
 
 export type MapRenderMode = 'wireframe' | 'textured';
 
+export type MapSectorSurface = 'floor' | 'ceiling';
+
 export type MapDoorVisibility = 'visible' | 'hidden';
 
 export type MapGridSettings = Readonly<{

@@ -1,6 +1,6 @@
 import type { MenuItemConstructorOptions } from 'electron';
 
-import type { MapDoorVisibility, MapGridSettings, MapRenderMode } from '../../../shared/domain/models';
+import type { MapDoorVisibility, MapGridSettings, MapRenderMode, MapSectorSurface } from '../../../shared/domain/models';
 
 export type CreateApplicationMenuTemplateOptions = Readonly<{
   appName: string;
@@ -9,6 +9,7 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   canUndo: boolean;
   canRedo: boolean;
   mapRenderMode: MapRenderMode;
+  mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
   mapDoorVisibility: MapDoorVisibility;
@@ -19,6 +20,7 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   onRedo: () => void;
   onRefreshAssetsIndex: () => void;
   onSetMapRenderMode: (mode: MapRenderMode) => void;
+  onSetMapSectorSurface: (surface: MapSectorSurface) => void;
   onToggleMapHighlightPortals: () => void;
   onToggleMapDoorVisibility: () => void;
   onToggleMapGrid: () => void;
@@ -87,6 +89,19 @@ export function createApplicationMenuTemplate(
         type: 'radio',
         checked: options.mapRenderMode === 'textured',
         click: () => options.onSetMapRenderMode('textured')
+      },
+      { type: 'separator' },
+      {
+        label: 'Floor Textures',
+        type: 'radio',
+        checked: options.mapSectorSurface === 'floor',
+        click: () => options.onSetMapSectorSurface('floor')
+      },
+      {
+        label: 'Ceiling Textures',
+        type: 'radio',
+        checked: options.mapSectorSurface === 'ceiling',
+        click: () => options.onSetMapSectorSurface('ceiling')
       },
       { type: 'separator' },
       {

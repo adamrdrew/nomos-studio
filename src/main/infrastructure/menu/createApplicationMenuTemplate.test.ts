@@ -9,6 +9,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
@@ -19,6 +20,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
@@ -50,6 +52,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
@@ -60,6 +63,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
@@ -90,6 +94,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
@@ -100,6 +105,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
@@ -127,6 +133,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
@@ -137,6 +144,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
@@ -164,6 +172,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'textured',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
@@ -174,6 +183,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
@@ -210,6 +220,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: false, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
@@ -220,6 +231,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
@@ -258,6 +270,66 @@ describe('createApplicationMenuTemplate', () => {
     expect(decreaseOpacityItem).toBeDefined();
   });
 
+  it('includes View floor/ceiling surface radio items and click calls through', () => {
+    const onSetMapSectorSurface = jest.fn();
+
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      canUndo: false,
+      canRedo: false,
+      mapRenderMode: 'textured',
+      mapSectorSurface: 'ceiling',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onOpenMap: () => {},
+      onSave: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onSetMapSectorSurface,
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const viewMenu = template.find((item) => item.label === 'View');
+    expect(viewMenu).toBeDefined();
+    if (viewMenu === undefined || viewMenu.submenu === undefined || !Array.isArray(viewMenu.submenu)) {
+      throw new Error('Expected View menu submenu');
+    }
+
+    const floorTexturesItem = viewMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Floor Textures'
+    ) as { checked?: boolean; type?: string; click?: () => void } | undefined;
+
+    const ceilingTexturesItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Ceiling Textures'
+    ) as { checked?: boolean; type?: string; click?: () => void } | undefined;
+
+    expect(floorTexturesItem?.type).toBe('radio');
+    expect(ceilingTexturesItem?.type).toBe('radio');
+
+    expect(floorTexturesItem?.checked).toBe(false);
+    expect(ceilingTexturesItem?.checked).toBe(true);
+
+    ceilingTexturesItem?.click?.();
+    expect(onSetMapSectorSurface).toHaveBeenCalledWith('ceiling');
+
+    floorTexturesItem?.click?.();
+    expect(onSetMapSectorSurface).toHaveBeenCalledWith('floor');
+  });
+
   it('wires View grid menu item clicks to the provided callbacks', () => {
     const onToggleMapGrid = jest.fn();
     const onIncreaseMapGridOpacity = jest.fn();
@@ -270,6 +342,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
@@ -280,6 +353,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid,
@@ -329,6 +403,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: true,
       mapDoorVisibility: 'hidden',
@@ -339,6 +414,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
@@ -380,6 +456,7 @@ describe('createApplicationMenuTemplate', () => {
       canUndo: false,
       canRedo: false,
       mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
@@ -390,6 +467,7 @@ describe('createApplicationMenuTemplate', () => {
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
       onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals,
       onToggleMapDoorVisibility,
       onToggleMapGrid: () => {},

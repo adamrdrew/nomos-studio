@@ -14,6 +14,7 @@ describe('AppStore', () => {
     expect(state.assetIndexError).toBeNull();
     expect(state.mapDocument).toBeNull();
     expect(state.mapRenderMode).toBe('textured');
+    expect(state.mapSectorSurface).toBe('floor');
     expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.3 });
     expect(state.mapHighlightPortals).toBe(false);
     expect(state.mapDoorVisibility).toBe('visible');
@@ -117,6 +118,44 @@ describe('AppStore', () => {
 
     store.setMapRenderMode('textured');
     expect(store.getState().mapRenderMode).toBe('textured');
+  });
+
+  it('setMapSectorSurface stores the surface and toggleMapSectorSurface flips it', () => {
+    const store = new AppStore();
+
+    expect(store.getState().mapSectorSurface).toBe('floor');
+
+    store.setMapSectorSurface('ceiling');
+    expect(store.getState().mapSectorSurface).toBe('ceiling');
+
+    store.setMapSectorSurface('floor');
+    expect(store.getState().mapSectorSurface).toBe('floor');
+
+    store.toggleMapSectorSurface();
+    expect(store.getState().mapSectorSurface).toBe('ceiling');
+
+    store.toggleMapSectorSurface();
+    expect(store.getState().mapSectorSurface).toBe('floor');
+  });
+
+  it('mapSectorSurface updates notify subscribers', () => {
+    const store = new AppStore();
+
+    let calls = 0;
+    let lastSurface: unknown = null;
+
+    store.subscribe((state) => {
+      calls += 1;
+      lastSurface = state.mapSectorSurface;
+    });
+
+    store.toggleMapSectorSurface();
+    expect(calls).toBe(1);
+    expect(lastSurface).toBe('ceiling');
+
+    store.setMapSectorSurface('floor');
+    expect(calls).toBe(2);
+    expect(lastSurface).toBe('floor');
   });
 
   it('setMapGridIsVisible stores visibility and preserves opacity', () => {

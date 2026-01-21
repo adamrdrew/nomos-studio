@@ -56,6 +56,7 @@ export type MapEntityPlacement = Readonly<{
 }>;
 
 export type MapViewModel = Readonly<{
+  sky: string | null;
   vertices: readonly MapVertex[];
   sectors: readonly MapSector[];
   walls: readonly MapWall[];
