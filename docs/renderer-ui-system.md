@@ -39,9 +39,12 @@ Current responsibilities:
 		- textured ceilings (best-effort) when the View surface mode is set to ceiling
 		- door/entity/light/particle markers
 	- Implements Select-mode hit-testing and updates the selection state.
+		- Picking is designed to follow the principle of least surprise: walls win over sectors when the pointer is visually on/near a wall.
+		- In textured mode, wall picking considers the rendered wall strip polygon so clicking inside the strip selects the wall (even when far from the centerline).
 	- View overlays:
 		- portal walls can be highlighted with a blue/cyan overlay (walls with `backSector > -1`)
 		- the active selection is outlined in red (wall/sector/door/entity/light/particle)
+		- when the Select tool is active, the hovered object (what would be selected on click) is outlined in yellow
 		- door markers can be hidden in textured mode via `mapDoorVisibility`
 	- **Textured rendering + CSP constraints:**
 		- The renderer requests texture bytes via `window.nomos.assets.readFileBytes({ relativePath })`.
@@ -109,6 +112,7 @@ The editor UI is organized like a traditional creative tool:
 	- Portal highlighting and textured-mode door visibility are controlled by main-process snapshot state via the View menu.
 	- Object markers (doors/entities/lights/particles) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
 	- The active selection is outlined in red to improve focus.
+	- When the Select tool is active, a yellow hover outline previews what will be selected on click.
 - **Toolbox** (left overlay within the Map Editor): Select / Zoom / Pan tool modes.
 	- Move mode allows dragging the currently selected entity to a new position.
 		- The renderer maintains a local preview while dragging.

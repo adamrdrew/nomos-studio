@@ -2,68 +2,87 @@ phase:
   id: 0021
   slug: selection-tool-fixes
   title: Selection Tool Fixes (Hit-Testing + Hover Preview)
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Locate and characterize current picking behavior
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Current Select click path: MapEditorCanvas onMouseDown (select mode) -> hitTestSelection(authoredWorldPoint, view, decodedMap). hitTestSelection prioritizes markers > doors > walls (distance-to-centerline threshold = 10px in screen-space) > sector (ray-crossing). Repro for reported bug: in textured mode, rendered wall strip thickness is TEXTURED_WALL_THICKNESS_WORLD=0.4 world units; at high zoom (e.g., view.scale=64), strip is 25.6px thick so clicks inside strip near its edge are ~12.8px from centerline and can miss the 10px wall threshold, falling through to sector selection."
+    touched:
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S002
     title: Define picking policy (rules and tie-breakers)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Documented explicit picking priority order, screen-space thresholds, textured wall polygon inclusion rule, and tie-breakers in phase.md under 'Picking policy'."
+    touched:
+      - .ushabti/phases/0021-selection-tool-fixes/phase.md
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S003
     title: Extract picking into a pure, testable module
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added pure renderer picking module (pickMapSelection) and replaced MapEditorCanvas in-file hitTestSelection with the extracted function. Hoisted textured wall polygons into a memo for reuse."
+    touched:
+      - src/renderer/ui/editor/map/mapPicking.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S004
     title: Improve wall picking robustness
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Improved textured-mode wall picking by selecting a wall when the pointer is inside its rendered strip polygon (prevents falling through to sector when strip is thicker than the centerline hit threshold at high zoom)."
+    touched:
+      - src/renderer/ui/editor/map/mapPicking.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/map/mapPicking.test.ts
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S005
     title: Add regression-focused unit tests for picking
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added mapPicking.test.ts covering priority order (marker/door/wall/sector), closest-wall tie-break, and textured wall strip regression where polygon inclusion must select the wall."
+    touched:
+      - src/renderer/ui/editor/map/mapPicking.test.ts
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S006
     title: Implement hover preview state in Select mode
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added hoveredSelection state in MapEditorCanvas; updated onMouseMove (select mode) to compute hover candidate via pickMapSelection, and clears it when leaving the stage or switching tools."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S007
     title: Render hover outline (yellow border)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Rendered hover preview outline in MapEditorCanvas using a yellow (GOLD) stroke for the hovered selection candidate, painted beneath the existing red selection outline."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S008
     title: Update renderer UI documentation (if needed)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated renderer UI docs to mention Select-mode hover outline (yellow) and textured-mode wall strip polygon picking behavior."
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S009
     title: Verification pass and quality gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Ran repo quality gates (tests/typecheck/lint) and verified no TS errors in the modified renderer picking/hover code. Manual verification remains: confirm hover outline and selection behavior in the running app."
+    touched:
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml

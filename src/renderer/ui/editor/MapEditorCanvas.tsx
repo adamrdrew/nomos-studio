@@ -6,6 +6,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 
 import { useNomosStore } from '../../store/nomosStore';
 import { decodeMapViewModel } from './map/mapDecoder';
+import { pickMapSelection } from './map/mapPicking';
 import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
@@ -41,6 +42,34 @@ const TEXTURED_WALL_THICKNESS_WORLD = TEXTURE_TILE_WORLD_UNITS * 0.1;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function areSelectionsEqual(a: MapSelection | null, b: MapSelection | null): boolean {
+  if (a === null || b === null) {
+    return a === b;
+  }
+  if (a.kind !== b.kind) {
+    return false;
+  }
+  if (a.kind === 'door' && b.kind === 'door') {
+    return a.id === b.id;
+  }
+  if (a.kind === 'sector' && b.kind === 'sector') {
+    return a.id === b.id;
+  }
+  if (a.kind === 'wall' && b.kind === 'wall') {
+    return a.index === b.index;
+  }
+  if (a.kind === 'entity' && b.kind === 'entity') {
+    return a.index === b.index;
+  }
+  if (a.kind === 'light' && b.kind === 'light') {
+    return a.index === b.index;
+  }
+  if (a.kind === 'particle' && b.kind === 'particle') {
+    return a.index === b.index;
+  }
+  return false;
 }
 
 function modulo(value: number, modulus: number): number {
@@ -125,53 +154,6 @@ function hexToRgba(hexColor: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${clamp01(alpha)})`;
 }
 
-function distancePointToSegment(worldPoint: Point, a: Point, b: Point): number {
-  const abX = b.x - a.x;
-  const abY = b.y - a.y;
-  const apX = worldPoint.x - a.x;
-  const apY = worldPoint.y - a.y;
-
-  const abLenSquared = abX * abX + abY * abY;
-  if (abLenSquared === 0) {
-    return Math.sqrt(distanceSquared(worldPoint, a));
-  }
-
-  const t = clamp01((apX * abX + apY * abY) / abLenSquared);
-  const closest: Point = { x: a.x + t * abX, y: a.y + t * abY };
-  return Math.sqrt(distanceSquared(worldPoint, closest));
-}
-
-function pointInSector(worldPoint: Point, map: MapViewModel, sectorId: number): boolean {
-  let crossings = 0;
-  for (const wall of map.walls) {
-    if (wall.frontSector !== sectorId) {
-      continue;
-    }
-
-    const v0 = map.vertices[wall.v0];
-    const v1 = map.vertices[wall.v1];
-    if (!v0 || !v1) {
-      continue;
-    }
-
-    const y1 = v0.y;
-    const y2 = v1.y;
-    const x1 = v0.x;
-    const x2 = v1.x;
-
-    const straddles = (y1 > worldPoint.y) !== (y2 > worldPoint.y);
-    if (!straddles) {
-      continue;
-    }
-
-    const xAtY = x1 + ((worldPoint.y - y1) * (x2 - x1)) / (y2 - y1);
-    if (xAtY > worldPoint.x) {
-      crossings += 1;
-    }
-  }
-  return crossings % 2 === 1;
-}
-
 function buildSectorLoop(map: MapViewModel, sectorId: number): readonly number[] | null {
   const edges = map.walls
     .filter((wall) => wall.frontSector === sectorId)
@@ -223,83 +205,6 @@ function buildSectorLoop(map: MapViewModel, sectorId: number): readonly number[]
   }
 
   return loop;
-}
-
-function hitTestSelection(worldPoint: Point, view: ViewTransform, map: MapViewModel): MapSelection | null {
-  // Priority: markers > doors > walls > sector
-  const markerHitRadiusScreen = 10;
-  const markerHitRadiusWorld = markerHitRadiusScreen / view.scale;
-
-  for (const entity of map.entities) {
-    const d2 = distanceSquared(worldPoint, { x: entity.x, y: entity.y });
-    if (d2 <= markerHitRadiusWorld * markerHitRadiusWorld) {
-      return { kind: 'entity', index: entity.index };
-    }
-  }
-
-  for (const particle of map.particles) {
-    const d2 = distanceSquared(worldPoint, { x: particle.x, y: particle.y });
-    if (d2 <= markerHitRadiusWorld * markerHitRadiusWorld) {
-      return { kind: 'particle', index: particle.index };
-    }
-  }
-
-  for (const light of map.lights) {
-    const d2 = distanceSquared(worldPoint, { x: light.x, y: light.y });
-    if (d2 <= markerHitRadiusWorld * markerHitRadiusWorld) {
-      return { kind: 'light', index: light.index };
-    }
-  }
-
-  const doorHitRadiusScreen = 10;
-  const doorHitRadiusWorld = doorHitRadiusScreen / view.scale;
-  for (const door of map.doors) {
-    const wall = map.walls[door.wallIndex];
-    if (!wall) {
-      continue;
-    }
-    const v0 = map.vertices[wall.v0];
-    const v1 = map.vertices[wall.v1];
-    if (!v0 || !v1) {
-      continue;
-    }
-
-    const mid: Point = { x: (v0.x + v1.x) / 2, y: (v0.y + v1.y) / 2 };
-    const d2 = distanceSquared(worldPoint, mid);
-    if (d2 <= doorHitRadiusWorld * doorHitRadiusWorld) {
-      return { kind: 'door', id: door.id };
-    }
-  }
-
-  // Keep wall hit-testing intuitive even when walls are rendered thicker in textured mode.
-  const wallHitThresholdScreen = 10;
-  const wallHitThresholdWorld = wallHitThresholdScreen / view.scale;
-  let bestWallIndex: number | null = null;
-  let bestWallDistance = Number.POSITIVE_INFINITY;
-  for (const wall of map.walls) {
-    const v0 = map.vertices[wall.v0];
-    const v1 = map.vertices[wall.v1];
-    if (!v0 || !v1) {
-      continue;
-    }
-
-    const distance = distancePointToSegment(worldPoint, v0, v1);
-    if (distance <= wallHitThresholdWorld && distance < bestWallDistance) {
-      bestWallDistance = distance;
-      bestWallIndex = wall.index;
-    }
-  }
-  if (bestWallIndex !== null) {
-    return { kind: 'wall', index: bestWallIndex };
-  }
-
-  for (const sector of map.sectors) {
-    if (pointInSector(worldPoint, map, sector.id)) {
-      return { kind: 'sector', id: sector.id };
-    }
-  }
-
-  return null;
 }
 
 function computeMapBounds(map: MapViewModel): Bounds | null {
@@ -377,6 +282,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const mapSelection = useNomosStore((state) => state.mapSelection);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
 
+  const [hoveredSelection, setHoveredSelection] = React.useState<MapSelection | null>(null);
+
   const mapFilePath = mapDocument?.filePath ?? null;
 
   const decodedMap = React.useMemo(() => {
@@ -386,6 +293,16 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
 
     return decodeMapViewModel(mapDocument.json);
   }, [mapDocument]);
+
+  const texturedWallPolygons = React.useMemo<readonly WallStripPolygon[] | null>(() => {
+    if (mapRenderMode !== 'textured') {
+      return null;
+    }
+    if (decodedMap === null || !decodedMap.ok) {
+      return null;
+    }
+    return computeTexturedWallStripPolygons(decodedMap.value, TEXTURED_WALL_THICKNESS_WORLD);
+  }, [decodedMap, mapRenderMode]);
 
   const mapOrigin = React.useMemo<Point>(() => {
     if (decodedMap === null || !decodedMap.ok) {
@@ -726,6 +643,12 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const isSelectEnabled = props.interactionMode === 'select';
   const isMoveEnabled = props.interactionMode === 'move';
 
+  React.useEffect(() => {
+    if (!isSelectEnabled) {
+      setHoveredSelection(null);
+    }
+  }, [isSelectEnabled]);
+
   const isDraggingRef = React.useRef<boolean>(false);
   const lastPointerRef = React.useRef<Readonly<{ x: number; y: number }> | null>(null);
 
@@ -782,7 +705,13 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           x: renderWorldPoint.x + mapOrigin.x,
           y: renderWorldPoint.y + mapOrigin.y
         };
-        const selection = hitTestSelection(authoredWorldPoint, view, decodedMap.value);
+        const selection = pickMapSelection({
+          worldPoint: authoredWorldPoint,
+          viewScale: view.scale,
+          map: decodedMap.value,
+          renderMode: mapRenderMode,
+          texturedWallPolygons
+        });
         setMapSelection(selection);
       } else {
         setMapSelection(null);
@@ -852,6 +781,11 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
     lastPointerRef.current = { x: pointer.x, y: pointer.y };
   };
 
+  const onMouseLeave = (): void => {
+    onMouseUp();
+    setHoveredSelection(null);
+  };
+
   const onMouseUp = (): void => {
     isDraggingRef.current = false;
     lastPointerRef.current = null;
@@ -904,6 +838,35 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   };
 
   const onMouseMove = (event: KonvaEventObject<MouseEvent>): void => {
+    if (isSelectEnabled) {
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      if (decodedMap?.ok) {
+        const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+        const authoredWorldPoint: Point = {
+          x: renderWorldPoint.x + mapOrigin.x,
+          y: renderWorldPoint.y + mapOrigin.y
+        };
+        const nextHovered = pickMapSelection({
+          worldPoint: authoredWorldPoint,
+          viewScale: view.scale,
+          map: decodedMap.value,
+          renderMode: mapRenderMode,
+          texturedWallPolygons
+        });
+
+        setHoveredSelection((current) => (areSelectionsEqual(current, nextHovered) ? current : nextHovered));
+      } else {
+        setHoveredSelection(null);
+      }
+
+      return;
+    }
+
     if (isMoveEnabled && isMoveDraggingRef.current) {
       if (mapSelection === null || mapSelection.kind !== 'entity') {
         return;
@@ -1020,6 +983,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const wallStrokeWidth = 2;
   const selectionStroke = Colors.RED4;
   const selectionStrokeWidth = 3;
+  const hoverStroke = Colors.GOLD5;
+  const hoverStrokeWidth = 2;
   const doorStroke = Colors.ORANGE4;
   const doorStrokeWidth = 2;
   const doorMarkerSizePx = 10;
@@ -1067,6 +1032,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const doorMarkers: JSX.Element[] = [];
   const texturedFloors: JSX.Element[] = [];
   const texturedWalls: JSX.Element[] = [];
+  const hoverOverlays: JSX.Element[] = [];
   const selectionOverlays: JSX.Element[] = [];
   const lightRadiusCircles: JSX.Element[] = [];
   const lightMarkers: JSX.Element[] = [];
@@ -1076,18 +1042,222 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   if (decodedMap?.ok) {
     const map = decodedMap.value;
 
-    let texturedWallPolygons: readonly WallStripPolygon[] | null = null;
-
     const toRenderX = (authoredX: number): number => authoredX - mapOrigin.x;
     const toRenderY = (authoredY: number): number => authoredY - mapOrigin.y;
 
     // Marker sizes are defined in screen pixels and converted to world units.
     const safeScale = Math.max(0.0001, view.scale);
-    const texturedWallThicknessWorld = TEXTURED_WALL_THICKNESS_WORLD;
     const doorMarkerSizeWorld = doorMarkerSizePx / safeScale;
     const lightMarkerRadiusWorld = lightMarkerRadiusPx / safeScale;
     const particleMarkerSizeWorld = particleMarkerSizePx / safeScale;
     const entityMarkerSizeWorld = entityMarkerSizePx / safeScale;
+
+    const appendSelectionOutline = (
+      selection: MapSelection,
+      stroke: string,
+      strokeWidth: number,
+      out: JSX.Element[]
+    ): void => {
+      if (selection.kind === 'sector') {
+        const loop = buildSectorLoop(map, selection.id);
+        if (loop === null) {
+          return;
+        }
+
+        const points: number[] = [];
+        for (const vertexIndex of loop) {
+          const vertex = map.vertices[vertexIndex];
+          if (!vertex) {
+            continue;
+          }
+          points.push(toRenderX(vertex.x), toRenderY(vertex.y));
+        }
+
+        if (points.length < 6) {
+          return;
+        }
+
+        out.push(
+          <Line
+            key={`outline-${stroke}-${selection.kind}-${selection.id}`}
+            points={points}
+            closed={true}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeScaleEnabled={false}
+            lineCap="round"
+            lineJoin="round"
+          />
+        );
+        return;
+      }
+
+      if (selection.kind === 'wall') {
+        const wall = map.walls[selection.index];
+        if (!wall) {
+          return;
+        }
+
+        const v0 = map.vertices[wall.v0];
+        const v1 = map.vertices[wall.v1];
+        if (!v0 || !v1) {
+          return;
+        }
+
+        if (mapRenderMode === 'textured' && texturedWallPolygons !== null) {
+          const polygon = texturedWallPolygons.find((candidate) => candidate.wallIndex === wall.index) ?? null;
+          if (polygon !== null) {
+            const points: number[] = [];
+            for (const point of polygon.points) {
+              points.push(toRenderX(point.x), toRenderY(point.y));
+            }
+
+            if (points.length >= 6) {
+              out.push(
+                <Line
+                  key={`outline-${stroke}-${selection.kind}-${wall.index}`}
+                  points={points}
+                  closed={true}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  strokeScaleEnabled={false}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              );
+              return;
+            }
+          }
+        }
+
+        out.push(
+          <Line
+            key={`outline-${stroke}-${selection.kind}-${wall.index}`}
+            points={[toRenderX(v0.x), toRenderY(v0.y), toRenderX(v1.x), toRenderY(v1.y)]}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeScaleEnabled={false}
+            lineCap="round"
+            lineJoin="round"
+          />
+        );
+        return;
+      }
+
+      if (selection.kind === 'door') {
+        const door = map.doors.find((candidate) => candidate.id === selection.id) ?? null;
+        const wall = door ? map.walls[door.wallIndex] : null;
+        if (!wall) {
+          return;
+        }
+
+        const v0 = map.vertices[wall.v0];
+        const v1 = map.vertices[wall.v1];
+        if (!v0 || !v1) {
+          return;
+        }
+
+        const midX = toRenderX((v0.x + v1.x) / 2);
+        const midY = toRenderY((v0.y + v1.y) / 2);
+        out.push(
+          <Line
+            key={`outline-${stroke}-${selection.kind}-${selection.id}`}
+            points={[
+              midX - doorMarkerSizeWorld / 2,
+              midY - doorMarkerSizeWorld / 2,
+              midX + doorMarkerSizeWorld / 2,
+              midY + doorMarkerSizeWorld / 2,
+              midX + doorMarkerSizeWorld / 2,
+              midY - doorMarkerSizeWorld / 2,
+              midX - doorMarkerSizeWorld / 2,
+              midY + doorMarkerSizeWorld / 2
+            ]}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeScaleEnabled={false}
+            lineCap="round"
+            lineJoin="round"
+          />
+        );
+        return;
+      }
+
+      if (selection.kind === 'entity') {
+        const entity = map.entities[selection.index];
+        if (!entity) {
+          return;
+        }
+
+        const preview = movePreview;
+        const entityX = preview !== null && preview.index === entity.index ? preview.x : entity.x;
+        const entityY = preview !== null && preview.index === entity.index ? preview.y : entity.y;
+        const half = entityMarkerSizeWorld / 2;
+
+        out.push(
+          <Line
+            key={`outline-${stroke}-${selection.kind}-${selection.index}`}
+            points={[
+              toRenderX(entityX),
+              toRenderY(entityY) - half,
+              toRenderX(entityX) + half,
+              toRenderY(entityY) + half,
+              toRenderX(entityX) - half,
+              toRenderY(entityY) + half
+            ]}
+            closed={true}
+            fill="rgba(0,0,0,0)"
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeScaleEnabled={false}
+            lineJoin="round"
+          />
+        );
+        return;
+      }
+
+      if (selection.kind === 'light') {
+        const light = map.lights[selection.index];
+        if (!light) {
+          return;
+        }
+
+        out.push(
+          <Circle
+            key={`outline-${stroke}-${selection.kind}-${selection.index}`}
+            x={toRenderX(light.x)}
+            y={toRenderY(light.y)}
+            radius={lightMarkerRadiusWorld}
+            fill="rgba(0,0,0,0)"
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeScaleEnabled={false}
+          />
+        );
+        return;
+      }
+
+      if (selection.kind === 'particle') {
+        const particle = map.particles[selection.index];
+        if (!particle) {
+          return;
+        }
+
+        const half = particleMarkerSizeWorld / 2;
+        out.push(
+          <Rect
+            key={`outline-${stroke}-${selection.kind}-${selection.index}`}
+            x={toRenderX(particle.x) - half}
+            y={toRenderY(particle.y) - half}
+            width={particleMarkerSizeWorld}
+            height={particleMarkerSizeWorld}
+            fill="rgba(0,0,0,0)"
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeScaleEnabled={false}
+          />
+        );
+      }
+    };
 
     if (mapRenderMode === 'textured') {
       for (const sector of map.sectors) {
@@ -1181,9 +1351,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         );
       }
 
-      const wallPolygons = computeTexturedWallStripPolygons(map, texturedWallThicknessWorld);
-      texturedWallPolygons = wallPolygons;
-      const sortedWallPolygons = [...wallPolygons].sort((a, b) => a.wallIndex - b.wallIndex);
+      const sortedWallPolygons = [...(texturedWallPolygons ?? [])].sort((a, b) => a.wallIndex - b.wallIndex);
 
       for (const polygon of sortedWallPolygons) {
         const wall = map.walls[polygon.wallIndex];
@@ -1488,181 +1656,14 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       );
     }
 
+    const hoverCandidate =
+      props.interactionMode === 'select' && !areSelectionsEqual(hoveredSelection, mapSelection) ? hoveredSelection : null;
+    if (hoverCandidate !== null) {
+      appendSelectionOutline(hoverCandidate, hoverStroke, hoverStrokeWidth, hoverOverlays);
+    }
+
     if (mapSelection !== null) {
-      if (mapSelection.kind === 'sector') {
-        const loop = buildSectorLoop(map, mapSelection.id);
-        if (loop !== null) {
-          const points: number[] = [];
-          for (const vertexIndex of loop) {
-            const vertex = map.vertices[vertexIndex];
-            if (!vertex) {
-              continue;
-            }
-            points.push(toRenderX(vertex.x), toRenderY(vertex.y));
-          }
-
-          if (points.length >= 6) {
-            selectionOverlays.push(
-              <Line
-                key={`selection-sector-${mapSelection.id}`}
-                points={points}
-                closed={true}
-                stroke={selectionStroke}
-                strokeWidth={selectionStrokeWidth}
-                strokeScaleEnabled={false}
-                lineCap="round"
-                lineJoin="round"
-              />
-            );
-          }
-        }
-      }
-
-      if (mapSelection.kind === 'wall') {
-        const wall = map.walls[mapSelection.index];
-        if (wall) {
-          const v0 = map.vertices[wall.v0];
-          const v1 = map.vertices[wall.v1];
-          if (v0 && v1) {
-            if (mapRenderMode === 'textured' && texturedWallPolygons !== null) {
-              const polygon = texturedWallPolygons.find((candidate) => candidate.wallIndex === wall.index) ?? null;
-              if (polygon !== null) {
-                const points: number[] = [];
-                for (const point of polygon.points) {
-                  points.push(toRenderX(point.x), toRenderY(point.y));
-                }
-
-                if (points.length >= 6) {
-                  selectionOverlays.push(
-                    <Line
-                      key={`selection-wall-${wall.index}`}
-                      points={points}
-                      closed={true}
-                      stroke={selectionStroke}
-                      strokeWidth={selectionStrokeWidth}
-                      strokeScaleEnabled={false}
-                      lineCap="round"
-                      lineJoin="round"
-                    />
-                  );
-                }
-              }
-            } else {
-              selectionOverlays.push(
-                <Line
-                  key={`selection-wall-${wall.index}`}
-                  points={[toRenderX(v0.x), toRenderY(v0.y), toRenderX(v1.x), toRenderY(v1.y)]}
-                  stroke={selectionStroke}
-                  strokeWidth={selectionStrokeWidth}
-                  strokeScaleEnabled={false}
-                  lineCap="round"
-                  lineJoin="round"
-                />
-              );
-            }
-          }
-        }
-      }
-
-      if (mapSelection.kind === 'door') {
-        const door = map.doors.find((candidate) => candidate.id === mapSelection.id) ?? null;
-        const wall = door ? map.walls[door.wallIndex] : null;
-        if (wall) {
-          const v0 = map.vertices[wall.v0];
-          const v1 = map.vertices[wall.v1];
-          if (v0 && v1) {
-            const midX = toRenderX((v0.x + v1.x) / 2);
-            const midY = toRenderY((v0.y + v1.y) / 2);
-            selectionOverlays.push(
-              <Line
-                key={`selection-door-${mapSelection.id}`}
-                points={[
-                  midX - doorMarkerSizeWorld / 2,
-                  midY - doorMarkerSizeWorld / 2,
-                  midX + doorMarkerSizeWorld / 2,
-                  midY + doorMarkerSizeWorld / 2,
-                  midX + doorMarkerSizeWorld / 2,
-                  midY - doorMarkerSizeWorld / 2,
-                  midX - doorMarkerSizeWorld / 2,
-                  midY + doorMarkerSizeWorld / 2
-                ]}
-                stroke={selectionStroke}
-                strokeWidth={selectionStrokeWidth}
-                strokeScaleEnabled={false}
-                lineCap="round"
-                lineJoin="round"
-              />
-            );
-          }
-        }
-      }
-
-      if (mapSelection.kind === 'entity') {
-        const entity = map.entities[mapSelection.index];
-        if (entity) {
-          const preview = movePreview;
-          const entityX = preview !== null && preview.index === entity.index ? preview.x : entity.x;
-          const entityY = preview !== null && preview.index === entity.index ? preview.y : entity.y;
-          const half = entityMarkerSizeWorld / 2;
-          selectionOverlays.push(
-            <Line
-              key={`selection-entity-${entity.index}`}
-              points={[
-                toRenderX(entityX),
-                toRenderY(entityY) - half,
-                toRenderX(entityX) + half,
-                toRenderY(entityY) + half,
-                toRenderX(entityX) - half,
-                toRenderY(entityY) + half
-              ]}
-              closed={true}
-              fill="rgba(0,0,0,0)"
-              stroke={selectionStroke}
-              strokeWidth={selectionStrokeWidth}
-              strokeScaleEnabled={false}
-              lineJoin="round"
-            />
-          );
-        }
-      }
-
-      if (mapSelection.kind === 'light') {
-        const light = map.lights[mapSelection.index];
-        if (light) {
-          selectionOverlays.push(
-            <Circle
-              key={`selection-light-${light.index}`}
-              x={toRenderX(light.x)}
-              y={toRenderY(light.y)}
-              radius={lightMarkerRadiusWorld}
-              fill="rgba(0,0,0,0)"
-              stroke={selectionStroke}
-              strokeWidth={selectionStrokeWidth}
-              strokeScaleEnabled={false}
-            />
-          );
-        }
-      }
-
-      if (mapSelection.kind === 'particle') {
-        const particle = map.particles[mapSelection.index];
-        if (particle) {
-          const half = particleMarkerSizeWorld / 2;
-          selectionOverlays.push(
-            <Rect
-              key={`selection-particle-${particle.index}`}
-              x={toRenderX(particle.x) - half}
-              y={toRenderY(particle.y) - half}
-              width={particleMarkerSizeWorld}
-              height={particleMarkerSizeWorld}
-              fill="rgba(0,0,0,0)"
-              stroke={selectionStroke}
-              strokeWidth={selectionStrokeWidth}
-              strokeScaleEnabled={false}
-            />
-          );
-        }
-      }
+      appendSelectionOutline(mapSelection, selectionStroke, selectionStrokeWidth, selectionOverlays);
     }
   }
 
@@ -1678,7 +1679,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         height={size.height}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
+        onMouseLeave={onMouseLeave}
         onMouseMove={onMouseMove}
         onWheel={onWheel}
       >
@@ -1707,6 +1708,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           {lightMarkers}
           {particleMarkers}
           {entityMarkers}
+          {hoverOverlays}
           {selectionOverlays}
         </Layer>
       </Stage>

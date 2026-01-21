@@ -37,6 +37,30 @@ This Phase exists now because current select hit-testing can miss the intended w
 - Hover preview appears only when Select tool is active, and it highlights the current pick candidate even if something else is already selected.
   - If the hovered candidate equals the current selection, the preview may be suppressed to avoid double-outlining (implementation choice).
 
+## Picking policy (rules + tie-breakers)
+
+### Priority order
+When Select tool is active, picking evaluates candidates in this priority order:
+1. Entity / particle / light markers
+2. Doors
+3. Walls
+4. Sectors
+
+### Distance metric and thresholds
+- Distances are evaluated in **screen pixels** for consistent ergonomics across zoom.
+- Marker hit test:
+  - hit if distance to marker center is `<= 10px`.
+- Door hit test:
+  - hit if distance to door midpoint is `<= 10px`.
+- Wall hit test:
+  - **Textured mode:** if the pointer is inside the rendered wall strip polygon, the wall is a hit (even if far from the centerline).
+  - Otherwise, treat the wall as a centerline segment and hit if distance from pointer to segment is `<= 10px`.
+
+### Tie-breakers
+- When multiple candidates qualify within the same priority band, choose the candidate with the **smallest screen-distance** to the pointer.
+  - For “inside polygon” textured walls, treat distance as `0`.
+- If distances are equal (within a tiny epsilon), choose the candidate with the lowest stable identifier (e.g., lowest wall index).
+
 ## Acceptance criteria
 
 ### Correctness: wall selection vs sector selection
