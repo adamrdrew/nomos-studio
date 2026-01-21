@@ -2,13 +2,13 @@ phase:
   id: 0017
   slug: map-editor-view-overlays
   title: Map Editor View Overlays (Portals, Selection, Doors)
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Confirm existing render + selection plumbing and define target visuals
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Confirmed existing plumbing: View menu toggles update main AppStore; renderer consumes via AppStateSnapshot -> useNomosStore. Rendering + hit-testing live in MapEditorCanvas.
 
@@ -25,7 +25,7 @@ steps:
   - id: S002
     title: Extend shared models for new view flags
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Added shared MapDoorVisibility type and extended AppStateSnapshot to include mapHighlightPortals and mapDoorVisibility.
     touched:
@@ -36,7 +36,7 @@ steps:
   - id: S003
     title: Add defaults + setters in main AppStore
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Added mapHighlightPortals (default false) and mapDoorVisibility (default 'visible') to AppStore state.
       Implemented public setters + toggles for both, with unit tests covering default values and toggle behavior.
@@ -48,7 +48,7 @@ steps:
   - id: S004
     title: Thread new view flags through snapshot and renderer store
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       AppStateSnapshot now includes mapHighlightPortals and mapDoorVisibility from main AppStore, and the renderer store caches these values on refresh.
     touched:
@@ -59,7 +59,7 @@ steps:
   - id: S005
     title: Add View menu items and wire callbacks
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Extended the View menu with Highlight Portals and Toggle Door Visibility checkbox items.
       Checked states reflect mapHighlightPortals and mapDoorVisibility, and clicks toggle main-store state via callbacks.
@@ -73,7 +73,7 @@ steps:
   - id: S006
     title: Implement portal highlighting in wireframe rendering
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       In wireframe mode, portal walls (backSector > -1) render with a blue stroke when mapHighlightPortals is enabled.
     touched:
@@ -83,7 +83,7 @@ steps:
   - id: S007
     title: Implement portal highlighting in textured rendering
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       In textured mode, portal walls render with a visible blue/cyan overlay fill (drawn over the wall strip texture) when mapHighlightPortals is enabled; missing-texture fallback segments render in portal blue.
     touched:
@@ -93,7 +93,7 @@ steps:
   - id: S008
     title: Implement selected-object red outline overlay
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Added a selection overlay pass in MapEditorCanvas that draws a red, non-scaling outline for the active selection (wall/sector/door/entity/light/particle). The overlay is rendered last so it stays visible.
     touched:
@@ -103,7 +103,7 @@ steps:
   - id: S009
     title: Implement Toggle door visibility behavior (textured only)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Added textured-mode door markers (same geometry as wireframe) and gated them on mapDoorVisibility; wireframe rendering remains unchanged. Selection outlines for doors always render regardless of visibility.
     touched:
@@ -113,7 +113,7 @@ steps:
   - id: S010
     title: Update docs (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Updated Menu System and Renderer UI subsystem docs to reflect the new View menu toggles and renderer snapshot-driven overlay behavior.
     touched:
@@ -124,7 +124,7 @@ steps:
   - id: S011
     title: Quality gates
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Commands:
       - npm test: PASS (after updating mocked snapshot shape in IPC handler test)
