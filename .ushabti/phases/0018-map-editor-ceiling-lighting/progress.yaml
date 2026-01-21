@@ -1,0 +1,97 @@
+phase:
+  id: 0018
+  slug: map-editor-ceiling-lighting
+  title: Map Editor Ceiling Textures, Sky, Lighting, and Zoom
+  status: planned
+
+steps:
+  - id: S001
+    title: Inspect current textured sector rendering + zoom constraints
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define the new view setting: sector surface mode
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Unit tests for main store and snapshot wiring (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Add View menu control for floor/ceiling surface
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Thread the new flag through renderer store
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Extend the decoded map view model with optional sky
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Update texture loading to support ceiling + sky assets (bounded)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Implement sector surface selection + SKY substitution in rendering
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Implement sector base lighting overlay in textured fills
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Increase max zoom-in and confirm tooling consistency
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Properties editor ensure sector light is constrained and communicative
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S012
+    title: Update docs (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S013
+    title: Quality gates + manual verification
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
