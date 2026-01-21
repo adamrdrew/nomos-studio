@@ -80,6 +80,15 @@ export type OpenAssetError = Readonly<{
   message: string;
 }>;
 
+export type OpenMapFromAssetsError = Readonly<{
+  kind: 'open-map-from-assets-error';
+  code:
+    | 'open-map-from-assets/missing-settings'
+    | 'open-map-from-assets/invalid-relative-path'
+    | 'open-map-from-assets/outside-base-dir';
+  message: string;
+}>;
+
 export type ReadAssetError = Readonly<{
   kind: 'read-asset-error';
   code:

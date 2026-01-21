@@ -862,4 +862,279 @@ describe('SaveMapService', () => {
     expect(result.ok).toBe(false);
     expect(unlinkCalls).toContain(tmpPath);
   });
+
+  describe('saveCurrentDocumentAs', () => {
+    it('returns no-document when no map is loaded', async () => {
+      const store: AppStore = {
+        getState: () => ({
+          settings: { assetsDirPath: null, gameExecutablePath: null },
+          assetIndex: null,
+          assetIndexError: null,
+          mapDocument: null
+        }),
+        subscribe: () => () => {},
+        setSettings: () => {},
+        setAssetIndex: () => {},
+        setAssetIndexError: () => {},
+        setMapDocument: () => {}
+      } as unknown as AppStore;
+
+      const fs: FileSystem = {
+        readFile: async () => '',
+        writeFile: async () => {},
+        rename: async () => {},
+        unlink: async () => {},
+        mkdir: async () => {}
+      };
+
+      const errorCalls: Array<Readonly<{ title: string; message: string }>> = [];
+      const notifier: UserNotifier = {
+        showError: async (title, message) => {
+          errorCalls.push({ title, message });
+        },
+        showInfo: async () => {}
+      };
+
+      const service = new SaveMapService(store, fs, notifier);
+
+      const result = await service.saveCurrentDocumentAs('/maps/other.json');
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-io/no-document');
+      }
+      expect(errorCalls).toEqual([{ title: 'Save Failed', message: 'No map is currently loaded.' }]);
+    });
+
+    it('returns write-failed when JSON serialization fails', async () => {
+      const cyclic: { self?: unknown } = {};
+      cyclic.self = cyclic;
+
+      const store: AppStore = {
+        getState: () => ({
+          settings: { assetsDirPath: null, gameExecutablePath: null },
+          assetIndex: null,
+          assetIndexError: null,
+          mapDocument: {
+            filePath: '/maps/test.json',
+            json: cyclic as unknown as Record<string, unknown>,
+            dirty: true,
+            lastValidation: null,
+            revision: 1
+          }
+        }),
+        subscribe: () => () => {},
+        setSettings: () => {},
+        setAssetIndex: () => {},
+        setAssetIndexError: () => {},
+        setMapDocument: () => {}
+      } as unknown as AppStore;
+
+      const fs: FileSystem = {
+        readFile: async () => '',
+        writeFile: async () => {},
+        rename: async () => {},
+        unlink: async () => {},
+        mkdir: async () => {}
+      };
+
+      const errorCalls: Array<Readonly<{ title: string; message: string }>> = [];
+      const notifier: UserNotifier = {
+        showError: async (title, message) => {
+          errorCalls.push({ title, message });
+        },
+        showInfo: async () => {}
+      };
+
+      const service = new SaveMapService(store, fs, notifier);
+
+      const result = await service.saveCurrentDocumentAs('/maps/other.json');
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-io/write-failed');
+      }
+      expect(errorCalls).toEqual([{ title: 'Save Failed', message: 'Failed to serialize map JSON.' }]);
+    });
+
+    it('returns write-failed when writeFile throws', async () => {
+      const storedDocuments: Array<MapDocument | null> = [];
+
+      const store: AppStore = {
+        getState: () => ({
+          settings: { assetsDirPath: null, gameExecutablePath: null },
+          assetIndex: null,
+          assetIndexError: null,
+          mapDocument: {
+            filePath: '/maps/test.json',
+            json: { a: 1 },
+            dirty: true,
+            lastValidation: null,
+            revision: 1
+          }
+        }),
+        subscribe: () => () => {},
+        setSettings: () => {},
+        setAssetIndex: () => {},
+        setAssetIndexError: () => {},
+        setMapDocument: (doc: MapDocument | null) => {
+          storedDocuments.push(doc);
+        }
+      } as unknown as AppStore;
+
+      const fs: FileSystem = {
+        readFile: async () => '',
+        writeFile: async () => {
+          throw new Error('nope');
+        },
+        rename: async () => {},
+        unlink: async () => {},
+        mkdir: async () => {}
+      };
+
+      const errorCalls: Array<Readonly<{ title: string; message: string }>> = [];
+      const notifier: UserNotifier = {
+        showError: async (title, message) => {
+          errorCalls.push({ title, message });
+        },
+        showInfo: async () => {}
+      };
+
+      const service = new SaveMapService(store, fs, notifier);
+
+      const result = await service.saveCurrentDocumentAs('/maps/other.json');
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-io/write-failed');
+      }
+      expect(storedDocuments).toEqual([]);
+      expect(errorCalls).toEqual([{ title: 'Save Failed', message: 'Failed to write map file.' }]);
+    });
+
+    it('cleans up tmp and returns write-failed when safe replace throws', async () => {
+      const unlinkCalls: string[] = [];
+
+      const destinationPath = '/maps/other.json';
+      const tmpPath = `${destinationPath}.tmp`;
+
+      const store: AppStore = {
+        getState: () => ({
+          settings: { assetsDirPath: null, gameExecutablePath: null },
+          assetIndex: null,
+          assetIndexError: null,
+          mapDocument: {
+            filePath: '/maps/test.json',
+            json: { a: 1 },
+            dirty: true,
+            lastValidation: null,
+            revision: 1
+          }
+        }),
+        subscribe: () => () => {},
+        setSettings: () => {},
+        setAssetIndex: () => {},
+        setAssetIndexError: () => {},
+        setMapDocument: () => {}
+      } as unknown as AppStore;
+
+      const fs: FileSystem = {
+        readFile: async () => '',
+        writeFile: async () => {},
+        rename: async () => {
+          const error = new Error('rename failed') as NodeJS.ErrnoException;
+          error.code = 'EINVAL';
+          throw error;
+        },
+        unlink: async (pathToUnlink) => {
+          unlinkCalls.push(pathToUnlink);
+        },
+        mkdir: async () => {}
+      };
+
+      const errorCalls: Array<Readonly<{ title: string; message: string }>> = [];
+      const notifier: UserNotifier = {
+        showError: async (title, message) => {
+          errorCalls.push({ title, message });
+        },
+        showInfo: async () => {}
+      };
+
+      const service = new SaveMapService(store, fs, notifier);
+
+      const result = await service.saveCurrentDocumentAs(destinationPath);
+
+      expect(result.ok).toBe(false);
+      expect(unlinkCalls).toContain(tmpPath);
+      expect(errorCalls).toEqual([{ title: 'Save Failed', message: 'Failed to write map file.' }]);
+    });
+
+    it('writes to the destination path and updates filePath and dirty flag on success', async () => {
+      const destinationPath = '/maps/other.json';
+      const tmpPath = `${destinationPath}.tmp`;
+
+      let savedPath: string | null = null;
+      let savedText: string | null = null;
+      let storedDocument: unknown = null;
+      const renameCalls: Array<Readonly<{ from: string; to: string }>> = [];
+
+      const store: AppStore = {
+        getState: () => ({
+          settings: { assetsDirPath: null, gameExecutablePath: null },
+          assetIndex: null,
+          assetIndexError: null,
+          mapDocument: {
+            filePath: '/maps/test.json',
+            json: { a: 1 },
+            dirty: true,
+            lastValidation: null,
+            revision: 1
+          }
+        }),
+        subscribe: () => () => {},
+        setSettings: () => {},
+        setAssetIndex: () => {},
+        setAssetIndexError: () => {},
+        setMapDocument: (doc: MapDocument | null) => {
+          storedDocument = doc;
+        }
+      } as unknown as AppStore;
+
+      const fs: FileSystem = {
+        readFile: async () => '',
+        writeFile: async (filePath, data) => {
+          savedPath = filePath;
+          savedText = data;
+        },
+        rename: async (from, to) => {
+          renameCalls.push({ from, to });
+        },
+        unlink: async () => {},
+        mkdir: async () => {}
+      };
+
+      const notifier: UserNotifier = {
+        showError: async () => {},
+        showInfo: async () => {}
+      };
+
+      const service = new SaveMapService(store, fs, notifier);
+
+      const result = await service.saveCurrentDocumentAs(destinationPath);
+
+      expect(result.ok).toBe(true);
+      expect(savedPath).toBe(tmpPath);
+      expect(savedText).toBe(`{
+  "a": 1
+}\n`);
+      expect(renameCalls).toEqual([{ from: tmpPath, to: destinationPath }]);
+      expect(storedDocument).not.toBeNull();
+      if (storedDocument === null) {
+        throw new Error('Expected store.setMapDocument to be called with a MapDocument');
+      }
+      const stored = storedDocument as { filePath: string; dirty: boolean };
+      expect(stored.filePath).toBe(destinationPath);
+      expect(stored.dirty).toBe(false);
+    });
+  });
 });

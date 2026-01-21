@@ -13,6 +13,8 @@ import {
   type ReadAssetFileBytesRequest,
   type ReadAssetFileBytesResponse,
   type OpenMapDialogResponse,
+  type OpenMapFromAssetsRequest,
+  type OpenMapFromAssetsResponse,
   type OpenMapResponse,
   type PickDirectoryResponse,
   type PickFileResponse,
@@ -53,6 +55,8 @@ const exposedNomosApi = {
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapValidate, request),
     open: async (request: { mapPath: string }): Promise<OpenMapResponse> =>
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapOpen, request),
+    openFromAssets: async (request: OpenMapFromAssetsRequest): Promise<OpenMapFromAssetsResponse> =>
+      ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapOpenFromAssets, request),
     save: async (): Promise<SaveMapResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapSave),
     edit: async (request: MapEditRequest): Promise<MapEditResponse> =>
       ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapEdit, request),

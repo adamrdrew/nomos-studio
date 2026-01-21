@@ -19,15 +19,20 @@ import { nodeProcessRunner } from './infrastructure/process/NodeProcessRunner';
 import { nodeShellOpener } from './infrastructure/shell/nodeShellOpener';
 import { MapValidationService } from './application/maps/MapValidationService';
 import { OpenMapService } from './application/maps/OpenMapService';
+import { OpenMapFromAssetsService } from './application/maps/OpenMapFromAssetsService';
+import { RecentMapsService } from './application/maps/RecentMapsService';
 import type { UserNotifier } from './application/ui/UserNotifier';
 import { SaveMapService } from './application/maps/SaveMapService';
 import { MapEditService } from './application/maps/MapEditService';
 import { MapCommandEngine } from './application/maps/MapCommandEngine';
 import { MapEditHistory } from './application/maps/MapEditHistory';
+import { UnsavedChangesGuard } from './application/maps/UnsavedChangesGuard';
+import type { UserPrompter } from './application/ui/UserPrompter';
 import type { NomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
 import { createApplicationMenuTemplate } from './infrastructure/menu/createApplicationMenuTemplate';
+import { JsonFileRecentMapsRepository } from './infrastructure/maps/JsonFileRecentMapsRepository';
 import type { MapRenderMode, MapSectorSurface } from '../shared/domain/models';
-import type { StateChangedPayload } from '../shared/ipc/nomosIpc';
+import type { OpenMapFromAssetsResponse, StateChangedPayload } from '../shared/ipc/nomosIpc';
 
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -35,9 +40,13 @@ let settingsWindow: BrowserWindow | null = null;
 const setApplicationMenu = (
   options: Readonly<{
     store: AppStore;
+    recentMapPaths: readonly string[];
     onOpenSettings: () => void;
+    onNewMap: () => Promise<void>;
     onOpenMap: () => Promise<void>;
+    onOpenRecentMap: (mapPath: string) => Promise<void>;
     onSave: () => Promise<void>;
+    onSaveAs: () => Promise<void>;
     canUndo: boolean;
     canRedo: boolean;
     onUndo: () => Promise<void>;
@@ -67,14 +76,18 @@ const setApplicationMenu = (
     canSave,
     canUndo,
     canRedo,
+    recentMapPaths: options.recentMapPaths,
     mapRenderMode,
     mapSectorSurface,
     mapGridSettings,
     mapHighlightPortals,
     mapDoorVisibility,
     onOpenSettings: options.onOpenSettings,
+    onNewMap: () => void options.onNewMap(),
     onOpenMap: () => void options.onOpenMap(),
+    onOpenRecentMap: (mapPath) => void options.onOpenRecentMap(mapPath),
     onSave: () => void options.onSave(),
+    onSaveAs: () => void options.onSaveAs(),
     onUndo: () => void options.onUndo(),
     onRedo: () => void options.onRedo(),
     onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex(),
@@ -139,6 +152,11 @@ const createSettingsWindowOnceReady = async (): Promise<void> => {
 app.on('ready', () => {
   const store = new AppStore();
 
+  let isQuitInProgress = false;
+
+  const RECENT_MAPS_MAX = 5;
+  let recentMapPaths: readonly string[] = [];
+
   const GRID_OPACITY_STEP = 0.1;
   const roundToTenth = (value: number): number => Math.round(value * 10) / 10;
 
@@ -189,8 +207,43 @@ app.on('ready', () => {
   const mapCommandEngine = new MapCommandEngine();
 
   const openMapService = new OpenMapService(store, mapValidationService, nodeFileSystem, notifier, mapEditHistory);
+  const openMapFromAssetsService = new OpenMapFromAssetsService(store, nodePathService, notifier, openMapService);
   const saveMapService = new SaveMapService(store, nodeFileSystem, notifier);
   const mapEditService = new MapEditService(store, mapCommandEngine, mapEditHistory);
+
+  const recentMapsRepository = new JsonFileRecentMapsRepository({
+    fs: nodeFileSystem,
+    userDataDirPath: app.getPath('userData')
+  });
+  const recentMapsService = new RecentMapsService(recentMapsRepository, RECENT_MAPS_MAX);
+
+  const prompter: UserPrompter = {
+    confirmUnsavedChanges: async ({ filePath }) => {
+      if (mainWindow === null) {
+        return 'cancel';
+      }
+
+      const result = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes.',
+        detail: `Save changes to:\n${filePath}`,
+        buttons: ['Save', "Don't Save", 'Cancel'],
+        defaultId: 0,
+        cancelId: 2
+      });
+
+      if (result.response === 0) {
+        return 'save';
+      }
+      if (result.response === 1) {
+        return 'dont-save';
+      }
+      return 'cancel';
+    }
+  };
+
+  const unsavedChangesGuard = new UnsavedChangesGuard(store, prompter, saveMapService);
 
   const sendSelectionEffect = (selectionEffect: StateChangedPayload['selectionEffect']): void => {
     if (mainWindow === null) {
@@ -279,7 +332,37 @@ app.on('ready', () => {
       }
       return { ok: false as const, error: result.error };
     },
-    openMap: async (request) => openMapService.openMap(request.mapPath),
+    openMap: async (request) => {
+      const result = await openMapService.openMap(request.mapPath);
+      if (result.ok) {
+        recentMapPaths = await recentMapsService.bump(result.value.filePath);
+        installMenu();
+      }
+      return result;
+    },
+    openMapFromAssets: async (request) => {
+      const guarded = await unsavedChangesGuard.runGuarded(async () => {
+        // Guard only: the open action runs after proceeding.
+      });
+
+      if (!guarded.proceeded) {
+        return {
+          ok: false as const,
+          error: { kind: 'map-io-error', code: 'map-io/open-cancelled', message: 'Open cancelled' }
+        };
+      }
+
+      const openResult: OpenMapFromAssetsResponse = await openMapFromAssetsService.openMapFromAssets(
+        request.relativePath
+      );
+
+      if (openResult.ok) {
+        recentMapPaths = await recentMapsService.bump(openResult.value.filePath);
+        installMenu();
+      }
+
+      return openResult;
+    },
     saveMap: async () => saveMapService.saveCurrentDocument(),
     editMap: async (request) => mapEditService.edit(request),
     undoMap: async (request) => mapEditService.undo(request),
@@ -305,7 +388,70 @@ app.on('ready', () => {
 
   registerNomosIpcHandlers(ipcMain, NOMOS_IPC_CHANNELS, nomosHandlers);
 
-  void createWindowOnceReady();
+  void (async () => {
+    await createWindowOnceReady();
+    if (mainWindow === null) {
+      return;
+    }
+
+    mainWindow.on('close', (event) => {
+      if (isQuitInProgress) {
+        return;
+      }
+
+      event.preventDefault();
+
+      void (async () => {
+        const guarded = await unsavedChangesGuard.runGuarded(async () => {
+          // Guard only: close runs after proceeding.
+        });
+
+        if (!guarded.proceeded) {
+          return;
+        }
+
+        isQuitInProgress = true;
+        mainWindow?.close();
+      })();
+    });
+  })();
+
+  const installMenu = (): void => {
+    setApplicationMenu({
+      store,
+      recentMapPaths,
+      onOpenSettings: openSettings,
+      onNewMap: newMap,
+      onOpenMap: openMap,
+      onOpenRecentMap: openRecentMap,
+      onSave: save,
+      onSaveAs: saveAs,
+      canUndo: mapEditHistory.getInfo().canUndo,
+      canRedo: mapEditHistory.getInfo().canRedo,
+      onUndo: async () => {
+        const result = mapEditService.undo();
+        if (result.ok && result.value.kind === 'map-edit/applied') {
+          sendSelectionEffect(result.value.selection);
+        }
+      },
+      onRedo: async () => {
+        const result = mapEditService.redo();
+        if (result.ok && result.value.kind === 'map-edit/applied') {
+          sendSelectionEffect(result.value.selection);
+        }
+      },
+      onRefreshAssetsIndex: refreshAssetsIndex,
+      onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
+      onSetMapSectorSurface: (surface) => store.setMapSectorSurface(surface),
+      onToggleMapHighlightPortals: () => store.toggleMapHighlightPortals(),
+      onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
+      onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
+      onIncreaseMapGridOpacity: () =>
+        store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity + GRID_OPACITY_STEP)),
+      onDecreaseMapGridOpacity: () =>
+        store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity - GRID_OPACITY_STEP))
+    });
+  };
 
   const openSettings = (): void => {
     void (async () => {
@@ -336,7 +482,21 @@ app.on('ready', () => {
       return;
     }
 
-    await nomosHandlers.openMap({ mapPath });
+    await unsavedChangesGuard.runGuarded(async () => {
+      const result = await nomosHandlers.openMap({ mapPath });
+      if (result.ok) {
+        installMenu();
+      }
+    });
+  };
+
+  const openRecentMap = async (mapPath: string): Promise<void> => {
+    await unsavedChangesGuard.runGuarded(async () => {
+      const result = await nomosHandlers.openMap({ mapPath });
+      if (result.ok) {
+        installMenu();
+      }
+    });
   };
 
   const save = async (): Promise<void> => {
@@ -344,6 +504,41 @@ app.on('ready', () => {
       return;
     }
     await nomosHandlers.saveMap();
+  };
+
+  const saveAs = async (): Promise<void> => {
+    if (mainWindow === null) {
+      return;
+    }
+
+    const document = store.getState().mapDocument;
+    if (document === null) {
+      return;
+    }
+
+    const dialogResult = await dialog.showSaveDialog(mainWindow, {
+      defaultPath: document.filePath,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+
+    if (dialogResult.canceled) {
+      return;
+    }
+
+    const destinationPath = dialogResult.filePath;
+    if (destinationPath === undefined) {
+      return;
+    }
+
+    await saveMapService.saveCurrentDocumentAs(destinationPath);
+  };
+
+  const newMap = async (): Promise<void> => {
+    await unsavedChangesGuard.runGuarded(async () => {
+      mapEditHistory.clear();
+      store.setMapDocument(null);
+      sendSelectionEffect({ kind: 'map-edit/selection/clear', reason: 'invalidated' });
+    });
   };
 
   const refreshAssetsIndex = async (): Promise<void> => {
@@ -366,72 +561,42 @@ app.on('ready', () => {
     }
   };
 
-  setApplicationMenu({
-    store,
-    onOpenSettings: openSettings,
-    onOpenMap: openMap,
-    onSave: save,
-    canUndo: mapEditHistory.getInfo().canUndo,
-    canRedo: mapEditHistory.getInfo().canRedo,
-    onUndo: async () => {
-      const result = mapEditService.undo();
-      if (result.ok && result.value.kind === 'map-edit/applied') {
-        sendSelectionEffect(result.value.selection);
-      }
-    },
-    onRedo: async () => {
-      const result = mapEditService.redo();
-      if (result.ok && result.value.kind === 'map-edit/applied') {
-        sendSelectionEffect(result.value.selection);
-      }
-    },
-    onRefreshAssetsIndex: refreshAssetsIndex,
-    onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
-    onSetMapSectorSurface: (surface) => store.setMapSectorSurface(surface),
-    onToggleMapHighlightPortals: () => store.toggleMapHighlightPortals(),
-    onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
-    onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
-    onIncreaseMapGridOpacity: () =>
-      store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity + GRID_OPACITY_STEP)),
-    onDecreaseMapGridOpacity: () =>
-      store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity - GRID_OPACITY_STEP))
-  });
+  void (async () => {
+    recentMapPaths = await recentMapsService.load();
+    installMenu();
+  })();
 
   store.subscribe(() => {
-    setApplicationMenu({
-      store,
-      onOpenSettings: openSettings,
-      onOpenMap: openMap,
-      onSave: save,
-      canUndo: mapEditHistory.getInfo().canUndo,
-      canRedo: mapEditHistory.getInfo().canRedo,
-      onUndo: async () => {
-        const result = mapEditService.undo();
-        if (result.ok && result.value.kind === 'map-edit/applied') {
-          sendSelectionEffect(result.value.selection);
-        }
-      },
-      onRedo: async () => {
-        const result = mapEditService.redo();
-        if (result.ok && result.value.kind === 'map-edit/applied') {
-          sendSelectionEffect(result.value.selection);
-        }
-      },
-      onRefreshAssetsIndex: refreshAssetsIndex,
-      onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
-      onSetMapSectorSurface: (surface) => store.setMapSectorSurface(surface),
-      onToggleMapHighlightPortals: () => store.toggleMapHighlightPortals(),
-      onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
-      onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
-      onIncreaseMapGridOpacity: () =>
-        store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity + GRID_OPACITY_STEP)),
-      onDecreaseMapGridOpacity: () =>
-        store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity - GRID_OPACITY_STEP))
-    });
+    installMenu();
 
     if (mainWindow !== null) {
       mainWindow.webContents.send(NOMOS_IPC_CHANNELS.stateChanged);
     }
+  });
+
+  app.on('before-quit', (event) => {
+    if (isQuitInProgress) {
+      return;
+    }
+
+    if (mainWindow === null) {
+      return;
+    }
+
+    event.preventDefault();
+
+    void (async () => {
+      const guarded = await unsavedChangesGuard.runGuarded(async () => {
+        // Guard only: quit runs after proceeding.
+      });
+
+      if (!guarded.proceeded) {
+        return;
+      }
+
+      isQuitInProgress = true;
+      app.quit();
+    })();
   });
 });
 

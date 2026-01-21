@@ -117,4 +117,47 @@ export class SaveMapService {
 
     return { ok: true, value: updated };
   }
+
+  public async saveCurrentDocumentAs(destinationPath: string): Promise<Result<MapDocument, MapIoError>> {
+    const document = this.store.getState().mapDocument;
+    if (document === null) {
+      await this.notifier.showError('Save Failed', 'No map is currently loaded.');
+      return { ok: false, error: toMapIoError('map-io/no-document', 'No map loaded') };
+    }
+
+    let jsonText: string;
+    try {
+      jsonText = JSON.stringify(document.json, null, 2);
+    } catch (_error: unknown) {
+      await this.notifier.showError('Save Failed', 'Failed to serialize map JSON.');
+      return { ok: false, error: toMapIoError('map-io/write-failed', 'Failed to serialize map JSON') };
+    }
+
+    const dirPath = path.dirname(destinationPath);
+    const tmpPath = `${destinationPath}.tmp`;
+    let wroteTmpFile = false;
+
+    try {
+      await this.fs.mkdir(dirPath, { recursive: true });
+      await this.fs.writeFile(tmpPath, `${jsonText}\n`, 'utf8');
+      wroteTmpFile = true;
+
+      await safeReplaceFile(this.fs, tmpPath, destinationPath);
+    } catch (_error: unknown) {
+      if (wroteTmpFile) {
+        try {
+          await this.fs.unlink(tmpPath);
+        } catch (_cleanupError: unknown) {
+          // Best effort.
+        }
+      }
+      await this.notifier.showError('Save Failed', 'Failed to write map file.');
+      return { ok: false, error: toMapIoError('map-io/write-failed', 'Failed to write map file') };
+    }
+
+    const updated: MapDocument = { ...document, filePath: destinationPath, dirty: false };
+    this.store.setMapDocument(updated);
+
+    return { ok: true, value: updated };
+  }
 }

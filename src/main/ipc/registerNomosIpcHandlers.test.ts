@@ -46,6 +46,14 @@ describe('registerNomosIpcHandlers', () => {
           error: { kind: 'map-validation-error', code: 'map-validation/runner-failed', message: 'nope' }
         }),
         openMap: async () => ({ ok: false, error: { kind: 'map-io-error', code: 'map-io/read-failed', message: 'nope' } }),
+        openMapFromAssets: async () => ({
+          ok: false,
+          error: {
+            kind: 'open-map-from-assets-error',
+            code: 'open-map-from-assets/invalid-relative-path',
+            message: 'nope'
+          }
+        }),
         saveMap: async () => ({ ok: false, error: { kind: 'map-io-error', code: 'map-io/no-document', message: 'nope' } }),
         editMap: async () => ({
           ok: false,
@@ -87,6 +95,7 @@ describe('registerNomosIpcHandlers', () => {
       channels.assetsReadFileBytes,
       channels.mapValidate,
       channels.mapOpen,
+      channels.mapOpenFromAssets,
       channels.mapSave,
       channels.mapEdit,
       channels.mapUndo,

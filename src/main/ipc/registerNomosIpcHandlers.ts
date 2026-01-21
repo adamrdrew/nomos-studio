@@ -11,6 +11,8 @@ import type {
   MapUndoResponse,
   OpenAssetRequest,
   OpenAssetResponse,
+  OpenMapFromAssetsRequest,
+  OpenMapFromAssetsResponse,
   ReadAssetFileBytesRequest,
   ReadAssetFileBytesResponse,
   OpenMapDialogResponse,
@@ -49,6 +51,7 @@ export type NomosIpcHandlers = Readonly<{
 
   validateMap: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
   openMap: (request: OpenMapRequest) => Promise<OpenMapResponse>;
+  openMapFromAssets: (request: OpenMapFromAssetsRequest) => Promise<OpenMapFromAssetsResponse>;
   saveMap: () => Promise<SaveMapResponse>;
   editMap: (request: MapEditRequest) => Promise<MapEditResponse>;
   undoMap: (request: MapUndoRequest) => Promise<MapUndoResponse>;
@@ -103,6 +106,9 @@ export function registerNomosIpcHandlers(
   );
   ipcMain.handle(channels.mapOpen, async (_event, request: unknown) =>
     handlers.openMap(request as OpenMapRequest)
+  );
+  ipcMain.handle(channels.mapOpenFromAssets, async (_event, request: unknown) =>
+    handlers.openMapFromAssets(request as OpenMapFromAssetsRequest)
   );
   ipcMain.handle(channels.mapSave, async () => handlers.saveMap());
   ipcMain.handle(channels.mapEdit, async (_event, request: unknown) =>

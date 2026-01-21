@@ -137,3 +137,26 @@
     - Guard prompt appears for Open/New/Recent/Asset double-click/Quit
     - Recent Maps shows last 5 and opens correctly
 - **Done when:** Docs updated and all quality gates pass.
+
+## S012 — Add missing L04 tests for new public renderer/router API
+- **Intent:** Enforce L04 for newly introduced exported UI routing logic.
+- **Work:**
+  - Add Jest unit tests for `routeAssetDoubleClick(relativePath)` covering all branches:
+    - `Levels/*.json` (case-insensitive) routes to `open-map-in-editor`.
+    - non-matching assets route to `open-via-os`.
+    - Windows separators are normalized (`\\` → `/`).
+    - leading/trailing whitespace is trimmed.
+- **Done when:** Branch-complete tests exist for `routeAssetDoubleClick`.
+
+## S013 — Close remaining L04 branch gaps in new map-open + recents public APIs
+- **Intent:** Ensure every public method added in this phase is branch-completely unit tested.
+- **Work:**
+  - Extend `OpenMapFromAssetsService.openMapFromAssets(...)` tests to cover remaining conditionals:
+    - `relativePath` containing a null byte is rejected.
+    - `pathService.relative(...)` returning an absolute path is rejected.
+  - Extend `RecentMapsService.bump(...)` tests to cover persistence failures:
+    - repository `saveRecentMapPaths` throws → bump still updates in-memory list and returns it.
+  - Extend `JsonFileRecentMapsRepository` tests to cover remaining conditional paths:
+    - `readFile` throws non-`ENOENT` → returns empty list.
+    - `saveRecentMapPaths` error paths → tmp cleanup attempted when applicable.
+- **Done when:** All conditional paths in the above public methods are exercised by unit tests.

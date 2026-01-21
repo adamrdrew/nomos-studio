@@ -23,6 +23,9 @@ The maps system spans application services, infrastructure seams for filesystem/
 	- `MapValidationService` validates a map path by running the configured game executable.
 	- `OpenMapService` enforces prerequisite settings, validates the map, reads JSON from disk, constructs a `MapDocument`, and stores it in `AppStore`.
 	- `SaveMapService` serializes the current `MapDocument.json` and performs a safe write back to disk.
+	- `UnsavedChangesGuard` coordinates Save/Don't Save/Cancel prompting for destructive transitions (open/new/recent/quit).
+	- `OpenMapFromAssetsService` resolves a relative asset path against `settings.assetsDirPath` (with traversal protection) and opens the map.
+	- `RecentMapsService` tracks last-opened map paths (deduped, max 5) and persists them in userData.
 	- `MapEditService` applies a narrow set of in-memory edits (Delete/Clone/Move Entity/Update Fields) to `MapDocument.json` and marks the document dirty.
 	- `MapCommandEngine` applies map edit commands (including transactional batches) against a working clone of `MapDocument.json` and returns explicit selection effects.
 	- `MapEditHistory` stores bounded undo/redo stacks for the currently-open map.
@@ -47,6 +50,13 @@ The maps system spans application services, infrastructure seams for filesystem/
 
 - `SaveMapService`
 	- `saveCurrentDocument(): Promise<Result<MapDocument, MapIoError>>`
+	- `saveCurrentDocumentAs(destinationPath: string): Promise<Result<MapDocument, MapIoError>>`
+
+- `UnsavedChangesGuard`
+	- `runGuarded(action: () => Promise<void>): Promise<{ proceeded: boolean }>`
+
+- `OpenMapFromAssetsService`
+	- `openMapFromAssets(relativePath: string): Promise<Result<MapDocument, OpenMapFromAssetsError | MapIoError | MapValidationError>>`
 
 - `MapEditService`
 	- `edit(request: MapEditRequest): Result<MapEditResult, MapEditError>`
@@ -60,6 +70,7 @@ The maps system spans application services, infrastructure seams for filesystem/
 - `window.nomos.dialogs.openMap(): Promise<OpenMapDialogResponse>`
 - `window.nomos.map.validate(request: { mapPath: string }): Promise<ValidateMapResponse>`
 - `window.nomos.map.open(request: { mapPath: string }): Promise<OpenMapResponse>`
+- `window.nomos.map.openFromAssets(request: { relativePath: string }): Promise<OpenMapFromAssetsResponse>`
 - `window.nomos.map.save(): Promise<SaveMapResponse>`
 - `window.nomos.map.edit(request: MapEditRequest): Promise<MapEditResponse>`
 - `window.nomos.map.undo(request: MapUndoRequest): Promise<MapUndoResponse>`
@@ -71,6 +82,7 @@ Defined in `src/shared/ipc/nomosIpc.ts`:
 	- `nomos:dialogs:open-map`
 	- `nomos:map:validate`
 	- `nomos:map:open`
+	- `nomos:map:open-from-assets`
 	- `nomos:map:save`
 	- `nomos:map:edit`
 	- `nomos:map:undo`
@@ -82,6 +94,8 @@ Types:
 - `ValidateMapResponse = Result<null, MapValidationError>`
 - `OpenMapRequest = Readonly<{ mapPath: string }>`
 - `OpenMapResponse = Result<MapDocument, MapIoError | MapValidationError>`
+- `OpenMapFromAssetsRequest = Readonly<{ relativePath: string }>`
+- `OpenMapFromAssetsResponse = Result<MapDocument, OpenMapFromAssetsError | MapIoError | MapValidationError>`
 - `SaveMapResponse = Result<MapDocument, MapIoError>`
 
 Edit map:

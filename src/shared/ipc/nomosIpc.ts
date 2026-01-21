@@ -14,6 +14,7 @@ import type {
   MapIoError,
   MapValidationError,
   OpenAssetError,
+  OpenMapFromAssetsError,
   ReadAssetError,
   Result,
   SettingsError
@@ -30,6 +31,7 @@ export const NOMOS_IPC_CHANNELS = {
   assetsReadFileBytes: 'nomos:assets:read-file-bytes',
   mapValidate: 'nomos:map:validate',
   mapOpen: 'nomos:map:open',
+  mapOpenFromAssets: 'nomos:map:open-from-assets',
   mapSave: 'nomos:map:save',
   mapEdit: 'nomos:map:edit',
   mapUndo: 'nomos:map:undo',
@@ -71,6 +73,12 @@ export type ValidateMapResponse = Result<null, MapValidationError>;
 
 export type OpenMapRequest = Readonly<{ mapPath: string }>;
 export type OpenMapResponse = Result<MapDocument, MapIoError | MapValidationError>;
+
+export type OpenMapFromAssetsRequest = Readonly<{ relativePath: string }>;
+export type OpenMapFromAssetsResponse = Result<
+  MapDocument,
+  OpenMapFromAssetsError | MapIoError | MapValidationError
+>;
 
 export type SaveMapResponse = Result<MapDocument, MapIoError>;
 

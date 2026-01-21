@@ -9,6 +9,10 @@ The assets index currently represents:
 - basic stats (`fileCount`)
 - the build timestamp
 
+In the editor UI, the Asset Browser uses a small double-click routing rule:
+- `Levels/*.json` is treated as a map and opened in-editor.
+- All other assets open via the OS default handler.
+
 ## Architecture
 The assets system is split across the standard boundaries:
 
@@ -59,6 +63,9 @@ The assets system is split across the standard boundaries:
 - `window.nomos.assets.refreshIndex(): Promise<RefreshAssetIndexResponse>`
 - `window.nomos.assets.open(request: { relativePath: string }): Promise<OpenAssetResponse>`
 - `window.nomos.assets.readFileBytes(request: { relativePath: string }): Promise<ReadAssetFileBytesResponse>`
+
+Editor-only map open:
+- `window.nomos.map.openFromAssets(request: { relativePath: string }): Promise<OpenMapFromAssetsResponse>`
 
 ### IPC contract
 Defined in `src/shared/ipc/nomosIpc.ts`:

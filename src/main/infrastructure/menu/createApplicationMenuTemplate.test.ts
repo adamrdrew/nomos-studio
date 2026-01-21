@@ -8,14 +8,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'wireframe',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -51,14 +55,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'wireframe',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -93,14 +101,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: true,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'wireframe',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -132,14 +144,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'wireframe',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -164,6 +180,155 @@ describe('createApplicationMenuTemplate', () => {
     expect(saveItem?.enabled).toBe(false);
   });
 
+  it('includes File → Save As… (Shift+Cmd/Ctrl+S)', () => {
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: true,
+      canUndo: false,
+      canRedo: false,
+      recentMapPaths: [],
+      mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onNewMap: () => {},
+      onOpenMap: () => {},
+      onOpenRecentMap: () => {},
+      onSave: () => {},
+      onSaveAs: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const fileMenu = template.find((item) => item.label === 'File');
+    if (fileMenu === undefined || fileMenu.submenu === undefined || !Array.isArray(fileMenu.submenu)) {
+      throw new Error('Expected File menu submenu');
+    }
+
+    const saveAsItem = fileMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Save As…'
+    ) as { label?: string; accelerator?: string; enabled?: boolean } | undefined;
+
+    expect(saveAsItem).toBeDefined();
+    expect(saveAsItem?.enabled).toBe(true);
+    expect(saveAsItem?.accelerator).toBe('CommandOrControl+Shift+S');
+  });
+
+  it('includes File → Recent Maps submenu populated from recentMapPaths', () => {
+    const onOpenRecentMap = jest.fn();
+    const recentMapPaths = ['/maps/a.json', '/maps/b.json'] as const;
+
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      canUndo: false,
+      canRedo: false,
+      recentMapPaths,
+      mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onNewMap: () => {},
+      onOpenMap: () => {},
+      onOpenRecentMap,
+      onSave: () => {},
+      onSaveAs: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const fileMenu = template.find((item) => item.label === 'File');
+    if (fileMenu === undefined || fileMenu.submenu === undefined || !Array.isArray(fileMenu.submenu)) {
+      throw new Error('Expected File menu submenu');
+    }
+
+    const recentMapsMenu = fileMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Recent Maps'
+    ) as { submenu?: unknown } | undefined;
+
+    expect(recentMapsMenu).toBeDefined();
+    expect(Array.isArray(recentMapsMenu?.submenu)).toBe(true);
+    const submenu = recentMapsMenu?.submenu;
+    if (!Array.isArray(submenu)) {
+      throw new Error('Expected Recent Maps submenu');
+    }
+
+    const labels = submenu
+      .filter((item) => typeof item === 'object' && item !== null && 'label' in item)
+      .map((item) => (item as { label?: string }).label);
+    expect(labels).toEqual(['/maps/a.json', '/maps/b.json']);
+
+    const firstItem = submenu[0] as { click?: () => void } | undefined;
+    firstItem?.click?.();
+    expect(onOpenRecentMap).toHaveBeenCalledWith('/maps/a.json');
+  });
+
+  it('includes File → New Map (Cmd/Ctrl+N)', () => {
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      canUndo: false,
+      canRedo: false,
+      recentMapPaths: [],
+      mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onNewMap: () => {},
+      onOpenMap: () => {},
+      onOpenRecentMap: () => {},
+      onSave: () => {},
+      onSaveAs: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const fileMenu = template.find((item) => item.label === 'File');
+    if (fileMenu === undefined || fileMenu.submenu === undefined || !Array.isArray(fileMenu.submenu)) {
+      throw new Error('Expected File menu submenu');
+    }
+
+    const newMapItem = fileMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'New Map'
+    ) as { label?: string; accelerator?: string } | undefined;
+
+    expect(newMapItem).toBeDefined();
+    expect(newMapItem?.accelerator).toBe('CommandOrControl+N');
+  });
+
   it('includes a View menu with Wireframe/Textured radio items', () => {
     const template = createApplicationMenuTemplate({
       appName: 'Nomos Studio',
@@ -171,14 +336,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'textured',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -219,14 +388,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'wireframe',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: false, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -279,14 +452,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'textured',
       mapSectorSurface: 'ceiling',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -341,14 +518,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'wireframe',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -402,14 +583,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'wireframe',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: true,
       mapDoorVisibility: 'hidden',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},
@@ -455,14 +640,18 @@ describe('createApplicationMenuTemplate', () => {
       canSave: false,
       canUndo: false,
       canRedo: false,
+      recentMapPaths: [],
       mapRenderMode: 'wireframe',
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
+      onNewMap: () => {},
       onOpenMap: () => {},
+      onOpenRecentMap: () => {},
       onSave: () => {},
+      onSaveAs: () => {},
       onUndo: () => {},
       onRedo: () => {},
       onRefreshAssetsIndex: () => {},

@@ -8,14 +8,18 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   canSave: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  recentMapPaths: readonly string[];
   mapRenderMode: MapRenderMode;
   mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
   mapDoorVisibility: MapDoorVisibility;
   onOpenSettings: () => void;
+  onNewMap: () => void;
   onOpenMap: () => void;
+  onOpenRecentMap: (mapPath: string) => void;
   onSave: () => void;
+  onSaveAs: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onRefreshAssetsIndex: () => void;
@@ -47,8 +51,26 @@ export function createApplicationMenuTemplate(
   const fileMenu: MenuItemConstructorOptions = {
     label: 'File',
     submenu: [
+      { label: 'New Map', accelerator: 'CommandOrControl+N', click: () => options.onNewMap() },
       { label: 'Open Map…', click: () => options.onOpenMap() },
+      {
+        label: 'Recent Maps',
+        submenu:
+          options.recentMapPaths.length === 0
+            ? [{ label: 'No Recent Maps', enabled: false }]
+            : options.recentMapPaths.map((mapPath) => ({
+                label: mapPath,
+                click: () => options.onOpenRecentMap(mapPath)
+              }))
+      },
+      { type: 'separator' },
       { label: 'Save', enabled: options.canSave, click: () => options.onSave() },
+      {
+        label: 'Save As…',
+        enabled: options.canSave,
+        accelerator: 'CommandOrControl+Shift+S',
+        click: () => options.onSaveAs()
+      },
       { type: 'separator' },
       { label: 'Refresh Assets Index', click: () => options.onRefreshAssetsIndex() }
     ]

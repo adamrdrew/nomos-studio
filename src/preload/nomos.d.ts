@@ -12,6 +12,8 @@ import type {
   ReadAssetFileBytesRequest,
   ReadAssetFileBytesResponse,
   OpenMapDialogResponse,
+  OpenMapFromAssetsRequest,
+  OpenMapFromAssetsResponse,
   OpenMapResponse,
   PickDirectoryResponse,
   PickFileResponse,
@@ -47,6 +49,7 @@ declare global {
       map: {
         validate: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
         open: (request: { mapPath: string }) => Promise<OpenMapResponse>;
+        openFromAssets: (request: OpenMapFromAssetsRequest) => Promise<OpenMapFromAssetsResponse>;
         save: () => Promise<SaveMapResponse>;
         edit: (request: MapEditRequest) => Promise<MapEditResponse>;
         undo: (request: MapUndoRequest) => Promise<MapUndoResponse>;

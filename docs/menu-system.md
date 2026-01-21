@@ -5,7 +5,7 @@ Nomos Studio’s menu subsystem builds the Electron application menu template in
 
 Current responsibilities:
 - Define the top-level menu structure (File + platform-specific Settings/Preferences entrypoint).
-- Bind menu items to main-process callbacks (open map, save, refresh assets index, open settings).
+- Bind menu items to main-process callbacks (new/open/save/save-as, recent maps, refresh assets index, open settings).
 - Enable/disable Save based on whether a map document is currently loaded.
 - Enable/disable Undo/Redo based on main-owned edit history state.
 - Provide a View menu to switch map render mode and control map grid display.
@@ -34,8 +34,11 @@ Current responsibilities:
 
 ### User-facing entrypoints
 - File menu:
+	- New Map
 	- Open Map…
+	- Recent Maps (submenu)
 	- Save (enabled only when `canSave` is true)
+	- Save As…
 	- Refresh Assets Index
 
 - Edit menu:
@@ -67,13 +70,17 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	canSave: boolean;
 	canUndo: boolean;
 	canRedo: boolean;
+	recentMapPaths: readonly string[];
 	mapRenderMode: MapRenderMode;
 	mapGridSettings: MapGridSettings;
 	mapHighlightPortals: boolean;
 	mapDoorVisibility: MapDoorVisibility;
 	onOpenSettings: () => void;
+	onNewMap: () => void;
 	onOpenMap: () => void;
+	onOpenRecentMap: (mapPath: string) => void;
 	onSave: () => void;
+	onSaveAs: () => void;
 	onUndo: () => void;
 	onRedo: () => void;
 	onRefreshAssetsIndex: () => void;

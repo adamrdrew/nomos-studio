@@ -5,6 +5,7 @@ import { AssetBrowser } from '../inspector/AssetBrowser';
 import { PropertiesEditor, type InspectorSelectionModel } from '../inspector/PropertiesEditor';
 import { useNomosStore } from '../../../store/nomosStore';
 import { decodeMapViewModel } from '../map/mapDecoder';
+import { routeAssetDoubleClick } from '../inspector/assetActionRouter';
 
 function CollapsibleSection(props: {
   title: string;
@@ -45,7 +46,17 @@ function CollapsibleSection(props: {
 export function InspectorDockPanel(): JSX.Element {
   const openAsset = React.useCallback((relativePath: string) => {
     void (async () => {
-      const result = await window.nomos.assets.open({ relativePath });
+      const action = routeAssetDoubleClick(relativePath);
+      if (action.kind === 'open-map-in-editor') {
+        const result = await window.nomos.map.openFromAssets({ relativePath: action.relativePath });
+        if (!result.ok) {
+          // eslint-disable-next-line no-console
+          console.error('[nomos] open map from assets failed', result.error);
+        }
+        return;
+      }
+
+      const result = await window.nomos.assets.open({ relativePath: action.relativePath });
       if (!result.ok) {
         // eslint-disable-next-line no-console
         console.error('[nomos] open asset failed', result.error);

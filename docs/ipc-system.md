@@ -45,6 +45,7 @@ The renderer must only use the preload API:
 - `window.nomos.assets.open({ relativePath })`
 - `window.nomos.assets.readFileBytes({ relativePath })`
 - `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()`
+- `window.nomos.map.openFromAssets({ relativePath })`
 - `window.nomos.map.edit({ baseRevision, command })`
 - `window.nomos.map.undo({ baseRevision, steps? })` / `window.nomos.map.redo({ baseRevision, steps? })`
 - `window.nomos.state.getSnapshot()`
@@ -62,6 +63,7 @@ Channels (canonical):
 - `nomos:assets:read-file-bytes`
 - `nomos:map:validate`
 - `nomos:map:open`
+- `nomos:map:open-from-assets`
 - `nomos:map:save`
 - `nomos:map:edit`
 - `nomos:map:undo`
@@ -105,6 +107,8 @@ Read file bytes:
 - `ValidateMapResponse = Result<null, MapValidationError>`
 - `OpenMapRequest = Readonly<{ mapPath: string }>`
 - `OpenMapResponse = Result<MapDocument, MapIoError | MapValidationError>`
+- `OpenMapFromAssetsRequest = Readonly<{ relativePath: string }>`
+- `OpenMapFromAssetsResponse = Result<MapDocument, OpenMapFromAssetsError | MapIoError | MapValidationError>`
 - `SaveMapResponse = Result<MapDocument, MapIoError>`
 
 For details of the transactional edit command model and selection reconciliation semantics carried over IPC, see:

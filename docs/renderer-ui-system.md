@@ -122,7 +122,9 @@ The editor UI is organized like a traditional creative tool:
 	- Zoom is clamped to a minimum and maximum view scale; the current maximum supports close inspection (max scale 64).
 	- Select commands (Delete/Clone) request main-process edits via `window.nomos.map.edit(...)` and update renderer selection based on the edit result.
 - **Inspector** panel (right): contains collapsible sections, currently Asset Browser and Properties.
-	- Asset Browser renders the current asset index entries and supports opening files via `window.nomos.assets.open(...)`.
+	- Asset Browser renders the current asset index entries and supports opening files via a small double-click router:
+		- `Levels/*.json` opens the map in-editor via `window.nomos.map.openFromAssets({ relativePath })`.
+		- all other assets open via `window.nomos.assets.open({ relativePath })`.
 		- Asset icons are color-coded by file type for readability on the dark surface.
 	- Properties shows the selected map object and allows editing supported selection kinds.
 		- Edits are committed via `window.nomos.map.edit(...)` using the `map-edit/update-fields` atomic command.
