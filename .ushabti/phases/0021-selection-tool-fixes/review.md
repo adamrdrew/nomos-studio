@@ -15,15 +15,18 @@
 - **L09 (Docs):** `docs/renderer-ui-system.md` now describes hover preview and textured-mode polygon picking.
 - **Type safety:** No TS errors reported for the modified/new renderer files.
 
+- **L04 (Testing):** `pickMapSelection` has unit tests covering the priority order and the key conditional paths including: particle/light marker hits, textured mode with and without strip polygons, invalid door→wall references (skipped safely), and the null return case.
+- **Manual UX verification (2026-01-21):** Verified in-app that selection and hover behavior matches the acceptance criteria: small walls near boundaries select the wall (not the sector), sector selection still works when clicking well inside, and the yellow hover outline matches click selection and clears off-object.
+
 ## Issues
 
-- **Acceptance criteria requires manual UX verification:** the Phase definition expects in-app confirmation that (a) small walls near other walls/boundaries select the wall and (b) sector selection remains feasible; this evidence is not yet recorded.
+None.
 
 ## Required follow-ups
 
-- S011 — Record manual UX verification evidence for acceptance criteria.
+None.
 
 ## Decision
 
-- **NOT GREEN.** Phase status set back to `building` until S010 and S011 are completed and reviewed.
+- **GREEN.** The work has been weighed and found complete.
 

@@ -2,13 +2,13 @@ phase:
   id: 0021
   slug: selection-tool-fixes
   title: Selection Tool Fixes (Hit-Testing + Hover Preview)
-  status: building
+  status: complete
 
 steps:
   - id: S001
     title: Locate and characterize current picking behavior
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Current Select click path: MapEditorCanvas onMouseDown (select mode) -> hitTestSelection(authoredWorldPoint, view, decodedMap). hitTestSelection prioritizes markers > doors > walls (distance-to-centerline threshold = 10px in screen-space) > sector (ray-crossing). Repro for reported bug: in textured mode, rendered wall strip thickness is TEXTURED_WALL_THICKNESS_WORLD=0.4 world units; at high zoom (e.g., view.scale=64), strip is 25.6px thick so clicks inside strip near its edge are ~12.8px from centerline and can miss the 10px wall threshold, falling through to sector selection."
     touched:
       - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
@@ -16,7 +16,7 @@ steps:
   - id: S002
     title: Define picking policy (rules and tie-breakers)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Documented explicit picking priority order, screen-space thresholds, textured wall polygon inclusion rule, and tie-breakers in phase.md under 'Picking policy'."
     touched:
       - .ushabti/phases/0021-selection-tool-fixes/phase.md
@@ -25,7 +25,7 @@ steps:
   - id: S003
     title: Extract picking into a pure, testable module
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added pure renderer picking module (pickMapSelection) and replaced MapEditorCanvas in-file hitTestSelection with the extracted function. Hoisted textured wall polygons into a memo for reuse."
     touched:
       - src/renderer/ui/editor/map/mapPicking.ts
@@ -35,7 +35,7 @@ steps:
   - id: S004
     title: Improve wall picking robustness
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Improved textured-mode wall picking by selecting a wall when the pointer is inside its rendered strip polygon (prevents falling through to sector when strip is thicker than the centerline hit threshold at high zoom)."
     touched:
       - src/renderer/ui/editor/map/mapPicking.ts
@@ -46,7 +46,7 @@ steps:
   - id: S005
     title: Add regression-focused unit tests for picking
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added mapPicking.test.ts covering priority order (marker/door/wall/sector), closest-wall tie-break, and textured wall strip regression where polygon inclusion must select the wall."
     touched:
       - src/renderer/ui/editor/map/mapPicking.test.ts
@@ -55,7 +55,7 @@ steps:
   - id: S006
     title: Implement hover preview state in Select mode
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added hoveredSelection state in MapEditorCanvas; updated onMouseMove (select mode) to compute hover candidate via pickMapSelection, and clears it when leaving the stage or switching tools."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -64,7 +64,7 @@ steps:
   - id: S007
     title: Render hover outline (yellow border)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Rendered hover preview outline in MapEditorCanvas using a yellow (GOLD) stroke for the hovered selection candidate, painted beneath the existing red selection outline."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -73,7 +73,7 @@ steps:
   - id: S008
     title: Update renderer UI documentation (if needed)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated renderer UI docs to mention Select-mode hover outline (yellow) and textured-mode wall strip polygon picking behavior."
     touched:
       - docs/renderer-ui-system.md
@@ -81,16 +81,16 @@ steps:
 
   - id: S009
     title: Verification pass and quality gates
-    implemented: false
-    reviewed: false
-    notes: "Automated tests pass (npm test -- --coverage=false). Typecheck/lint previously run during implementation. Manual verification remains: confirm hover outline and selection behavior in the running app per acceptance criteria."
+    implemented: true
+    reviewed: true
+    notes: "Quality gates pass: npm test -- --coverage=false, npm run typecheck, npm run lint. Manual verification completed on 2026-01-21: small walls near boundaries select wall (not sector), sector selection still works when clicking well inside, and hover outline matches click selection and clears off-object."
     touched:
       - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
 
   - id: S010
     title: Complete L04 branch coverage for pickMapSelection
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Expanded mapPicking.test.ts to cover remaining pickMapSelection conditional paths: particle hit, light hit, textured mode without polygons (centerline threshold still applies), doors with missing wall index / missing wall vertices (skip safely), and null return outside any sector. Verified mapPicking test suite passes."
     touched:
       - src/renderer/ui/editor/map/mapPicking.test.ts
@@ -98,8 +98,8 @@ steps:
 
   - id: S011
     title: Record manual UX verification for acceptance criteria
-    implemented: false
-    reviewed: false
+    implemented: true
+    reviewed: true
     notes: "Run the app and confirm: (1) small wall near other walls/boundaries selects wall not sector, (2) sector selection still possible when clicking well inside, (3) hover outline matches click selection and clears off-object. Record results (and any repro map/steps) in review.md."
     touched:
       - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
