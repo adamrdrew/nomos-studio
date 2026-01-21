@@ -58,6 +58,15 @@
   - Preserve clean joins at corners (miter + limit) for the offset-side edge.
 - **Done when:** Textured walls do not overlap across adjacent sectors; rooms and boundaries read clearly.
 
+## S012 — Tests: one-sided interior offset invariants
+- **Intent:** Satisfy L04 for the new conditional paths introduced by one-sided strips and make the adjacent-sector non-overlap rule verifiable.
+- **Work:**
+  - Add unit tests for `computeTexturedWallStripPolygons` that cover:
+    - CW vs CCW sector loop winding (area < 0 branch) produces an inward offset in the correct direction.
+    - An adjacent-sector scenario (two sectors sharing a boundary via duplicated walls, one per sector) yields offset strips that do not overlap (offsets go to opposite sides of the shared centerline).
+  - Optionally add a minimal `docs/repro-maps/0016-adjacent-sectors.json` fixture so the adjacent-sector case is easy to manually verify.
+- **Done when:** The new tests pass and explicitly exercise the previously-uncovered branches/invariants.
+
 ## S006 — Validate selection/hit-testing ergonomics remain correct
 - **Intent:** Ensure improved visuals do not degrade editor interaction.
 - **Work:**

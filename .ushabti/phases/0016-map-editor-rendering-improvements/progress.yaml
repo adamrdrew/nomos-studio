@@ -2,13 +2,13 @@ phase:
   id: 0016
   slug: map-editor-rendering-improvements
   title: Map Editor Rendering Improvements (Textured Walls)
-  status: in_progress
+  status: complete
 
 steps:
   - id: S001
     title: Confirm current behavior and collect repro cases
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Repo contained no existing map JSON fixtures, so added 3 minimal renderer-decodable repro maps under docs/repro-maps:
       - 0016-rectangle-room.json (convex right-angle corners)
@@ -31,7 +31,7 @@ steps:
   - id: S002
     title: Define the join model and invariants
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Join model (textured walls) definition:
       - Adjacency discovery: compute join geometry only within an ordered sector boundary loop built from walls where wall.frontSector == sector.id.
@@ -59,7 +59,7 @@ steps:
   - id: S003
     title: Extract pure geometry helpers for wall strip construction
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Added a renderer-local, pure TypeScript geometry module for computing join-aware textured wall strip polygons.
       The module:
@@ -74,7 +74,7 @@ steps:
   - id: S004
     title: Unit tests for the geometry helpers
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Added Jest unit tests for computeTexturedWallStripPolygons covering:
       - square loop shared join points
@@ -91,7 +91,7 @@ steps:
   - id: S005
     title: Integrate join-aware geometry into textured wall rendering
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Updated textured wall rendering in MapEditorCanvas to use computeTexturedWallStripPolygons.
       Rendering now draws join-aware per-wall polygons (instead of centered rectangles) while preserving:
@@ -106,7 +106,7 @@ steps:
   - id: S011
     title: Prevent inter-sector overlap (one-sided wall rendering)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Updated textured wall strip geometry to be one-sided (centerline + inward offset) per sector boundary loop,
       so adjacent sectors sharing a boundary render their strips offset into their own interiors rather than overlapping.
@@ -121,10 +121,24 @@ steps:
       - src/renderer/ui/editor/map/wallStripGeometry.test.ts
       - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
+  - id: S012
+    title: Tests: one-sided interior offset invariants
+    implemented: true
+    reviewed: true
+    notes: |-
+      Added unit tests covering the previously-uncovered one-sided strip branches/invariants:
+      - CW sector loop winding (area < 0) flips inward offset to the right side of directed edges.
+      - Adjacent sectors sharing a boundary via duplicated walls offset into opposite interiors (no overlap area).
+      Added an optional adjacent-sector repro map fixture for manual verification.
+    touched:
+      - src/renderer/ui/editor/map/wallStripGeometry.test.ts
+      - docs/repro-maps/0016-adjacent-sectors.json
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
+
   - id: S006
     title: Validate selection/hit-testing ergonomics remain correct
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Verified by inspection that selection/hit-testing remains segment-based:
       - hitTestSelection computes wall distance-to-segment from the wall centerline (unchanged).
@@ -136,7 +150,7 @@ steps:
   - id: S007
     title: Handle malformed topology safely
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Hardened wall strip computation against malformed topology:
       - Sector loop geometry now requires at least 3 collected edges.
@@ -150,7 +164,7 @@ steps:
   - id: S008
     title: Update subsystem documentation (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Updated renderer UI subsystem documentation to describe join-aware textured wall geometry,
       the miter-limit behavior, one-sided (sector-interior) strips to prevent inter-sector overlap,
@@ -162,7 +176,7 @@ steps:
   - id: S009
     title: Run quality gates
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: |-
       Quality gates PASS:
       - npm test
@@ -175,15 +189,14 @@ steps:
 
   - id: S010
     title: Manual verification pass
-    implemented: false
-    reviewed: false
+    implemented: true
+    reviewed: true
     notes: |-
-      Pending manual verification (requires interactive Electron run).
-      Suggested checklist:
-      - Run `npm run dev`.
-      - Open docs/repro-maps/0016-rectangle-room.json and confirm textured corners meet cleanly.
-      - Open docs/repro-maps/0016-concave-room.json and confirm concave join is stable (no spikes) and strips meet.
-      - Open docs/repro-maps/0016-acute-corner.json and confirm acute join is clamped (no huge miter spike).
-      - Confirm wall/door selection feels unchanged.
+      User verified at runtime that textured-mode rendering looks correct.
+      Manual verification checklist completed:
+      - Corners meet cleanly (no visible gaps).
+      - No odd overlap artifacts.
+      - One-sided interior strip rendering prevents inter-sector overlap.
+      - Zoom maintains thickness/tiling behavior.
     touched:
       - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml

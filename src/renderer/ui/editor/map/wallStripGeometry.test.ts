@@ -18,6 +18,46 @@ function distance(a: Point, b: Point): number {
 }
 
 describe('computeTexturedWallStripPolygons', () => {
+  test('CW loop winding: inward offset flips to the right side of directed edges', () => {
+    // CW square: (0,0)->(0,10)->(10,10)->(10,0)->(0,0)
+    const map: MapViewModel = {
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 0, y: 10 },
+        { x: 10, y: 10 },
+        { x: 10, y: 0 }
+      ],
+      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      walls: [
+        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+      ],
+      doors: [],
+      lights: [],
+      particles: [],
+      entities: []
+    };
+
+    const thickness = 2;
+    const polys = computeTexturedWallStripPolygons(map, thickness);
+    const byIndex = new Map(polys.map((p) => [p.wallIndex, p] as const));
+
+    const w0 = byIndex.get(0);
+    expect(w0).toBeTruthy();
+
+    // w0 is (0,0)->(0,10). For a CW loop, the interior is on the RIGHT side of the directed edge,
+    // so the one-sided offset edge should have positive X.
+    expectPointClose(w0!.points[0]!, { x: 0, y: 0 });
+    expectPointClose(w0!.points[1]!, { x: 0, y: 10 });
+
+    const offsetA = w0!.points[2]!;
+    const offsetB = w0!.points[3]!;
+    expect(offsetA.x).toBeGreaterThan(0.5);
+    expect(offsetB.x).toBeGreaterThan(0.5);
+  });
+
   test('square loop: adjacent walls share join points (no corner gaps)', () => {
     const map: MapViewModel = {
       vertices: [
@@ -275,5 +315,71 @@ describe('computeTexturedWallStripPolygons', () => {
     expectPointClose(polys[0]!.points[3]!, { x: 0, y: -1 });
     expectPointClose(polys[0]!.points[1]!, { x: 10, y: 1 });
     expectPointClose(polys[0]!.points[2]!, { x: 10, y: -1 });
+  });
+
+  test('adjacent sectors (duplicated shared boundary walls): offset strips go to opposite sides', () => {
+    // Two adjacent CCW rooms sharing the boundary x=10.
+    // Sector 1 (left): (0,0)->(10,0)->(10,10)->(0,10)
+    // Sector 2 (right): (10,0)->(20,0)->(20,10)->(10,10)
+    // Shared boundary is represented by two walls (one per sector) with opposite directions.
+    const map: MapViewModel = {
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+        { x: 0, y: 10 },
+        { x: 20, y: 0 },
+        { x: 20, y: 10 }
+      ],
+      sectors: [
+        { id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 },
+        { id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }
+      ],
+      walls: [
+        // Sector 1 boundary.
+        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }, // shared (up)
+        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+
+        // Sector 2 boundary.
+        { index: 4, v0: 1, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 5, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 6, v0: 5, v1: 2, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 7, v0: 2, v1: 1, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false } // shared (down)
+      ],
+      doors: [],
+      lights: [],
+      particles: [],
+      entities: []
+    };
+
+    const thickness = 2;
+    const polys = computeTexturedWallStripPolygons(map, thickness);
+    const byIndex = new Map(polys.map((p) => [p.wallIndex, p] as const));
+
+    const sharedLeft = byIndex.get(1);
+    const sharedRight = byIndex.get(7);
+    expect(sharedLeft).toBeTruthy();
+    expect(sharedRight).toBeTruthy();
+
+    // Both centerlines lie on x=10.
+    expectPointClose(sharedLeft!.points[0]!, { x: 10, y: 0 });
+    expectPointClose(sharedLeft!.points[1]!, { x: 10, y: 10 });
+    expectPointClose(sharedRight!.points[0]!, { x: 10, y: 10 });
+    expectPointClose(sharedRight!.points[1]!, { x: 10, y: 0 });
+
+    // Offset edges should go into each sector interior:
+    // - left sector interior is x < 10
+    // - right sector interior is x > 10
+    const leftOffsets = [sharedLeft!.points[2]!, sharedLeft!.points[3]!];
+    const rightOffsets = [sharedRight!.points[2]!, sharedRight!.points[3]!];
+
+    for (const point of leftOffsets) {
+      expect(point.x).toBeLessThan(9.5);
+    }
+    for (const point of rightOffsets) {
+      expect(point.x).toBeGreaterThan(10.5);
+    }
   });
 });
