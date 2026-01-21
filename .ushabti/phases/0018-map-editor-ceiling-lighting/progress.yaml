@@ -2,13 +2,13 @@ phase:
   id: 0018
   slug: map-editor-ceiling-lighting
   title: Map Editor Ceiling Textures, Sky, Lighting, and Zoom
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Inspect current textured sector rendering + zoom constraints
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Textured sector fill currently uses sector.floorTex only in MapEditorCanvas (texture prefetch Set<fileName> adds floorTex + wall.tex; render path looks up textureImages[sector.floorTex]). Zoom clamps are MIN_VIEW_SCALE=0.1 and MAX_VIEW_SCALE=24 in MapEditorCanvas; clamp is applied in wheel zoom and zoomAroundScreenPoint (toolbar zoom). View menu state originates in main AppStore -> AppStateSnapshot -> renderer useNomosStore, and menu template is createApplicationMenuTemplate.ts."
     touched:
       - .ushabti/phases/0018-map-editor-ceiling-lighting/progress.yaml
@@ -16,7 +16,7 @@ steps:
   - id: S002
     title: Define the new view setting: sector surface mode
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added shared MapSectorSurface union ('floor'|'ceiling'), added mapSectorSurface to main AppStore state (default 'floor') with setMapSectorSurface + toggleMapSectorSurface, and threaded the new field through AppStateSnapshot and main getStateSnapshot IPC return."
     touched:
       - src/shared/domain/models.ts
@@ -29,7 +29,7 @@ steps:
   - id: S003
     title: Unit tests for main store and snapshot wiring (L04)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended AppStore unit tests to assert default mapSectorSurface='floor', cover setMapSectorSurface for both values, toggleMapSectorSurface flipping behavior, and subscriber notification on updates." 
     touched:
       - src/main/application/store/AppStore.test.ts
@@ -38,7 +38,7 @@ steps:
   - id: S004
     title: Add View menu control for floor/ceiling surface
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added View menu radio items 'Floor Textures' and 'Ceiling Textures' driven by AppStore.mapSectorSurface, wired via createApplicationMenuTemplate option onSetMapSectorSurface which main.ts maps to store.setMapSectorSurface. Updated menu template unit tests to cover checked state and click wiring."
     touched:
       - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
@@ -49,7 +49,7 @@ steps:
   - id: S005
     title: Thread the new flag through renderer store
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended renderer zustand store (useNomosStore) to include mapSectorSurface with default 'floor' and to populate it from main snapshot during refreshFromMain. Added unit test asserting default mapSectorSurface."
     touched:
       - src/renderer/store/nomosStore.ts
@@ -59,7 +59,7 @@ steps:
   - id: S006
     title: Extend the decoded map view model with optional sky
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended renderer MapViewModel to include sky: string|null decoded from root 'sky' (trimmed; empty/absent => null). Added unit tests covering absent, empty, and present sky cases plus asserting existing fixtures default sky to null. Updated existing MapViewModel test fixtures to include sky: null."
     touched:
       - src/renderer/ui/editor/map/mapViewModel.ts
@@ -71,7 +71,7 @@ steps:
   - id: S007
     title: Update texture loading to support ceiling + sky assets (bounded)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended MapEditorCanvas textured-mode prefetch to load either floor or ceiling textures based on mapSectorSurface, skip loading SKY keyword as a texture, and load map sky texture from Images/Sky/<fileName> when any ceiling uses SKY and map defines sky. Kept cache bounded (64 entries) and continued object URL revocation on eviction/clear."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -80,7 +80,7 @@ steps:
   - id: S008
     title: Implement sector surface selection + SKY substitution in rendering
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated textured sector fill rendering to select floorTex vs ceilTex based on mapSectorSurface. In ceiling mode, ceilTex=SKY (case-insensitive) substitutes the decoded map sky texture (loaded from Images/Sky/<fileName>). If sky is missing/unavailable, the fill gracefully skips without crashing (walls remain visible)."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -89,7 +89,7 @@ steps:
   - id: S009
     title: Implement sector base lighting overlay in textured fills
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Applied sector base light visualization for textured sector fills by drawing a black overlay with opacity 1 - clamp01(sector.light) after the texture pattern fill. SKY-derived ceiling fills skip the overlay and render at full brightness."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -98,7 +98,7 @@ steps:
   - id: S010
     title: Increase max zoom-in and confirm tooling consistency
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Increased MapEditorCanvas MAX_VIEW_SCALE from 24 to 64 so both wheel zoom and toolbar zoom can reach higher magnification while still clamping safely."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -107,7 +107,7 @@ steps:
   - id: S011
     title: Properties editor ensure sector light is constrained and communicative
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated SectorEditor to clamp sector light to [0,1] on commit, warn when clamping occurs, and label the field as light (0..1) to communicate expected range. Also keyed selection-kind editor components by selected value identity to prevent form state leaking between selections (e.g., sector light field carrying over)."
     touched:
       - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
@@ -116,7 +116,7 @@ steps:
   - id: S012
     title: Update docs (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated menu and renderer UI subsystem docs to reflect new View surface mode (floor vs ceiling), SKY ceiling substitution and asset path (Images/Sky/<file>), sector base light overlay behavior, zoom max scale, and sector light editing semantics."
     touched:
       - docs/menu-system.md
@@ -126,7 +126,7 @@ steps:
   - id: S013
     title: Quality gates + manual verification
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "User ran npm run lint, npm test, and npm run typecheck successfully. Manual verification still recommended (floor/ceiling toggle, SKY ceiling render, light extremes, max zoom)."
     touched:
       - .ushabti/phases/0018-map-editor-ceiling-lighting/progress.yaml
