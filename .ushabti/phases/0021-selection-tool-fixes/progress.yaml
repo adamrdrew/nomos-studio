@@ -1,0 +1,69 @@
+phase:
+  id: 0021
+  slug: selection-tool-fixes
+  title: Selection Tool Fixes (Hit-Testing + Hover Preview)
+  status: planned
+
+steps:
+  - id: S001
+    title: Locate and characterize current picking behavior
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define picking policy (rules and tie-breakers)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Extract picking into a pure, testable module
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Improve wall picking robustness
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Add regression-focused unit tests for picking
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Implement hover preview state in Select mode
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Render hover outline (yellow border)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Update renderer UI documentation (if needed)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Verification pass and quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
