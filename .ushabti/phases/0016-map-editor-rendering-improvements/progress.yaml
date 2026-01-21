@@ -1,0 +1,76 @@
+phase:
+  id: 0016
+  slug: map-editor-rendering-improvements
+  title: Map Editor Rendering Improvements (Textured Walls)
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm current behavior and collect repro cases
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define the join model and invariants
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Extract pure geometry helpers for wall strip construction
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Unit tests for the geometry helpers
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Integrate join-aware geometry into textured wall rendering
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Validate selection/hit-testing ergonomics remain correct
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Handle malformed topology safely
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Update subsystem documentation (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Run quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Manual verification pass
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
