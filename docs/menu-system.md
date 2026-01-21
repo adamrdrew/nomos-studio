@@ -7,6 +7,7 @@ Current responsibilities:
 - Define the top-level menu structure (File + platform-specific Settings/Preferences entrypoint).
 - Bind menu items to main-process callbacks (open map, save, refresh assets index, open settings).
 - Enable/disable Save based on whether a map document is currently loaded.
+- Enable/disable Undo/Redo based on main-owned edit history state.
 - Provide a View menu to switch map render mode and control map grid display.
 
 ## Architecture
@@ -20,6 +21,7 @@ Current responsibilities:
 ### Wiring (main)
 - `src/main/main.ts`
 	- Computes `canSave` from `store.getState().mapDocument !== null`.
+	- Computes `canUndo` / `canRedo` from `MapEditHistory.getInfo()`.
 	- Calls `Menu.setApplicationMenu(Menu.buildFromTemplate(template))`.
 	- Subscribes to `AppStore` changes to re-install the menu when relevant state changes.
 
@@ -34,6 +36,10 @@ Current responsibilities:
 	- Save (enabled only when `canSave` is true)
 	- Refresh Assets Index
 
+- Edit menu:
+	- Undo (enabled only when `canUndo` is true)
+	- Redo (enabled only when `canRedo` is true)
+
 - View menu:
 	- Wireframe
 	- Textured
@@ -43,7 +49,7 @@ Current responsibilities:
 
 - Settings entrypoint:
 	- macOS: App menu → Preferences… (`CommandOrControl+,`)
-	- Windows/Linux: Edit menu → Settings… (`CommandOrControl+,`)
+	- Windows/Linux: Settings menu → Settings… (`CommandOrControl+,`)
 
 ## Data shapes
 
@@ -53,11 +59,15 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	appName: string;
 	platform: NodeJS.Platform;
 	canSave: boolean;
+	canUndo: boolean;
+	canRedo: boolean;
 	mapRenderMode: MapRenderMode;
 	mapGridSettings: MapGridSettings;
 	onOpenSettings: () => void;
 	onOpenMap: () => void;
 	onSave: () => void;
+	onUndo: () => void;
+	onRedo: () => void;
 	onRefreshAssetsIndex: () => void;
 	onSetMapRenderMode: (mode: MapRenderMode) => void;
 	onToggleMapGrid: () => void;

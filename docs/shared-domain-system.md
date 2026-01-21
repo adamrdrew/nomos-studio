@@ -69,11 +69,14 @@ type AssetIndex = Readonly<{
 
 ### Maps
 ```ts
+type MapDocumentRevision = number;
+
 type MapDocument = Readonly<{
 	filePath: string;
 	json: unknown;
 	dirty: boolean;
 	lastValidation: MapValidationRecord | null;
+	revision: MapDocumentRevision;
 }>;
 ```
 

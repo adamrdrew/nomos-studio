@@ -7,6 +7,7 @@ Nomos Studio has two related “stores”:
 - **Renderer `useNomosStore` (Zustand)**: a lightweight, renderer-local cache that pulls a snapshot from main via IPC and refreshes when main emits a narrow change signal.
 
 The renderer uses a narrow push signal (`nomos:state:changed`) to know when to refresh its snapshot (it still pulls the full snapshot on each refresh).
+For some main-triggered operations (notably menu Undo/Redo), the event may also include an optional payload with a `selectionEffect` so the renderer can reconcile selection deterministically.
 
 The store subsystem is intentionally small and synchronous, designed to keep application services decoupled from Electron/UI primitives while still providing shared state (e.g., enabling/disabling menu items based on whether a document is loaded).
 
@@ -40,9 +41,12 @@ The Electron main entrypoint (`src/main/main.ts`) creates one `AppStore` instanc
 		- `assetIndex`
 		- `mapDocument`
 		- `mapRenderMode`
+		- `mapGridSettings`
+		- `mapHistory`
 		- `mapSelection` (renderer-local UI selection)
 	- `refreshFromMain()` calls `window.nomos.state.getSnapshot()` and updates the Zustand state.
 	- `setMapSelection(...)` updates selection without calling main.
+	- `applyMapSelectionEffect(effect)` applies a `MapEditSelectionEffect` (returned by main) to renderer-local selection.
 
 ### IPC link
 - The snapshot is defined in `src/shared/ipc/nomosIpc.ts` as `AppStateSnapshot` and returned from `NOMOS_IPC_CHANNELS.stateGet` (`nomos:state:get`).
@@ -52,6 +56,7 @@ The Electron main entrypoint (`src/main/main.ts`) creates one `AppStore` instanc
 - Main emits `nomos:state:changed` when the `AppStore` changes.
 - Preload exposes `window.nomos.state.onChanged(listener)`.
 - The renderer listens and calls `useNomosStore.refreshFromMain()`.
+	- If the event includes `payload.selectionEffect`, the renderer applies it via `useNomosStore.applyMapSelectionEffect(...)` before/alongside refresh.
 
 ## Public API / entrypoints
 
@@ -71,10 +76,11 @@ The Electron main entrypoint (`src/main/main.ts`) creates one `AppStore` instanc
 - `useNomosStore` (Zustand hook)
 	- `refreshFromMain(): Promise<void>`
 	- `setMapSelection(selection: MapSelection | null): void`
+	- `applyMapSelectionEffect(effect: MapEditSelectionEffect): void`
 
 ### IPC / preload entrypoints
 - `window.nomos.state.getSnapshot(): Promise<StateGetResponse>`
-- `window.nomos.state.onChanged(listener: () => void): () => void`
+- `window.nomos.state.onChanged(listener: (payload?: StateChangedPayload) => void): () => void`
 - Main handler: `NomosIpcHandlers.getStateSnapshot()` in `src/main/main.ts`.
 
 ## Data shapes
@@ -101,6 +107,7 @@ type AppStateSnapshot = Readonly<{
 	mapDocument: MapDocument | null;
 	mapRenderMode: MapRenderMode;
 	mapGridSettings: MapGridSettings;
+	mapHistory: MapEditHistoryInfo;
 }>;
 
 type StateGetResponse = Result<AppStateSnapshot, { message: string }>;
@@ -116,9 +123,12 @@ type NomosStoreState = {
 	assetIndex: AssetIndex | null;
 	mapDocument: MapDocument | null;
 	mapRenderMode: MapRenderMode;
+	mapGridSettings: MapGridSettings;
+	mapHistory: MapEditHistoryInfo;
 	mapSelection: MapSelection | null;
 	refreshFromMain: () => Promise<void>;
 	setMapSelection: (selection: MapSelection | null) => void;
+	applyMapSelectionEffect: (effect: MapEditSelectionEffect) => void;
 };
 ```
 
@@ -143,6 +153,7 @@ type NomosStoreState = {
 
 ### Menu enablement dependency
 - The main process uses `store.getState().mapDocument !== null` to compute whether Save is enabled.
+- The main process uses `mapHistory` (from `MapEditHistory.getInfo()`) to compute whether Undo/Redo are enabled.
 - `store.subscribe()` triggers re-installing the application menu when state changes.
 
 ### Render mode state

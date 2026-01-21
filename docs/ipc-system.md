@@ -111,8 +111,17 @@ For details of the transactional edit command model and selection reconciliation
 - `docs/map-edit-command-system.md`
 
 Edit map:
-- `MapEditTargetRef = { kind: 'light' | 'particle' | 'entity'; index: number } | { kind: 'door'; id: string }`
-- `MapEditAtomicCommand = { kind: 'map-edit/delete' | 'map-edit/clone'; target: MapEditTargetRef }`
+- `MapEditTargetRef`
+	- `{ kind: 'light' | 'particle' | 'entity' | 'wall'; index: number }`
+	- `{ kind: 'door'; id: string }`
+	- `{ kind: 'sector'; id: number }`
+
+- `MapEditAtomicCommand`
+	- `{ kind: 'map-edit/delete'; target: MapEditTargetRef }`
+	- `{ kind: 'map-edit/clone'; target: MapEditTargetRef }`
+	- `{ kind: 'map-edit/update-fields'; target: MapEditTargetRef; set: Record<string, string | number | boolean | null> }`
+	- `{ kind: 'map-edit/move-entity'; target: { kind: 'entity'; index: number }; to: { x: number; y: number } }`
+
 - `MapEditCommand = MapEditAtomicCommand | { kind: 'map-edit/transaction'; label?: string; commands: readonly MapEditAtomicCommand[]; selection?: { kind: 'map-edit/selection'; ref: MapEditTargetRef | null } }`
 - `MapEditRequest = Readonly<{ baseRevision: number; command: MapEditCommand }>`
 - `MapEditResult = { kind: 'map-edit/deleted' } | { kind: 'map-edit/cloned'; newRef: MapEditTargetRef } | { kind: 'map-edit/applied'; selection: MapEditSelectionEffect; history: MapEditHistoryInfo }`

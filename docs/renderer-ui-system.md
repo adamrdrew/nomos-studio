@@ -6,9 +6,8 @@ The renderer UI subsystem contains the React UI that runs in Electron renderer p
 Current responsibilities:
 - Render the main “editor shell” UI (DockView layout) including the Map Editor surface and Inspector panels.
 - Render the currently-open map (wireframe or textured) in the Map Editor canvas.
-- Support Select-tool hit-testing and read-only Properties display.
+- Support Select-tool hit-testing and Properties display/editing.
 - Render Settings UI in two contexts:
-	- As a modal dialog inside the main window.
 	- As a dedicated Settings window when launched in “settings mode”.
 - Pull a read-only snapshot of main-process state via the preload API and store it in a small renderer store.
 
@@ -55,6 +54,9 @@ Renderer state is intentionally small:
 	- Populated by calling `refreshFromMain()` which invokes `window.nomos.state.getSnapshot()`.
 	- Also stores renderer-local UI state:
 		- `mapSelection` (selected map object identity)
+	- Includes snapshot fields used by UI enablement and rendering:
+		- `mapGridSettings`
+		- `mapHistory`
 
 ### Preload/IPC integration
 Renderer code calls the typed preload surface `window.nomos.*` for privileged operations:
@@ -65,6 +67,7 @@ Renderer code calls the typed preload surface `window.nomos.*` for privileged op
 - Map operations: `window.nomos.map.*`
 - State snapshot: `window.nomos.state.getSnapshot()`
 - State change subscription: `window.nomos.state.onChanged(listener)`
+	- The listener may receive an optional payload (currently `selectionEffect?: MapEditSelectionEffect`) for deterministic selection reconciliation.
 
 ## Editor UI (normal mode)
 
@@ -129,6 +132,8 @@ Settings UI uses two strings (nullable in persisted settings):
 - `assetIndex: AssetIndex | null`
 - `mapDocument: MapDocument | null`
 - `mapRenderMode: MapRenderMode`
+- `mapGridSettings: MapGridSettings`
+- `mapHistory: MapEditHistoryInfo`
 
 ## Boundaries & invariants
 

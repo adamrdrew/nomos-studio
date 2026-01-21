@@ -23,6 +23,9 @@ The assets system is split across the standard boundaries:
 - **Infrastructure layer (side effects)**
 	- `AssetIndexer` performs filesystem traversal via an injected `DirectoryReader` adapter.
 	- `nodeDirectoryReader` implements `DirectoryReader` using Node’s `fs.promises.readdir` with `withFileTypes: true`.
+	- `nodePathService` is a small adapter over Node `path` utilities used for absolute/relative path checks.
+	- `nodeShellOpener` is an adapter over Electron shell integration used to open files in the OS.
+	- `nodeBinaryFileReader` is an adapter used to read file bytes from disk (for textures and other binary assets).
 
 - **IPC / preload surface**
 	- The renderer can call `window.nomos.assets.refreshIndex()`.
