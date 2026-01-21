@@ -1,0 +1,116 @@
+phase:
+  id: 0020
+  slug: textured-zoom-proportional-walls
+  title: Textured Zoom: Proportional Wall Scaling
+  status: complete
+
+steps:
+  - id: S001
+    title: Reproduce and bound the problem
+    implemented: true
+    reviewed: true
+    notes: |-
+      Using existing renderer-decodable repro maps under docs/repro-maps (from Phase 0016):
+      - 0016-rectangle-room.json
+      - 0016-concave-room.json
+      - 0016-acute-corner.json
+      - 0016-adjacent-sectors.json
+
+      Chunkiness/illegibility is expected to be worst at very low view scales (near MIN_VIEW_SCALE=0.1),
+      because textured walls currently keep a constant screen-space thickness while sectors shrink.
+      No additional real project map was provided in this workspace for this Phase.
+    touched:
+      - .ushabti/phases/0020-textured-zoom-proportional-walls/progress.yaml
+
+  - id: S002
+    title: Locate the textured wall thickness rule in the renderer
+    implemented: true
+    reviewed: true
+    notes: |-
+      Located in src/renderer/ui/editor/MapEditorCanvas.tsx:
+      - textured wall thickness is currently defined as a screen-space constant (texturedWallThicknessPx = 12)
+      - then converted to world units via: texturedWallThicknessWorld = texturedWallThicknessPx / safeScale
+        where safeScale = max(0.0001, view.scale)
+
+      Other zoom-related rendering constants worth keeping in mind:
+      - wall segment strokes use a constant strokeWidth (wallStrokeWidth = 2) and are typically non-scaling
+        (Line strokeScaleEnabled={false} in several places)
+      - marker sizes are intentionally screen-space via `px / view.scale` (doors/entities/lights/particles)
+    touched:
+      - .ushabti/phases/0020-textured-zoom-proportional-walls/progress.yaml
+
+  - id: S003
+    title: Decide the world-space thickness invariant
+    implemented: true
+    reviewed: true
+    notes: |-
+      Chosen invariant for textured walls:
+      - TEXTURED_WALL_THICKNESS_WORLD = TEXTURE_TILE_WORLD_UNITS * 0.1
+
+      Rationale:
+      - TEXTURE_TILE_WORLD_UNITS is the existing world-space scale anchor for textured mode.
+      - With current defaults (TEXTURE_TILE_WORLD_UNITS=4), this yields a 0.4-world-unit wall strip.
+      - This is intentionally ~1/5 of the prior world-space choice to avoid chunky/overpowering walls while
+        preserving proportional scaling across zoom.
+    touched:
+      - .ushabti/phases/0020-textured-zoom-proportional-walls/progress.yaml
+
+  - id: S004
+    title: Implement proportional thickness in textured mode
+    implemented: true
+    reviewed: true
+    notes: |-
+      Updated textured wall thickness calculation in MapEditorCanvas:
+      - Introduced TEXTURED_WALL_THICKNESS_WORLD = TEXTURE_TILE_WORLD_UNITS * 0.1.
+      - Replaced texturedWallThicknessWorld = texturedWallThicknessPx / view.scale with the world constant.
+
+      Join-aware wall strip geometry continues to be computed via computeTexturedWallStripPolygons(map, thicknessWorld).
+      Marker sizing remains screen-space (px/view.scale) as intended.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0020-textured-zoom-proportional-walls/progress.yaml
+
+  - id: S005
+    title: Confirm selection/hit-testing remains usable
+    implemented: true
+    reviewed: true
+    notes: |-
+      No hit-testing changes required.
+
+      Wall hit-testing remains screen-space based (wallHitThresholdScreen=10, converted via / view.scale),
+      so selection ergonomics remain stable even though textured wall rendering thickness now scales with zoom.
+    touched:
+      - .ushabti/phases/0020-textured-zoom-proportional-walls/progress.yaml
+
+  - id: S006
+    title: Update docs (L09)
+    implemented: true
+    reviewed: true
+    notes: |-
+      Updated renderer UI subsystem docs to reflect the new textured-mode wall thickness invariant
+      (world-space thickness that scales with zoom, rather than a constant screen-space thickness).
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0020-textured-zoom-proportional-walls/progress.yaml
+
+  - id: S007
+    title: Run quality gates
+    implemented: true
+    reviewed: true
+    notes: |-
+      Quality gates:
+      - npm test (passes)
+      - npm run typecheck (passes)
+      - npm run lint (passes)
+    touched:
+      - .ushabti/phases/0020-textured-zoom-proportional-walls/progress.yaml
+
+  - id: S008
+    title: Manual verification pass
+    implemented: true
+    reviewed: true
+    notes: |-
+      Manual verification complete: user confirmed proportional zoom behavior is correct and the adjusted
+      world-space thickness (TEXTURE_TILE_WORLD_UNITS * 0.1) looks good.
+    touched:
+      - .ushabti/phases/0020-textured-zoom-proportional-walls/progress.yaml

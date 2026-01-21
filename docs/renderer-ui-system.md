@@ -97,7 +97,7 @@ The editor UI is organized like a traditional creative tool:
 		- Textured rendering uses repeated (tiled) patterns at a consistent world-units-per-tile scale so textures remain legible rather than appearing as a single stretched image.
 		- **Wall thickness rules:**
 			- Wireframe walls use non-scaling strokes (thin at any zoom).
-			- Textured walls use a screen-space thickness (approximately constant pixels on screen) so textures are visible without walls becoming enormous at high zoom.
+			- Textured walls use a world-space thickness (derived from the world-units-per-tile constant) so walls scale proportionally with sectors when zooming.
 			- Textured wall geometry uses join-aware strip polygons so adjacent walls meet cleanly at corners.
 				- Strips are **one-sided** per sector boundary loop: each wall renders from its centerline into the sector interior, so adjacent sectors sharing a boundary do not overlap each other in textured mode.
 				- Default join is miter; a miter limit clamps extreme acute-angle joins (applied to the offset-side edge).

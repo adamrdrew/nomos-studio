@@ -35,6 +35,10 @@ const MAX_VIEW_SCALE = 64;
 // Tuned so even small rooms show multiple repeats.
 const TEXTURE_TILE_WORLD_UNITS = 4;
 
+// Textured wall strip thickness is defined in world units so it scales proportionally with zoom.
+// Derive from the texture tile world size to keep wall-to-texture proportions stable.
+const TEXTURED_WALL_THICKNESS_WORLD = TEXTURE_TILE_WORLD_UNITS * 0.1;
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -1026,8 +1030,6 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const particleMarkerSizePx = 12;
   const entityMarkerSizePx = 14;
 
-  const texturedWallThicknessPx = 12;
-
   const verticalLines: JSX.Element[] = [];
   const horizontalLines: JSX.Element[] = [];
 
@@ -1081,7 +1083,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
 
     // Marker sizes are defined in screen pixels and converted to world units.
     const safeScale = Math.max(0.0001, view.scale);
-    const texturedWallThicknessWorld = texturedWallThicknessPx / safeScale;
+    const texturedWallThicknessWorld = TEXTURED_WALL_THICKNESS_WORLD;
     const doorMarkerSizeWorld = doorMarkerSizePx / safeScale;
     const lightMarkerRadiusWorld = lightMarkerRadiusPx / safeScale;
     const particleMarkerSizeWorld = particleMarkerSizePx / safeScale;
