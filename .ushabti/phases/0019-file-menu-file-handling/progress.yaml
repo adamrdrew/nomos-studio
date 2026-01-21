@@ -2,13 +2,13 @@ phase:
   id: 0019
   slug: file-menu-file-handling
   title: File Menu + File Handling Enhancements
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Inspect current file workflows and state owners
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Anchored entrypoints/services: File menu template is src/main/infrastructure/menu/createApplicationMenuTemplate.ts (File → Open Map…, Save, Refresh Assets Index). Menu wiring is in src/main/main.ts via setApplicationMenu(); canSave is computed as store.getState().mapDocument !== null. Open Map menu action uses dialog.showOpenDialog(mainWindow, …) then delegates to nomosHandlers.openMap({ mapPath }) → OpenMapService.openMap(mapPath), which on success calls mapEditHistory.onMapOpened(document) (clears undo/redo) and store.setMapDocument(document). Save menu action delegates to nomosHandlers.saveMap() → SaveMapService.saveCurrentDocument(), which clears dirty=false on success. Dirty flag is driven by map edits (MapEditService). Asset Browser file double-click currently calls props.onOpenFile(relativePath) from AssetBrowser.tsx; InspectorDockPanel wires that to window.nomos.assets.open({ relativePath }) (OS open). No quit/close unsaved-changes guard exists yet in main; main currently only handles window-all-closed (non-darwin quits) and menu role quit." 
     touched:
       - .ushabti/phases/0019-file-menu-file-handling/progress.yaml
@@ -16,7 +16,7 @@ steps:
   - id: S002
     title: Define a testable unsaved-changes guard (core orchestration)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added application-layer UnsavedChangesGuard with a single runGuarded(action) API that inspects AppStore.mapDocument.dirty, prompts via injected UserPrompter, and delegates to SaveMapService when Save is chosen; returns explicit proceeded boolean result."
     touched:
       - src/main/application/maps/UnsavedChangesGuard.ts
@@ -26,7 +26,7 @@ steps:
   - id: S003
     title: Unit tests for the guard (L04)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added Jest tests covering all conditional paths for UnsavedChangesGuard.runGuarded(): no doc, not dirty, dirty+cancel, dirty+dont-save, dirty+save (ok), dirty+save (fail)."
     touched:
       - src/main/application/maps/UnsavedChangesGuard.test.ts
@@ -35,7 +35,7 @@ steps:
   - id: S004
     title: Implement New Map command (menu + state reset)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added File → New Map (Cmd/Ctrl+N) menu item and main newMap() command guarded by UnsavedChangesGuard; on proceed it clears MapEditHistory, sets mapDocument to null, and emits a selection-clear effect."
     touched:
       - src/main/main.ts
@@ -46,7 +46,7 @@ steps:
   - id: S005
     title: Implement Save As… (dialog + save-to-new-path)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added File → Save As… (Shift+Cmd/Ctrl+S) menu item and main saveAs() flow using Electron save dialog; extended SaveMapService with saveCurrentDocumentAs(destinationPath) so Save As writes to the chosen path and updates MapDocument.filePath and dirty=false on success."
     touched:
       - src/main/application/maps/SaveMapService.ts
@@ -58,7 +58,7 @@ steps:
   - id: S006
     title: Unit tests for Save As and save-to-path logic (L04)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added branch-complete Jest unit tests for SaveMapService.saveCurrentDocumentAs(destinationPath): no document, JSON stringify failure, write failure, safe-replace failure with tmp cleanup, and success updates filePath and dirty=false."
     touched:
       - src/main/application/maps/SaveMapService.test.ts
@@ -67,7 +67,7 @@ steps:
   - id: S007
     title: Implement guarded Open Map… and persistent Recent Maps
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Open Map… and Recent Maps opens now route through UnsavedChangesGuard; added persistent Recent Maps (deduped, max 5) stored in userData/recent-maps.json with resilient load (missing/invalid JSON => empty) and menu template support with tests verifying submenu population."
     touched:
       - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
@@ -78,7 +78,7 @@ steps:
   - id: S008
     title: Asset Browser: extensible double-click action router (maps first)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added renderer assetActionRouter to route double-clicks: Levels/*.json opens in-editor via new window.nomos.map.openFromAssets IPC; all other assets continue using window.nomos.assets.open OS handler. Implemented main OpenMapFromAssetsService to resolve/validate relative paths against settings.assetsDirPath with traversal protection, and wired IPC handler through UnsavedChangesGuard + recents bump." 
     touched:
       - src/renderer/ui/editor/inspector/assetActionRouter.ts
@@ -96,7 +96,7 @@ steps:
   - id: S009
     title: Unit tests for open-from-assets and recent persistence (L04)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added branch-complete unit tests for OpenMapFromAssetsService.openMapFromAssets (missing settings, invalid/absolute/traversal paths, success delegation). Refactored Recent Maps persistence behind FileSystem adapter via JsonFileRecentMapsRepository + RecentMapsService and added unit tests for repo load/save resilience and service dedupe/cap behavior." 
     touched:
       - src/main/application/maps/OpenMapFromAssetsService.test.ts
@@ -111,7 +111,7 @@ steps:
   - id: S010
     title: Quit/close guard for unsaved changes
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added main-process close + quit interception: main window close and app before-quit now run UnsavedChangesGuard (Save/Don't Save/Cancel) and use an isQuitInProgress flag to prevent re-entrant quit loops." 
     touched:
       - src/main/main.ts
@@ -120,7 +120,7 @@ steps:
   - id: S011
     title: Docs updates (L09) + quality gates
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated docs for Menu/Maps/Assets/Renderer UI/IPC to reflect New Map, Save As…, Recent Maps, guarded open, and asset-browser map-open behavior. Quality gates: npm test (300 passing), npm run typecheck, npm run lint." 
     touched:
       - docs/menu-system.md
@@ -133,7 +133,7 @@ steps:
   - id: S012
     title: Add missing L04 tests for new public renderer/router API
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added branch-complete unit tests for routeAssetDoubleClick covering map vs non-map routing, case-insensitive match, path separator normalization, and trimming."
     touched:
       - src/renderer/ui/editor/inspector/assetActionRouter.test.ts
@@ -142,7 +142,7 @@ steps:
   - id: S013
     title: Close remaining L04 branch gaps in new map-open + recents public APIs
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added unit tests to cover remaining conditional paths: OpenMapFromAssetsService rejects null-byte and relative-to-base absolute paths; RecentMapsService.bump persists best-effort when save throws; JsonFileRecentMapsRepository handles non-ENOENT read errors and save tmp cleanup/no-tmp cleanup paths." 
     touched:
       - src/main/application/maps/OpenMapFromAssetsService.test.ts
@@ -153,8 +153,18 @@ steps:
   - id: S014
     title: Add L04 tests for JsonFileRecentMapsRepository Windows-safe-replace behavior
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added unit tests covering Windows-safe-replace branches: initial EPERM/EEXIST tmp→dest rename enters backup flow, backup name collision retry, backup cleanup best-effort (unlink throws), and restore attempt when second tmp→dest rename fails after backup creation. Quality gates: tests, lint, typecheck." 
+    touched:
+      - src/main/infrastructure/maps/JsonFileRecentMapsRepository.test.ts
+      - .ushabti/phases/0019-file-menu-file-handling/review.md
+      - .ushabti/phases/0019-file-menu-file-handling/progress.yaml
+
+  - id: S015
+    title: Close remaining L04 branches in JsonFileRecentMapsRepository backup-path failure modes
+    implemented: true
+    reviewed: true
+    notes: "Added unit tests covering backup move failure (non-EEXIST) and exhausting all 10 backup candidates (EEXIST collisions), both verifying tmp cleanup via saveRecentMapPaths(...). Full npm test coverage now reports 100% statements/branches for JsonFileRecentMapsRepository.ts."
     touched:
       - src/main/infrastructure/maps/JsonFileRecentMapsRepository.test.ts
       - .ushabti/phases/0019-file-menu-file-handling/progress.yaml

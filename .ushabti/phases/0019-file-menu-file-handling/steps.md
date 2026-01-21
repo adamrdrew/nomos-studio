@@ -169,3 +169,11 @@
     - backup cleanup succeeds (unlink called) and also the best-effort cleanup failure path (unlink throws but save still completes).
     - restore best-effort path: if the second rename (tmp→dest) fails after backup is created, repository attempts to restore the backup to dest.
 - **Done when:** Branch-complete tests exist for Windows-safe-replace behavior in `JsonFileRecentMapsRepository.saveRecentMapPaths`.
+
+## S015 — Close remaining L04 branches in JsonFileRecentMapsRepository backup-path failure modes
+- **Intent:** Fully satisfy L04 for the remaining failure outcomes in recent-maps safe-replace logic.
+- **Work:**
+  - Extend `JsonFileRecentMapsRepository.test.ts` to cover:
+    - Backup move failure with a non-`EEXIST` error when moving destination to backup (e.g., `EACCES`): save should be handled and tmp cleanup attempted.
+    - Backup name exhaustion: destination→backup rename throws `EEXIST` for all 10 candidate backup paths, causing the helper to throw; save should be handled and tmp cleanup attempted.
+- **Done when:** The above failure outcomes are unit-tested via `saveRecentMapPaths(...)` and the coverage report shows no remaining uncovered statements in `JsonFileRecentMapsRepository.ts`.

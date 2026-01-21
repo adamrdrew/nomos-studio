@@ -319,4 +319,92 @@ describe('JsonFileRecentMapsRepository', () => {
       { kind: 'unlink', args: ['/userData/recent-maps.json.tmp'] }
     ]);
   });
+
+  it('attempts to unlink tmp when backup move fails with a non-EEXIST error', async () => {
+    const calls: Array<{ kind: string; args: unknown[] }> = [];
+
+    const fs: FileSystem = {
+      readFile: async () => '[]',
+      mkdir: async () => {},
+      writeFile: async () => {},
+      rename: async (from, to) => {
+        calls.push({ kind: 'rename', args: [from, to] });
+
+        // 1) tmp -> dest fails (Windows style) to enter backup flow
+        if (from === '/userData/recent-maps.json.tmp' && to === '/userData/recent-maps.json') {
+          const error = new Error('windows rename error') as NodeJS.ErrnoException;
+          error.code = 'EPERM';
+          throw error;
+        }
+
+        // 2) dest -> backup fails with a non-EEXIST error; aborts safe replace
+        if (from === '/userData/recent-maps.json' && to === '/userData/recent-maps.json.bak') {
+          const error = new Error('access denied') as NodeJS.ErrnoException;
+          error.code = 'EACCES';
+          throw error;
+        }
+      },
+      unlink: async (pathToUnlink) => {
+        calls.push({ kind: 'unlink', args: [pathToUnlink] });
+      }
+    };
+
+    const repo = new JsonFileRecentMapsRepository({ fs, userDataDirPath: '/userData' });
+
+    await repo.saveRecentMapPaths(['/a']);
+
+    expect(calls).toEqual([
+      { kind: 'rename', args: ['/userData/recent-maps.json.tmp', '/userData/recent-maps.json'] },
+      { kind: 'rename', args: ['/userData/recent-maps.json', '/userData/recent-maps.json.bak'] },
+      { kind: 'unlink', args: ['/userData/recent-maps.json.tmp'] }
+    ]);
+  });
+
+  it('attempts to unlink tmp when all backup candidates collide (EEXIST)', async () => {
+    const calls: Array<{ kind: string; args: unknown[] }> = [];
+
+    const backupPathsToCollide = Array.from({ length: 10 }, (_unused, attemptIndex) => {
+      return attemptIndex === 0
+        ? '/userData/recent-maps.json.bak'
+        : `/userData/recent-maps.json.bak.${attemptIndex}`;
+    });
+
+    const fs: FileSystem = {
+      readFile: async () => '[]',
+      mkdir: async () => {},
+      writeFile: async () => {},
+      rename: async (from, to) => {
+        calls.push({ kind: 'rename', args: [from, to] });
+
+        // 1) tmp -> dest fails (Windows style) to enter backup flow
+        if (from === '/userData/recent-maps.json.tmp' && to === '/userData/recent-maps.json') {
+          const error = new Error('windows rename error') as NodeJS.ErrnoException;
+          error.code = 'EPERM';
+          throw error;
+        }
+
+        // 2) Every dest -> backup attempt collides
+        if (from === '/userData/recent-maps.json' && backupPathsToCollide.includes(to)) {
+          const error = new Error('backup exists') as NodeJS.ErrnoException;
+          error.code = 'EEXIST';
+          throw error;
+        }
+      },
+      unlink: async (pathToUnlink) => {
+        calls.push({ kind: 'unlink', args: [pathToUnlink] });
+      }
+    };
+
+    const repo = new JsonFileRecentMapsRepository({ fs, userDataDirPath: '/userData' });
+
+    await repo.saveRecentMapPaths(['/a']);
+
+    expect(calls).toEqual([
+      { kind: 'rename', args: ['/userData/recent-maps.json.tmp', '/userData/recent-maps.json'] },
+      ...backupPathsToCollide.map((backupPath) => {
+        return { kind: 'rename', args: ['/userData/recent-maps.json', backupPath] };
+      }),
+      { kind: 'unlink', args: ['/userData/recent-maps.json.tmp'] }
+    ]);
+  });
 });
