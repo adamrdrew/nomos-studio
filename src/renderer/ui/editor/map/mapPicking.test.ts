@@ -230,4 +230,195 @@ describe('pickMapSelection', () => {
 
     expect(selection).toEqual({ kind: 'wall', index: 0 });
   });
+
+  test('particle marker hit is selectable (marker priority band)', () => {
+    const map: MapViewModel = {
+      sky: null,
+      vertices: [],
+      sectors: [],
+      walls: [],
+      doors: [],
+      lights: [],
+      particles: [{ index: 0, x: 5, y: 5 }],
+      entities: []
+    };
+
+    const selection = pickMapSelection({
+      worldPoint: { x: 5.05, y: 5 },
+      viewScale: 1,
+      map,
+      renderMode: 'wireframe'
+    });
+
+    expect(selection).toEqual({ kind: 'particle', index: 0 });
+  });
+
+  test('light marker hit is selectable (marker priority band)', () => {
+    const map: MapViewModel = {
+      sky: null,
+      vertices: [],
+      sectors: [],
+      walls: [],
+      doors: [],
+      lights: [{ index: 0, x: 2, y: 3, radius: 1, intensity: 1, color: { r: 255, g: 255, b: 255 } }],
+      particles: [],
+      entities: []
+    };
+
+    const selection = pickMapSelection({
+      worldPoint: { x: 2.05, y: 3 },
+      viewScale: 1,
+      map,
+      renderMode: 'wireframe'
+    });
+
+    expect(selection).toEqual({ kind: 'light', index: 0 });
+  });
+
+  test('textured mode without strip polygons still picks walls by centerline threshold', () => {
+    const map: MapViewModel = {
+      sky: null,
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+        { x: 0, y: 10 }
+      ],
+      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      walls: [
+        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+      ],
+      doors: [],
+      lights: [],
+      particles: [],
+      entities: []
+    };
+
+    const selection = pickMapSelection({
+      worldPoint: { x: 5, y: 0.05 },
+      viewScale: 1,
+      map,
+      renderMode: 'textured'
+    });
+
+    expect(selection).toEqual({ kind: 'wall', index: 0 });
+  });
+
+  test('door referencing missing wall index is skipped safely', () => {
+    const map: MapViewModel = {
+      sky: null,
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+        { x: 0, y: 10 }
+      ],
+      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      walls: [
+        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+      ],
+      doors: [
+        {
+          id: 'door-missing-wall',
+          wallIndex: 999,
+          tex: 'D.PNG',
+          startsClosed: false,
+          requiredItem: null,
+          requiredItemMissingMessage: null
+        }
+      ],
+      lights: [],
+      particles: [],
+      entities: []
+    };
+
+    const selection = pickMapSelection({
+      worldPoint: { x: 5, y: 0.05 },
+      viewScale: 1,
+      map,
+      renderMode: 'wireframe'
+    });
+
+    expect(selection).toEqual({ kind: 'wall', index: 0 });
+  });
+
+  test('door referencing a wall with missing vertices is skipped safely (sector still selectable)', () => {
+    const map: MapViewModel = {
+      sky: null,
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+        { x: 0, y: 10 }
+      ],
+      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      walls: [
+        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 4, v0: 999, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+      ],
+      doors: [
+        {
+          id: 'door-invalid-vertices',
+          wallIndex: 4,
+          tex: 'D.PNG',
+          startsClosed: false,
+          requiredItem: null,
+          requiredItemMissingMessage: null
+        }
+      ],
+      lights: [],
+      particles: [],
+      entities: []
+    };
+
+    const selection = pickMapSelection({
+      worldPoint: { x: 5, y: 5 },
+      viewScale: 10,
+      map,
+      renderMode: 'wireframe'
+    });
+
+    expect(selection).toEqual({ kind: 'sector', id: 1 });
+  });
+
+  test('returns null when point is not inside any sector and no other candidates qualify', () => {
+    const map: MapViewModel = {
+      sky: null,
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+        { x: 0, y: 10 }
+      ],
+      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      walls: [
+        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+      ],
+      doors: [],
+      lights: [],
+      particles: [],
+      entities: []
+    };
+
+    const selection = pickMapSelection({
+      worldPoint: { x: 20, y: 20 },
+      viewScale: 10,
+      map,
+      renderMode: 'wireframe'
+    });
+
+    expect(selection).toBeNull();
+  });
 });

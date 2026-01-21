@@ -86,3 +86,24 @@
     - selecting sectors still works
     - hover preview matches click selection
 - **Done when:** All quality gates pass and manual checks match acceptance criteria.
+
+## S010 — Complete L04 branch coverage for pickMapSelection
+- **Intent:** Satisfy L04 for the new public API (`pickMapSelection`) and lock in edge-case behavior.
+- **Work:**
+  - Expand `mapPicking.test.ts` to cover remaining conditional paths in `pickMapSelection`:
+    - particle marker hit (priority band parity with entity)
+    - light marker hit
+    - `renderMode: 'textured'` with `texturedWallPolygons` absent/null (should still pick via centerline threshold)
+    - door entries referencing a missing wall or missing wall vertices (should skip safely)
+    - null return when nothing qualifies and the point is not in any sector
+- **Done when:** Tests exist for each branch outcome and they pass.
+
+## S011 — Record manual UX verification for acceptance criteria
+- **Intent:** Confirm the in-app experience matches the Phase acceptance criteria.
+- **Work:**
+  - Run the app and validate:
+    - small walls near other walls/boundaries select the wall (not the sector)
+    - sector selection remains feasible when clicking well inside a sector
+    - hover outline matches click selection for the same pointer location and clears when not over a selectable object
+  - Record the exact repro map and steps (or a short screen recording) in `review.md`.
+- **Done when:** Manual verification evidence is recorded and there are no open behavior defects.

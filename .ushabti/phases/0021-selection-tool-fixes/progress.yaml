@@ -2,7 +2,7 @@ phase:
   id: 0021
   slug: selection-tool-fixes
   title: Selection Tool Fixes (Hit-Testing + Hover Preview)
-  status: review
+  status: building
 
 steps:
   - id: S001
@@ -81,8 +81,25 @@ steps:
 
   - id: S009
     title: Verification pass and quality gates
+    implemented: false
+    reviewed: false
+    notes: "Automated tests pass (npm test -- --coverage=false). Typecheck/lint previously run during implementation. Manual verification remains: confirm hover outline and selection behavior in the running app per acceptance criteria."
+    touched:
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
+
+  - id: S010
+    title: Complete L04 branch coverage for pickMapSelection
     implemented: true
     reviewed: false
-    notes: "Ran repo quality gates (tests/typecheck/lint) and verified no TS errors in the modified renderer picking/hover code. Manual verification remains: confirm hover outline and selection behavior in the running app."
+    notes: "Expanded mapPicking.test.ts to cover remaining pickMapSelection conditional paths: particle hit, light hit, textured mode without polygons (centerline threshold still applies), doors with missing wall index / missing wall vertices (skip safely), and null return outside any sector. Verified mapPicking test suite passes."
+    touched:
+      - src/renderer/ui/editor/map/mapPicking.test.ts
+      - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
+
+  - id: S011
+    title: Record manual UX verification for acceptance criteria
+    implemented: false
+    reviewed: false
+    notes: "Run the app and confirm: (1) small wall near other walls/boundaries selects wall not sector, (2) sector selection still possible when clicking well inside, (3) hover outline matches click selection and clears off-object. Record results (and any repro map/steps) in review.md."
     touched:
       - .ushabti/phases/0021-selection-tool-fixes/progress.yaml
