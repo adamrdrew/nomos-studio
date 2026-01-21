@@ -6,6 +6,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 
 import { useNomosStore } from '../../store/nomosStore';
 import { decodeMapViewModel } from './map/mapDecoder';
+import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
 
@@ -1082,23 +1083,66 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         );
       }
 
-      for (const wall of map.walls) {
+      const wallPolygons = computeTexturedWallStripPolygons(map, texturedWallThicknessWorld);
+      const sortedWallPolygons = [...wallPolygons].sort((a, b) => a.wallIndex - b.wallIndex);
+
+      for (const polygon of sortedWallPolygons) {
+        const wall = map.walls[polygon.wallIndex];
+        if (!wall) {
+          continue;
+        }
+
         const v0 = map.vertices[wall.v0];
         const v1 = map.vertices[wall.v1];
         if (!v0 || !v1) {
           continue;
         }
 
-        const dx = v1.x - v0.x;
-        const dy = v1.y - v0.y;
-        const length = Math.hypot(dx, dy);
-        if (length <= 0.0001) {
+        const p0 = polygon.points[0];
+        const p1 = polygon.points[1];
+        const p2 = polygon.points[2];
+        const p3 = polygon.points[3];
+        if (!p0 || !p1 || !p2 || !p3) {
           continue;
         }
 
-        const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
-        const midX = toRenderX((v0.x + v1.x) / 2);
-        const midY = toRenderY((v0.y + v1.y) / 2);
+        const startMidAuthX = (p0.x + p3.x) / 2;
+        const startMidAuthY = (p0.y + p3.y) / 2;
+        const endMidAuthX = (p1.x + p2.x) / 2;
+        const endMidAuthY = (p1.y + p2.y) / 2;
+
+        const startMidX = toRenderX(startMidAuthX);
+        const startMidY = toRenderY(startMidAuthY);
+        const endMidX = toRenderX(endMidAuthX);
+        const endMidY = toRenderY(endMidAuthY);
+
+        const dirX = endMidX - startMidX;
+        const dirY = endMidY - startMidY;
+        const dirLen = Math.hypot(dirX, dirY);
+        if (dirLen <= 0.0001) {
+          continue;
+        }
+
+        const angleRad = Math.atan2(dirY, dirX);
+        const angleDeg = (angleRad * 180) / Math.PI;
+        const midX = (startMidX + endMidX) / 2;
+        const midY = (startMidY + endMidY) / 2;
+
+        const cosA = Math.cos(angleRad);
+        const sinA = Math.sin(angleRad);
+
+        const localPoints: number[] = [];
+        for (const point of polygon.points) {
+          const rx = toRenderX(point.x);
+          const ry = toRenderY(point.y);
+          const tx = rx - midX;
+          const ty = ry - midY;
+
+          // Inverse rotate so that after Konva applies rotation, the polygon lands in world space.
+          const lx = tx * cosA + ty * sinA;
+          const ly = -tx * sinA + ty * cosA;
+          localPoints.push(lx, ly);
+        }
 
         const image = textureImages[wall.tex];
         if (!image) {
@@ -1137,14 +1181,16 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
               native.fillStyle = pattern;
 
               native.beginPath();
-              native.rect(-length / 2, -texturedWallThicknessWorld / 2, length, texturedWallThicknessWorld);
+              native.moveTo(localPoints[0] ?? 0, localPoints[1] ?? 0);
+              for (let index = 2; index < localPoints.length; index += 2) {
+                native.lineTo(localPoints[index] ?? 0, localPoints[index + 1] ?? 0);
+              }
               native.closePath();
               native.fill();
 
               // Keep the existing outline behavior.
               native.strokeStyle = Colors.BLACK;
-              // The render layer is scaled by view.scale. Compensate so the outline stays ~1px on screen,
-              // matching the previous Rect strokeScaleEnabled={false} behavior.
+              // The render layer is scaled by view.scale. Compensate so the outline stays ~1px on screen.
               const safeScale = Math.max(0.0001, view.scale);
               native.lineWidth = 1 / safeScale;
               native.stroke();

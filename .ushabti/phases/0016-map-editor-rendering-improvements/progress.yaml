@@ -2,75 +2,169 @@ phase:
   id: 0016
   slug: map-editor-rendering-improvements
   title: Map Editor Rendering Improvements (Textured Walls)
-  status: planned
+  status: in_progress
 
 steps:
   - id: S001
     title: Confirm current behavior and collect repro cases
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Repo contained no existing map JSON fixtures, so added 3 minimal renderer-decodable repro maps under docs/repro-maps:
+      - 0016-rectangle-room.json (convex right-angle corners)
+      - 0016-concave-room.json (concave corner)
+      - 0016-acute-corner.json (very acute corner to exercise miter-limit)
+
+      Current textured-wall algorithm (src/renderer/ui/editor/MapEditorCanvas.tsx):
+      - For each wall segment, compute midpoint + angle.
+      - Draw a rotated rectangle of length == segment length and thickness == texturedWallThicknessPx/view.scale.
+      - Rectangle is centered on the wall centerline and has square end-caps.
+      Failure modes:
+      - Adjacent wall rectangles overlap at joints (double-thickness blobs / texture overlap).
+      - Square end-caps do not produce clean joins at corners (visible cut-outs / mismatched corners on angled joins).
+    touched:
+      - docs/repro-maps/0016-rectangle-room.json
+      - docs/repro-maps/0016-concave-room.json
+      - docs/repro-maps/0016-acute-corner.json
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S002
     title: Define the join model and invariants
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Join model (textured walls) definition:
+      - Adjacency discovery: compute join geometry only within an ordered sector boundary loop built from walls where wall.frontSector == sector.id.
+        - Each boundary is treated as a closed polyline in that order.
+        - If a sector loop cannot be constructed, or if an edge cannot be mapped to a wall, that sector’s walls fall back to simple capped strips.
+
+      - Per-vertex join behavior (for consecutive edges in a loop):
+        - Default: miter join computed via intersection of the two offset lines (left and right sides computed independently).
+        - Near-collinear tolerance: treat edges as collinear when |cross(dirPrev, dirNext)| < 1e-6.
+          - In this case, use the average normal (normalize(nPrev + nNext)) for a stable join point.
+        - Miter limit: if the computed miter distance from the shared vertex exceeds miterLimit * halfThickness, engage bevel fallback.
+          - miterLimit = 4.0.
+          - Fallback strategy: use a bounded join point along the bisector of the two normals (normalize(nPrev + nNext)) scaled to (miterLimit * halfThickness).
+          - This is chosen to prevent unbounded spikes while keeping a single shared join point so adjacent wall strips still meet without overlap.
+
+      - Degenerate edges:
+        - Zero-length walls (|p1 - p0| <= 1e-4) are skipped (no polygon emitted).
+
+      - Non-manifold vertices:
+        - If connectivity is ambiguous (not exactly two consecutive boundary edges at a vertex within a loop), do not attempt join-aware geometry.
+          Emit per-wall capped strips for affected walls to avoid crashes and keep deterministic rendering.
+    touched:
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S003
     title: Extract pure geometry helpers for wall strip construction
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Added a renderer-local, pure TypeScript geometry module for computing join-aware textured wall strip polygons.
+      The module:
+      - Accepts a decoded MapViewModel + thicknessWorld
+      - Computes per-wall polygons via ordered sector boundary loops (frontSector walls)
+      - Provides safe fallbacks (capped strips) for walls not in a computable loop
+      - Has no Konva/DOM dependencies
+    touched:
+      - src/renderer/ui/editor/map/wallStripGeometry.ts
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S004
     title: Unit tests for the geometry helpers
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Added Jest unit tests for computeTexturedWallStripPolygons covering:
+      - square loop shared join points
+      - concave join stability
+      - near-collinear stability
+      - degenerate zero-length wall skipping
+      - miter-limit clamp behavior
+      - non-positive thickness handling
+      - capped-strip fallback quad shape
+    touched:
+      - src/renderer/ui/editor/map/wallStripGeometry.test.ts
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S005
     title: Integrate join-aware geometry into textured wall rendering
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Updated textured wall rendering in MapEditorCanvas to use computeTexturedWallStripPolygons.
+      Rendering now draws join-aware per-wall polygons (instead of centered rectangles) while preserving:
+      - texture tiling (CanvasPattern transform)
+      - 1px-ish outline stroke compensation (1/view.scale)
+      - missing-texture fallback to wireframe segment
+      Texture orientation is preserved by drawing polygons in wall-local space under a per-wall Konva rotation.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S006
     title: Validate selection/hit-testing ergonomics remain correct
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Verified by inspection that selection/hit-testing remains segment-based:
+      - hitTestSelection computes wall distance-to-segment from the wall centerline (unchanged).
+      - door hit-testing and door marker placement are still computed from the referenced wall segment midpoint (unchanged).
+      The new join-aware textured wall polygons affect only rendering, not selection logic.
+    touched:
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S007
     title: Handle malformed topology safely
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Hardened wall strip computation against malformed topology:
+      - Sector loop geometry now requires at least 3 collected edges.
+      - If loop-to-wall mapping produces non-contiguous segments (broken adjacency), join-aware geometry is skipped for that sector.
+      - Rendering falls back to per-wall capped strips (simple quads) rather than producing unstable join math.
+      This ensures missing vertices / missing edges / broken loops degrade gracefully.
+    touched:
+      - src/renderer/ui/editor/map/wallStripGeometry.ts
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S008
     title: Update subsystem documentation (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Updated renderer UI subsystem documentation to describe join-aware textured wall geometry,
+      the miter-limit behavior, and the malformed-topology fallback to capped strips.
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S009
     title: Run quality gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Quality gates PASS:
+      - npm test
+      - npm run typecheck
+      - npm run lint
+
+      Note: lint initially failed due to an unused helper in wallStripGeometry.ts; removed it and reran lint successfully.
+    touched:
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml
 
   - id: S010
     title: Manual verification pass
     implemented: false
     reviewed: false
-    notes: ""
-    touched: []
+    notes: |-
+      Pending manual verification (requires interactive Electron run).
+      Suggested checklist:
+      - Run `npm run dev`.
+      - Open docs/repro-maps/0016-rectangle-room.json and confirm textured corners meet cleanly.
+      - Open docs/repro-maps/0016-concave-room.json and confirm concave join is stable (no spikes) and strips meet.
+      - Open docs/repro-maps/0016-acute-corner.json and confirm acute join is clamped (no huge miter spike).
+      - Confirm wall/door selection feels unchanged.
+    touched:
+      - .ushabti/phases/0016-map-editor-rendering-improvements/progress.yaml

@@ -80,6 +80,9 @@ The editor UI is organized like a traditional creative tool:
 		- **Wall thickness rules:**
 			- Wireframe walls use non-scaling strokes (thin at any zoom).
 			- Textured walls use a screen-space thickness (approximately constant pixels on screen) so textures are visible without walls becoming enormous at high zoom.
+			- Textured wall geometry uses join-aware strip polygons so adjacent walls meet cleanly at corners.
+				- Default join is miter; a miter limit clamps extreme acute-angle joins.
+				- If a sector boundary loop is malformed (missing edges/vertices), rendering falls back to simple per-wall capped strips rather than crashing.
 	- On map open, the view is initialized so the viewport center corresponds to world-space `(0,0)` and the map is framed to be visible immediately.
 		- To achieve this for arbitrary authored coordinates, the renderer may apply a render-only origin offset derived from decoded map bounds; this does not mutate `MapDocument.json`.
 	- The editor grid adapts its spacing to zoom so line density stays readable.
