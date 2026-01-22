@@ -1,0 +1,55 @@
+phase:
+  id: 0023
+  slug: nested-sector-selection
+  title: Nested Sector Selection (Deepest Sector Hit-Test)
+  status: planned
+
+steps:
+  - id: S001
+    title: Locate current sector picking + reproduce nested-sector failure
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Decide and document the nested-sector tie-breaker
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Implement deepest-sector selection in the pure picking module
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Add unit tests for nested-sector picking
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Verify interaction with wall/door/marker priority (non-regression)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Documentation update (if needed)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Quality gates + manual verification record
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
