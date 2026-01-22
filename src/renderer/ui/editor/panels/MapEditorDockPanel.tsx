@@ -47,6 +47,8 @@ function MapEditorToolBar(props: {
 
 function toMapEditTargetRef(selection: MapSelection): MapEditTargetRef | null {
   switch (selection.kind) {
+    case 'map':
+      return null;
     case 'light':
     case 'particle':
     case 'entity':
@@ -194,7 +196,7 @@ export function MapEditorDockPanel(): JSX.Element {
           }
 
           if (result.value.kind === 'map-edit/cloned') {
-            setMapSelection(result.value.newRef);
+            applyMapSelectionEffect({ kind: 'map-edit/selection/set', ref: result.value.newRef });
           }
         })();
         return;

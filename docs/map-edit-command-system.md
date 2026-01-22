@@ -32,6 +32,7 @@ Key goals:
 Edits refer to targets by stable references rather than passing entire objects.
 
 - `MapEditTargetRef`
+	- `{ kind: 'map' }` (map JSON root)
   - `{ kind: 'light' | 'particle' | 'entity' | 'wall'; index: number }`
   - `{ kind: 'door'; id: string }`
   - `{ kind: 'sector'; id: number }`
@@ -43,6 +44,7 @@ Atomic commands are the building blocks for edits.
 - `map-edit/clone`
 - `map-edit/update-fields`
 - `map-edit/move-entity`
+- `map-edit/move-light`
 
 Each atomic command includes a `target: MapEditTargetRef`.
 
@@ -57,6 +59,19 @@ Each atomic command includes a `target: MapEditTargetRef`.
 
 Move semantics:
 - Only `x` and `y` are updated; other entity fields are preserved.
+- Selection effect is `map-edit/selection/keep` (no implicit selection changes).
+
+`map-edit/move-light` moves a single light by index:
+```ts
+{
+  kind: 'map-edit/move-light';
+  target: { kind: 'light'; index: number };
+  to: { x: number; y: number };
+}
+```
+
+Move semantics:
+- Only `x` and `y` are updated; other light fields are preserved.
 - Selection effect is `map-edit/selection/keep` (no implicit selection changes).
 
 `map-edit/update-fields` updates a set of fields on a single target (used by the Inspector Properties editor):
@@ -75,6 +90,7 @@ Update-fields validation rules:
 
 Update-fields semantics:
 - Fields are set directly onto the target object in map JSON (no schema inference).
+  - When `target.kind === 'map'`, fields are set on the map JSON root object.
 - Selection effect is `map-edit/selection/keep`.
 
 ### Transaction command

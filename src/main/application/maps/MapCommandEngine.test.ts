@@ -347,6 +347,67 @@ describe('MapCommandEngine', () => {
     });
   });
 
+  it('updates fields on the map root', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(
+      baseDocument({
+        ...baseMapJson(),
+        bgmusic: 'OLD.MID',
+        soundfont: 'old.sf2',
+        name: 'OLD_NAME',
+        sky: 'old.png'
+      }),
+      {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'map' },
+        set: {
+          bgmusic: 'COOLSONG.MID',
+          soundfont: 'hl4mgm.sf2',
+          name: 'E1M1_STRESS_TEST',
+          sky: 'purple.png'
+        }
+      }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(result.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+    expect(result.value.nextJson).toEqual({
+      ...baseMapJson(),
+      bgmusic: 'COOLSONG.MID',
+      soundfont: 'hl4mgm.sf2',
+      name: 'E1M1_STRESS_TEST',
+      sky: 'purple.png'
+    });
+  });
+
+  it('allows update-fields on the map root to set an unchanged value', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(
+      baseDocument({
+        ...baseMapJson(),
+        name: 'UNCHANGED'
+      }),
+      {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'map' },
+        set: { name: 'UNCHANGED' }
+      }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect((result.value.nextJson as Record<string, unknown>)['name']).toBe('UNCHANGED');
+  });
+
   it('updates fields on a wall by index', () => {
     const engine = new MapCommandEngine();
 
@@ -739,6 +800,147 @@ describe('MapCommandEngine', () => {
       throw new Error('Expected failure');
     }
     expect(invalidXy.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('moves a light by index, preserving other fields', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(result.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+    expect((result.value.nextJson['lights'] as unknown[])[0]).toEqual({ x: 10, y: 20 });
+  });
+
+  it('returns invalid-json when move-light target has non-finite to.x/to.y', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: 0 },
+      to: { x: Number.NaN, y: 1 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns invalid-json when lights is missing or not an array (move-light)', () => {
+    const engine = new MapCommandEngine();
+
+    const missingLights = { ...baseMapJson() } as Record<string, unknown>;
+    delete missingLights['lights'];
+
+    const missing = engine.apply(baseDocument(missingLights), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(missing.ok).toBe(false);
+    if (missing.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(missing.error.code).toBe('map-edit/invalid-json');
+
+    const notArray = engine.apply(baseDocument({ ...baseMapJson(), lights: {} }), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(notArray.ok).toBe(false);
+    if (notArray.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(notArray.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns not-found when move-light index is out of range', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: 99 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  it('returns invalid-json when move-light source entry is not an object or has invalid x/y', () => {
+    const engine = new MapCommandEngine();
+
+    const notObject = engine.apply(baseDocument({ ...baseMapJson(), lights: [null] }), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(notObject.ok).toBe(false);
+    if (notObject.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(notObject.error.code).toBe('map-edit/invalid-json');
+
+    const invalidXy = engine.apply(baseDocument({ ...baseMapJson(), lights: [{ x: 'nope', y: 2 }] }), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: 0 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(invalidXy.ok).toBe(false);
+    if (invalidXy.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(invalidXy.error.code).toBe('map-edit/invalid-json');
+  });
+
+  it('returns not-found when move-light index is negative', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: -1 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  it('returns not-found when move-light index is not an integer', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/move-light',
+      target: { kind: 'light', index: 0.5 },
+      to: { x: 10, y: 20 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/not-found');
   });
 
   it('returns not-found when move-entity index is negative', () => {

@@ -1,0 +1,193 @@
+phase:
+  id: 0022
+  slug: full-map-property-editing
+  title: Full Map Property Editing (Map Properties Panel + Light Dragging)
+  status: complete
+
+steps:
+  - id: S001
+    title: Inspect current Inspector/Properties UI and DockView layout
+    implemented: true
+    reviewed: true
+    notes: "DockView core panels are created in src/renderer/ui/editor/EditorShell.tsx via ensureCorePanelsPresent (currently adds 'map-editor' and 'inspector' on the right). The Inspector's section header text 'Properties' comes from src/renderer/ui/editor/panels/InspectorDockPanel.tsx (CollapsibleSection title=\"Properties\"), which is the correct rename surface for 'Object Properties'."
+    touched:
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S002
+    title: Confirm map field storage expectations (basename vs relative path)
+    implemented: true
+    reviewed: true
+    notes: "Checked docs/repro-maps/*.json: they do not include bgmusic/soundfont/name/sky fields, so no on-disk examples there. Renderer already treats map.sky as an optional root string and resolves it as Images/Sky/<sky> (see src/renderer/ui/editor/MapEditorCanvas.tsx), implying sky is a basename. User confirmed engine expects basenames for bgmusic/soundfont/sky and that assets live under Assets/Sounds/MIDI, Assets/Sounds/SoundFonts, Assets/Images/Sky (AssetIndex.entries prefixes Sounds/MIDI, Sounds/SoundFonts, Images/Sky)."
+    touched:
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S003
+    title: Define the map-level edit command shape
+    implemented: true
+    reviewed: true
+    notes: "Chose Option A: extend MapEditTargetRef with { kind: 'map' } and reuse existing atomic command kind 'map-edit/update-fields' (same validation semantics: keys non-empty, values primitives, numbers finite). Semantics: when target.kind === 'map', apply set keys onto the root JSON object; selection effect remains map-edit/selection/keep. Failure branches: reject when document root is not an object; reject invalid set values (already enforced by update-fields); reject non-finite numbers (already enforced)."
+    touched:
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S004
+    title: Update shared IPC contract and preload typing for the new command
+    implemented: true
+    reviewed: true
+    notes: "Extended MapEditTargetRef with { kind: 'map' } in src/shared/ipc/nomosIpc.ts so renderer can send map-level update-fields edits via window.nomos.map.edit. Updated MapCommandEngine targetEquals exhaustiveness. Updated renderer selection typing/mapping to tolerate {kind:'map'} (MapSelection union + nomosStore helpers) and adjusted clone handling to apply a selection effect rather than assigning MapEditTargetRef directly. Preload typing continues to import MapEditRequest from shared; no additional preload surface changes required."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/renderer/ui/editor/map/mapSelection.ts
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S005
+    title: Implement map-root field update in MapCommandEngine
+    implemented: true
+    reviewed: true
+    notes: "Implemented map root updates for map-edit/update-fields: when target.kind === 'map', MapCommandEngine applies set keys directly onto the root JSON object (selection effect keep)."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S006
+    title: Add/extend main unit tests for map-root updates (L04)
+    implemented: true
+    reviewed: true
+    notes: "Added MapCommandEngine tests for update-fields with target {kind:'map'} and MapEditService test verifying undo/redo + dirty/lastValidation semantics for map-root edits. Verified via CI=1 jest MapCommandEngine and MapEditService."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S007
+    title: Add the new right-side DockView panel: “Map Properties”
+    implemented: true
+    reviewed: true
+    notes: "Implemented an intermediate DockView 'map-properties' panel titled 'Map Properties'. This design was later superseded by S017, which removes the separate DockView panel and renders Map Properties as a section within Inspector."
+    touched:
+      - src/renderer/ui/editor/EditorShell.tsx
+      - src/renderer/ui/editor/panels/MapPropertiesDockPanel.tsx
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S008
+    title: Rename “Properties” to “Object Properties”
+    implemented: true
+    reviewed: true
+    notes: "Renamed the Inspector collapsible section title from 'Properties' to 'Object Properties' in InspectorDockPanel."
+    touched:
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S009
+    title: Implement asset-driven dropdowns in Map Properties
+    implemented: true
+    reviewed: true
+    notes: "Implemented Map Properties editor UI with: name text input and bgmusic/soundfont/sky dropdowns sourced from AssetIndex.entries prefixes (Sounds/MIDI, Sounds/SoundFonts, Images/Sky). Dropdowns store basenames into map root via map-edit/update-fields target {kind:'map'}; when assetIndex is missing, dropdowns disable and show an explanatory helper message."
+    touched:
+      - src/renderer/ui/editor/panels/MapPropertiesDockPanel.tsx
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S010
+    title: Extend Move mode to support dragging lights
+    implemented: true
+    reviewed: true
+    notes: "Implemented light dragging in Move mode: renderer now supports move preview and commit for selection.kind==='light' using new atomic command 'map-edit/move-light' (committed on mouse-up, selection kept). Main command engine applies the command by updating lights[index].x/y with validation and not-found errors consistent with move-entity."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S011
+    title: Add/extend main unit tests for light movement (L04)
+    implemented: true
+    reviewed: true
+    notes: "Added MapCommandEngine tests covering move-light success + key failure branches (non-finite coords, missing/not-array lights, out of range, invalid source entry, negative/non-integer index) and MapEditService undo/redo integration test for move-light. Verified via focused Jest run (MapCommandEngine.test.ts + MapEditService.test.ts)."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S012
+    title: Update docs (L09)
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer UI docs for Map Properties panel, Object Properties rename, and light dragging. Updated map-edit command docs for {kind:'map'} target and new atomic command move-light; updated maps system doc to reflect map-root edits and move-light." 
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/map-edit-command-system.md
+      - docs/maps-system.md
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S013
+    title: Verification and quality gates
+    implemented: true
+    reviewed: true
+    notes: "Re-ran full quality gates after the Inspector layout refinement: `npm run typecheck` PASS, `npm run lint` PASS (with @typescript-eslint TS version support warning for TS 5.9.3), `npm test -- --coverage=false` PASS (33 suites / 338 tests)."
+    touched:
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S014
+    title: Manual verification
+    implemented: true
+    reviewed: true
+    notes: "User manually verified in-app: Object Properties visible; Map Properties section works; edits apply and feel correct; light dragging works as expected."
+    touched:
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S015
+    title: Fix Phase doc asset prefix typo (Sound vs Sounds)
+    implemented: true
+    reviewed: true
+    notes: "Corrected phase.md in-scope asset dropdown bullet to use 'Sounds/MIDI/' consistently with assumptions and implementation."
+    touched:
+      - .ushabti/phases/0022-full-map-property-editing/phase.md
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S016
+    title: Restore/ensure Object Properties panel visibility
+    implemented: true
+    reviewed: true
+    notes: "Removed the separate right-side DockView Map Properties panel from the layout, ensuring Inspector/Object Properties remains visible by default. Map Properties is now rendered within Inspector as a section."
+    touched:
+      - src/renderer/ui/editor/EditorShell.tsx
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - src/renderer/ui/editor/inspector/MapPropertiesSection.tsx
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S017
+    title: Simplify UI: make Map Properties a section within Inspector (not a separate DockView panel)
+    implemented: true
+    reviewed: true
+    notes: "Refactored UI to a single right-side Inspector DockView panel: removed map-properties DockView panel and added a 'Map Properties' CollapsibleSection below Object Properties. Extracted Map Properties controls into MapPropertiesSection." 
+    touched:
+      - src/renderer/ui/editor/EditorShell.tsx
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - src/renderer/ui/editor/inspector/MapPropertiesSection.tsx
+      - .ushabti/phases/0022-full-map-property-editing/phase.md
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S018
+    title: Update docs for simplified Inspector layout
+    implemented: true
+    reviewed: true
+    notes: "Updated docs to describe Map Properties as a section within Inspector and removed references to a separate DockView Map Properties panel."
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/maps-system.md
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+
+  - id: S019
+    title: Reconcile Phase artifacts after Inspector layout simplification
+    implemented: true
+    reviewed: true
+    notes: "Reconciled Phase artifacts to reflect the final simplified Inspector-only layout: marked S007 as an intermediate step superseded by S017, and updated review.md accordingly."
+    touched:
+      - .ushabti/phases/0022-full-map-property-editing/steps.md
+      - .ushabti/phases/0022-full-map-property-editing/progress.yaml
+      - .ushabti/phases/0022-full-map-property-editing/review.md
+
+

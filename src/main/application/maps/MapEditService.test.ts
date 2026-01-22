@@ -307,6 +307,77 @@ describe('MapEditService', () => {
     });
   });
 
+  it('move-light succeeds, marks dirty, clears lastValidation, bumps revision, and supports undo/redo', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), lights: [{ x: 5, y: 6, radius: 1, intensity: 1, color: '#ffffff' }] },
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    const service = createService(store);
+
+    const moved = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/move-light', target: { kind: 'light', index: 0 }, to: { x: 10, y: 20 } }
+    });
+
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) {
+      throw new Error('Expected success');
+    }
+    expect(moved.value.kind).toBe('map-edit/applied');
+
+    const afterMove = getDocument();
+    expect(afterMove?.revision).toBe(2);
+    expect(afterMove?.dirty).toBe(true);
+    expect(afterMove?.lastValidation).toBeNull();
+    expect(((afterMove?.json as Record<string, unknown>)?.['lights'] as unknown[])[0]).toEqual({
+      x: 10,
+      y: 20,
+      radius: 1,
+      intensity: 1,
+      color: '#ffffff'
+    });
+
+    const undone = service.undo({ baseRevision: 2, steps: 1 });
+    expect(undone.ok).toBe(true);
+    if (!undone.ok) {
+      throw new Error('Expected undo success');
+    }
+    expect(undone.value.kind).toBe('map-edit/applied');
+
+    const afterUndo = getDocument();
+    expect(afterUndo?.revision).toBe(3);
+    expect(((afterUndo?.json as Record<string, unknown>)?.['lights'] as unknown[])[0]).toEqual({
+      x: 5,
+      y: 6,
+      radius: 1,
+      intensity: 1,
+      color: '#ffffff'
+    });
+
+    const redone = service.redo({ baseRevision: 3, steps: 1 });
+    expect(redone.ok).toBe(true);
+    if (!redone.ok) {
+      throw new Error('Expected redo success');
+    }
+    expect(redone.value.kind).toBe('map-edit/applied');
+
+    const afterRedo = getDocument();
+    expect(afterRedo?.revision).toBe(4);
+    expect(((afterRedo?.json as Record<string, unknown>)?.['lights'] as unknown[])[0]).toEqual({
+      x: 10,
+      y: 20,
+      radius: 1,
+      intensity: 1,
+      color: '#ffffff'
+    });
+  });
+
   it('update-fields succeeds, marks dirty, clears lastValidation, bumps revision, and supports undo/redo', () => {
     const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
 
@@ -356,6 +427,78 @@ describe('MapEditService', () => {
     expect(afterRedo?.dirty).toBe(true);
     expect(afterRedo?.lastValidation).toBeNull();
     expect(afterRedo?.json).toEqual({ ...baseMapJson(), entities: [{ x: 10, y: 20, yaw_deg: 90, def: null }] });
+  });
+
+  it('update-fields on the map root supports undo/redo and preserves document metadata semantics', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const initialJson = {
+      ...baseMapJson(),
+      bgmusic: 'OLD.MID',
+      soundfont: 'old.sf2',
+      name: 'OLD_NAME',
+      sky: 'old.png'
+    };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: initialJson,
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    const service = createService(store);
+
+    const edited = service.edit({
+      baseRevision: 1,
+      command: {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'map' },
+        set: {
+          bgmusic: 'COOLSONG.MID',
+          soundfont: 'hl4mgm.sf2',
+          name: 'E1M1_STRESS_TEST',
+          sky: 'purple.png'
+        }
+      }
+    });
+
+    expect(edited.ok).toBe(true);
+
+    const afterEdit = getDocument();
+    expect(afterEdit?.revision).toBe(2);
+    expect(afterEdit?.dirty).toBe(true);
+    expect(afterEdit?.lastValidation).toBeNull();
+    expect(afterEdit?.json).toEqual({
+      ...baseMapJson(),
+      bgmusic: 'COOLSONG.MID',
+      soundfont: 'hl4mgm.sf2',
+      name: 'E1M1_STRESS_TEST',
+      sky: 'purple.png'
+    });
+
+    const undone = service.undo({ baseRevision: 2 });
+    expect(undone.ok).toBe(true);
+
+    const afterUndo = getDocument();
+    expect(afterUndo?.dirty).toBe(false);
+    expect(afterUndo?.lastValidation).toEqual(lastValidation);
+    expect(afterUndo?.json).toEqual(initialJson);
+
+    const redone = service.redo({ baseRevision: afterUndo!.revision });
+    expect(redone.ok).toBe(true);
+
+    const afterRedo = getDocument();
+    expect(afterRedo?.dirty).toBe(true);
+    expect(afterRedo?.lastValidation).toBeNull();
+    expect(afterRedo?.json).toEqual({
+      ...baseMapJson(),
+      bgmusic: 'COOLSONG.MID',
+      soundfont: 'hl4mgm.sf2',
+      name: 'E1M1_STRESS_TEST',
+      sky: 'purple.png'
+    });
   });
 
   it('update-fields on a door round-trips required_item fields through undo/redo and preserves document metadata', () => {

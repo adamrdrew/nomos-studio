@@ -114,9 +114,9 @@ The editor UI is organized like a traditional creative tool:
 	- The active selection is outlined in red to improve focus.
 	- When the Select tool is active, a yellow hover outline previews what will be selected on click.
 - **Toolbox** (left overlay within the Map Editor): Select / Zoom / Pan tool modes.
-	- Move mode allows dragging the currently selected entity to a new position.
+	- Move mode allows dragging the currently selected entity or light to a new position.
 		- The renderer maintains a local preview while dragging.
-		- On mouse-up, the renderer commits a single main-process edit (`map-edit/move-entity`) and clears the preview.
+		- On mouse-up, the renderer commits a single main-process edit (`map-edit/move-entity` or `map-edit/move-light`) and clears the preview.
 	- Buttons are icon-based with tooltips, fill the toolbox width, and do not stretch to fill the vertical space.
 	- The toolbox is a compact, scrollable column so additional tools can be added without odd stretching.
 
@@ -125,18 +125,26 @@ The editor UI is organized like a traditional creative tool:
 	- Zoom/Pan commands control the viewport via a narrow imperative viewport API exposed by `MapEditorCanvas`.
 	- Zoom is clamped to a minimum and maximum view scale; the current maximum supports close inspection (max scale 64).
 	- Select commands (Delete/Clone) request main-process edits via `window.nomos.map.edit(...)` and update renderer selection based on the edit result.
-- **Inspector** panel (right): contains collapsible sections, currently Asset Browser and Properties.
+- **Inspector** panel (right): contains collapsible sections, currently Asset Browser, Object Properties, and Map Properties.
 	- Asset Browser renders the current asset index entries and supports opening files via a small double-click router:
 		- `Levels/*.json` opens the map in-editor via `window.nomos.map.openFromAssets({ relativePath })`.
 		- all other assets open via `window.nomos.assets.open({ relativePath })`.
 		- Asset icons are color-coded by file type for readability on the dark surface.
-	- Properties shows the selected map object and allows editing supported selection kinds.
+	- Object Properties shows the selected map object and allows editing supported selection kinds.
 		- Edits are committed via `window.nomos.map.edit(...)` using the `map-edit/update-fields` atomic command.
 		- Walls, sectors, entities, and doors are editable via the Properties editor.
 			- Door fields include `tex`, `starts_closed`, `required_item`, and `required_item_missing_message`.
 			- Sector fields include `light`.
 				- The UI communicates `light` as a 0..1 scalar and clamps out-of-range inputs to `[0, 1]` on commit.
 	- On initial app open, Inspector starts at approximately 20% of the window width.
+
+- **Map Properties** section (within Inspector): edits map-level fields on the map JSON root.
+	- Controls:
+		- `bgmusic` (dropdown from `Sounds/MIDI/`, stored as basename)
+		- `soundfont` (dropdown from `Sounds/SoundFonts/`, stored as basename)
+		- `sky` (dropdown from `Images/Sky/`, stored as basename)
+		- `name` (text input)
+	- Edits commit via `window.nomos.map.edit(...)` using `map-edit/update-fields` with `target: { kind: 'map' }`.
 
 ### Non-closable core panels
 - The Map Editor and Inspector DockView panels are treated as “core” panels and are not closeable via the DockView tab UI.

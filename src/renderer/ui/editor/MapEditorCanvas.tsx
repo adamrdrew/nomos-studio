@@ -652,8 +652,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const isDraggingRef = React.useRef<boolean>(false);
   const lastPointerRef = React.useRef<Readonly<{ x: number; y: number }> | null>(null);
 
-  const [movePreview, setMovePreview] = React.useState<Readonly<{ index: number; x: number; y: number }> | null>(null);
-  const movePreviewRef = React.useRef<Readonly<{ index: number; x: number; y: number }> | null>(null);
+  const [movePreview, setMovePreview] = React.useState<Readonly<{ kind: 'entity' | 'light'; index: number; x: number; y: number }> | null>(null);
+  const movePreviewRef = React.useRef<Readonly<{ kind: 'entity' | 'light'; index: number; x: number; y: number }> | null>(null);
   React.useEffect(() => {
     movePreviewRef.current = movePreview;
   }, [movePreview]);
@@ -670,14 +670,14 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   }, [isMoveEnabled]);
 
   React.useEffect(() => {
-    if (mapSelection?.kind !== 'entity') {
+    if (mapSelection?.kind !== 'entity' && mapSelection?.kind !== 'light') {
       isMoveDraggingRef.current = false;
       moveDragOffsetRef.current = null;
       setMovePreview(null);
       return;
     }
 
-    if (movePreview !== null && movePreview.index !== mapSelection.index) {
+    if (movePreview !== null && (movePreview.kind !== mapSelection.kind || movePreview.index !== mapSelection.index)) {
       isMoveDraggingRef.current = false;
       moveDragOffsetRef.current = null;
       setMovePreview(null);
@@ -725,7 +725,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         return;
       }
 
-      if (mapSelection === null || mapSelection.kind !== 'entity') {
+      if (mapSelection === null || (mapSelection.kind !== 'entity' && mapSelection.kind !== 'light')) {
         return;
       }
 
@@ -739,8 +739,11 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         return;
       }
 
-      const entity = decodedMap.value.entities[mapSelection.index];
-      if (!entity) {
+      const selected =
+        mapSelection.kind === 'entity'
+          ? decodedMap.value.entities[mapSelection.index]
+          : decodedMap.value.lights[mapSelection.index];
+      if (!selected) {
         return;
       }
 
@@ -751,8 +754,14 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       };
 
       const activePreview = movePreviewRef.current;
-      const currentX = activePreview !== null && activePreview.index === mapSelection.index ? activePreview.x : entity.x;
-      const currentY = activePreview !== null && activePreview.index === mapSelection.index ? activePreview.y : entity.y;
+      const currentX =
+        activePreview !== null && activePreview.kind === mapSelection.kind && activePreview.index === mapSelection.index
+          ? activePreview.x
+          : selected.x;
+      const currentY =
+        activePreview !== null && activePreview.kind === mapSelection.kind && activePreview.index === mapSelection.index
+          ? activePreview.y
+          : selected.y;
 
       const markerHitRadiusScreen = 10;
       const markerHitRadiusWorld = markerHitRadiusScreen / view.scale;
@@ -763,7 +772,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
 
       isMoveDraggingRef.current = true;
       moveDragOffsetRef.current = { x: currentX - authoredWorldPoint.x, y: currentY - authoredWorldPoint.y };
-      setMovePreview({ index: mapSelection.index, x: currentX, y: currentY });
+      setMovePreview({ kind: mapSelection.kind, index: mapSelection.index, x: currentX, y: currentY });
       return;
     }
 
@@ -801,24 +810,33 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       setMovePreview(null);
       return;
     }
-    if (mapSelection === null || mapSelection.kind !== 'entity') {
+    if (mapSelection === null || (mapSelection.kind !== 'entity' && mapSelection.kind !== 'light')) {
       setMovePreview(null);
       return;
     }
     const preview = movePreviewRef.current;
-    if (preview === null || preview.index !== mapSelection.index) {
+    if (preview === null || preview.kind !== mapSelection.kind || preview.index !== mapSelection.index) {
       setMovePreview(null);
       return;
     }
 
     void (async () => {
+      const command =
+        mapSelection.kind === 'entity'
+          ? {
+              kind: 'map-edit/move-entity' as const,
+              target: { kind: 'entity' as const, index: mapSelection.index },
+              to: { x: preview.x, y: preview.y }
+            }
+          : {
+              kind: 'map-edit/move-light' as const,
+              target: { kind: 'light' as const, index: mapSelection.index },
+              to: { x: preview.x, y: preview.y }
+            };
+
       const result = await window.nomos.map.edit({
         baseRevision: mapDocument.revision,
-        command: {
-          kind: 'map-edit/move-entity',
-          target: { kind: 'entity', index: mapSelection.index },
-          to: { x: preview.x, y: preview.y }
-        }
+        command
       });
 
       if (!result.ok) {
@@ -828,7 +846,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           return;
         }
         // eslint-disable-next-line no-console
-        console.error('[nomos] map move-entity failed', result.error);
+        console.error('[nomos] map move failed', result.error);
         setMovePreview(null);
         return;
       }
@@ -868,7 +886,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
     }
 
     if (isMoveEnabled && isMoveDraggingRef.current) {
-      if (mapSelection === null || mapSelection.kind !== 'entity') {
+      if (mapSelection === null || (mapSelection.kind !== 'entity' && mapSelection.kind !== 'light')) {
         return;
       }
 
@@ -891,6 +909,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       };
 
       setMovePreview({
+        kind: mapSelection.kind,
         index: mapSelection.index,
         x: authoredWorldPoint.x + offset.x,
         y: authoredWorldPoint.y + offset.y
@@ -1189,8 +1208,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         }
 
         const preview = movePreview;
-        const entityX = preview !== null && preview.index === entity.index ? preview.x : entity.x;
-        const entityY = preview !== null && preview.index === entity.index ? preview.y : entity.y;
+        const entityX = preview !== null && preview.kind === 'entity' && preview.index === entity.index ? preview.x : entity.x;
+        const entityY = preview !== null && preview.kind === 'entity' && preview.index === entity.index ? preview.y : entity.y;
         const half = entityMarkerSizeWorld / 2;
 
         out.push(
@@ -1221,11 +1240,15 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           return;
         }
 
+        const preview = movePreview;
+        const lightX = preview !== null && preview.kind === 'light' && preview.index === light.index ? preview.x : light.x;
+        const lightY = preview !== null && preview.kind === 'light' && preview.index === light.index ? preview.y : light.y;
+
         out.push(
           <Circle
             key={`outline-${stroke}-${selection.kind}-${selection.index}`}
-            x={toRenderX(light.x)}
-            y={toRenderY(light.y)}
+            x={toRenderX(lightX)}
+            y={toRenderY(lightY)}
             radius={lightMarkerRadiusWorld}
             fill="rgba(0,0,0,0)"
             stroke={stroke}
@@ -1580,6 +1603,10 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
     }
 
     for (const light of map.lights) {
+      const preview = movePreview;
+      const lightX = preview !== null && preview.kind === 'light' && preview.index === light.index ? preview.x : light.x;
+      const lightY = preview !== null && preview.kind === 'light' && preview.index === light.index ? preview.y : light.y;
+
       const baseAlpha = 0.08;
       const intensityAlpha = clamp(light.intensity * 0.12, 0, 0.2);
       const radiusFillAlpha = clamp(baseAlpha + intensityAlpha, 0.05, 0.25);
@@ -1590,8 +1617,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       lightRadiusCircles.push(
         <Circle
           key={`light-radius-${light.index}`}
-          x={toRenderX(light.x)}
-          y={toRenderY(light.y)}
+          x={toRenderX(lightX)}
+          y={toRenderY(lightY)}
           radius={Math.max(0, light.radius)}
           fill={radiusFill}
           stroke={radiusStroke}
@@ -1602,8 +1629,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
       lightMarkers.push(
         <Circle
           key={`light-marker-${light.index}`}
-          x={toRenderX(light.x)}
-          y={toRenderY(light.y)}
+          x={toRenderX(lightX)}
+          y={toRenderY(lightY)}
           radius={lightMarkerRadiusWorld}
           fill={radiusStroke}
           stroke={markerStroke}
@@ -1632,8 +1659,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
 
     for (const entity of map.entities) {
       const preview = movePreview;
-      const entityX = preview !== null && preview.index === entity.index ? preview.x : entity.x;
-      const entityY = preview !== null && preview.index === entity.index ? preview.y : entity.y;
+      const entityX = preview !== null && preview.kind === 'entity' && preview.index === entity.index ? preview.x : entity.x;
+      const entityY = preview !== null && preview.kind === 'entity' && preview.index === entity.index ? preview.y : entity.y;
       const half = entityMarkerSizeWorld / 2;
       entityMarkers.push(
         <Line

@@ -3,6 +3,7 @@ import { Button, Card, Collapse, Colors, H5 } from '@blueprintjs/core';
 
 import { AssetBrowser } from '../inspector/AssetBrowser';
 import { PropertiesEditor, type InspectorSelectionModel } from '../inspector/PropertiesEditor';
+import { MapPropertiesSection } from '../inspector/MapPropertiesSection';
 import { useNomosStore } from '../../../store/nomosStore';
 import { decodeMapViewModel } from '../map/mapDecoder';
 import { routeAssetDoubleClick } from '../inspector/assetActionRouter';
@@ -83,6 +84,9 @@ export function InspectorDockPanel(): JSX.Element {
     const map = decodedMap.value;
 
     switch (selection.kind) {
+      case 'map': {
+        return null;
+      }
       case 'light': {
         const light = map.lights.find((candidate) => candidate.index === selection.index);
         return light
@@ -181,13 +185,23 @@ export function InspectorDockPanel(): JSX.Element {
       </CollapsibleSection>
 
       <CollapsibleSection
-        title="Properties"
+        title="Object Properties"
         defaultIsOpen={true}
         cardStyle={{ backgroundColor: Colors.DARK_GRAY3 }}
         headerStyle={{ backgroundColor: Colors.DARK_GRAY2, color: Colors.WHITE }}
         bodyStyle={{ backgroundColor: Colors.DARK_GRAY3, color: Colors.LIGHT_GRAY5 }}
       >
         <PropertiesEditor mapDocument={mapDocument} assetIndex={assetIndex} selection={selectionModel} />
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Map Properties"
+        defaultIsOpen={true}
+        cardStyle={{ backgroundColor: Colors.DARK_GRAY3 }}
+        headerStyle={{ backgroundColor: Colors.DARK_GRAY2, color: Colors.WHITE }}
+        bodyStyle={{ backgroundColor: Colors.DARK_GRAY3, color: Colors.LIGHT_GRAY5 }}
+      >
+        <MapPropertiesSection />
       </CollapsibleSection>
     </div>
   );

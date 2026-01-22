@@ -208,7 +208,9 @@ If validation fails with `code: 'map-validation/invalid-map'`:
 - Edits do not touch the filesystem directly.
 
 Property editing:
-- The renderer Inspector Properties UI commits supported edits via `window.nomos.map.edit(...)` using the `map-edit/update-fields` atomic command.
+- The renderer Inspector Object Properties UI commits supported edits via `window.nomos.map.edit(...)` using the `map-edit/update-fields` atomic command.
+- The renderer Map Properties section commits map-level edits via `map-edit/update-fields` with `target: { kind: 'map' }`.
+- Move-mode dragging commits position edits using `map-edit/move-entity` and `map-edit/move-light`.
 
 ### Selection reconciliation
 - The renderer must not “guess” selection validity by inspecting `MapDocument.json`.

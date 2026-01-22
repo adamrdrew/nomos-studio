@@ -30,6 +30,8 @@ export type NomosStoreState = {
 
 function toMapSelection(ref: MapEditTargetRef): MapSelection {
   switch (ref.kind) {
+    case 'map':
+      return { kind: 'map' };
     case 'light':
     case 'particle':
     case 'entity':
@@ -57,6 +59,8 @@ function selectionMatchesRef(selection: MapSelection | null, ref: MapEditTargetR
   }
 
   switch (ref.kind) {
+    case 'map':
+      return selection.kind === 'map';
     case 'light':
     case 'particle':
     case 'entity':

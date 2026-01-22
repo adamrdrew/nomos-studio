@@ -1,4 +1,5 @@
 export type MapSelection =
+  | Readonly<{ kind: 'map' }>
   | Readonly<{ kind: 'light'; index: number }>
   | Readonly<{ kind: 'particle'; index: number }>
   | Readonly<{ kind: 'entity'; index: number }>

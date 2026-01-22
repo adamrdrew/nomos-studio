@@ -117,7 +117,8 @@ export class MapEditService {
       command.kind !== 'map-edit/delete' &&
       command.kind !== 'map-edit/clone' &&
       command.kind !== 'map-edit/update-fields' &&
-      command.kind !== 'map-edit/move-entity'
+      command.kind !== 'map-edit/move-entity' &&
+      command.kind !== 'map-edit/move-light'
     ) {
       const unknownKind = (command as unknown as { kind?: unknown }).kind;
       return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
@@ -159,6 +160,7 @@ export class MapEditService {
         break;
       case 'map-edit/update-fields':
       case 'map-edit/move-entity':
+      case 'map-edit/move-light':
         selectionInput = undefined;
         break;
     }
@@ -210,6 +212,7 @@ export class MapEditService {
         return { ok: true, value: { kind: 'map-edit/deleted' } };
       case 'map-edit/update-fields':
       case 'map-edit/move-entity':
+      case 'map-edit/move-light':
         return {
           ok: true,
           value: {

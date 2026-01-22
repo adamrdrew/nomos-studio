@@ -83,6 +83,7 @@ export type OpenMapFromAssetsResponse = Result<
 export type SaveMapResponse = Result<MapDocument, MapIoError>;
 
 export type MapEditTargetRef =
+  | Readonly<{ kind: 'map' }>
   | Readonly<{ kind: 'light'; index: number }>
   | Readonly<{ kind: 'particle'; index: number }>
   | Readonly<{ kind: 'entity'; index: number }>
@@ -103,6 +104,11 @@ export type MapEditAtomicCommand =
   | Readonly<{
       kind: 'map-edit/move-entity';
       target: Readonly<{ kind: 'entity'; index: number }>;
+      to: Readonly<{ x: number; y: number }>;
+    }>
+  | Readonly<{
+      kind: 'map-edit/move-light';
+      target: Readonly<{ kind: 'light'; index: number }>;
       to: Readonly<{ x: number; y: number }>;
     }>;
 

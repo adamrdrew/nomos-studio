@@ -109,6 +109,8 @@ function targetEquals(a: MapEditTargetRef | null, b: MapEditTargetRef | null): b
   }
 
   switch (a.kind) {
+    case 'map':
+      return true;
     case 'door':
       return a.id === (b as typeof a).id;
     case 'light':
@@ -293,6 +295,27 @@ export class MapCommandEngine {
           }
         };
       }
+      case 'map-edit/move-light': {
+        const toX = command.to.x;
+        const toY = command.to.y;
+        if (!isFiniteNumber(toX) || !isFiniteNumber(toY)) {
+          return err('map-edit/invalid-json', 'move-light.to must have finite number x/y');
+        }
+
+        const moveResult = this.moveLightInJson(json, command.target.index, { x: toX, y: toY });
+        if (!moveResult.ok) {
+          return moveResult;
+        }
+
+        return {
+          ok: true,
+          value: {
+            nextJson: moveResult.value,
+            selection: { kind: 'map-edit/selection/keep' },
+            nextSelection: currentSelection ?? null
+          }
+        };
+      }
       default: {
         const unknownKind = (command as unknown as { kind?: unknown }).kind;
         return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
@@ -306,6 +329,8 @@ export class MapCommandEngine {
     set: Readonly<Record<string, unknown>>
   ): Result<Record<string, unknown>, MapEditError> {
     switch (target.kind) {
+      case 'map':
+        return this.updateFieldsMapRoot(json, set);
       case 'light':
         return this.updateFieldsIndexed(json, 'lights', target.index, set);
       case 'particle':
@@ -323,6 +348,17 @@ export class MapCommandEngine {
         return err('map-edit/unsupported-target', `Unsupported map edit target kind: ${String(unknownKind)}`);
       }
     }
+  }
+
+  private updateFieldsMapRoot(
+    json: Record<string, unknown>,
+    set: Readonly<Record<string, unknown>>
+  ): Result<Record<string, unknown>, MapEditError> {
+    const nextJson: Record<string, unknown> = { ...json };
+    for (const [key, value] of Object.entries(set)) {
+      nextJson[key] = value;
+    }
+    return { ok: true, value: nextJson };
   }
 
   private updateFieldsIndexed(
@@ -475,6 +511,42 @@ export class MapCommandEngine {
     nextEntities[index] = nextEntry;
 
     return { ok: true, value: { ...json, entities: nextEntities } };
+  }
+
+  private moveLightInJson(
+    json: Record<string, unknown>,
+    index: number,
+    to: Readonly<{ x: number; y: number }>
+  ): Result<Record<string, unknown>, MapEditError> {
+    if (!Number.isInteger(index) || index < 0) {
+      return err('map-edit/not-found', `No lights entry exists at index ${index}.`);
+    }
+
+    const lights = asArray(json['lights'], 'lights');
+    if (!lights.ok) {
+      return lights;
+    }
+
+    const source = lights.value[index];
+    if (source === undefined) {
+      return err('map-edit/not-found', `No lights entry exists at index ${index}.`);
+    }
+
+    const sourceRecord = asXyRecord(source, `lights[${index}]`);
+    if (!sourceRecord.ok) {
+      return sourceRecord;
+    }
+
+    const nextEntry: Record<string, unknown> = {
+      ...sourceRecord.value,
+      x: to.x,
+      y: to.y
+    };
+
+    const nextLights = lights.value.slice();
+    nextLights[index] = nextEntry;
+
+    return { ok: true, value: { ...json, lights: nextLights } };
   }
 
   private deleteFromJson(json: Record<string, unknown>, target: MapEditTargetRef): Result<Record<string, unknown>, MapEditError> {
