@@ -15,4 +15,11 @@ describe('mapEditorTools', () => {
   it('getMapEditorTool throws for an unknown id', () => {
     expect(() => getMapEditorTool('nope' as unknown as never)).toThrow('Unknown MapEditorToolId');
   });
+
+  it('getMapEditorTool exposes room tool with template commands', () => {
+    const tool = getMapEditorTool('room');
+    expect(tool.id).toBe('room');
+    expect(tool.interactionMode).toBe('room');
+    expect(tool.toolbarCommands.map((command) => command.id)).toEqual(['room/rectangle', 'room/square', 'room/triangle']);
+  });
 });

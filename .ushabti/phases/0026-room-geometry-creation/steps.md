@@ -139,3 +139,45 @@
     - invalid placements do nothing
     - undo/redo works
 - **Done when:** Automated checks pass and verification is recorded in `review.md`.
+
+## S013 — Fix adjacent placement preview (edge-based snap detection)
+- **Intent:** Make adjacent room creation reachable in the UI by detecting proximity to an existing wall based on the candidate polygon boundary (not its center).
+- **Work:**
+  - Update the shared helper used by the renderer preview and main validation so that “nearest wall within threshold” is computed from the candidate polygon boundary (segment-to-segment distance), not the polygon bounding-box center.
+  - Keep the public result shape the same (still returns `targetWallIndex` and `snapDistancePx`).
+- **Done when:** With the Room tool active, placing a room just outside an existing sector and within the 12px snap threshold produces a green preview and allows click-to-create.
+
+## S014 — Make Rectangle template default long-and-thin
+- **Intent:** Ensure Rectangle feels distinct from Square and matches “hall” expectations.
+- **Work:**
+  - In the renderer Room tool state, set template-specific default sizes.
+  - When switching templates, update the preview size to the template default (square stays square; rectangle defaults to a long-and-thin hall).
+- **Done when:** Selecting Rectangle shows a long/thin preview by default; selecting Square shows an equal-width preview.
+
+## S015 — Add Room tool keyboard hint text in the Map Editor command bar
+- **Intent:** Make rotate/scale modifiers discoverable without reading docs.
+- **Work:**
+  - Add a small, non-interactive hint block rendered in white text in the upper-right of the Map Editor command bar (the toolbar above the canvas).
+  - Show the current platform-idiomatic modifier labels:
+    - macOS: Cmd + ←/→ rotates, Cmd + Option + arrows scales
+    - Windows/Linux: Ctrl + ←/→ rotates, Ctrl + Alt + arrows scales
+  - Only show the hint while the active tool is Room.
+- **Done when:** When Room tool is active, the hint is visible in the command bar upper-right; when other tools are active, the hint is hidden.
+
+## S016 — Allow seed room creation in an empty map
+- **Intent:** Allow users to start a brand-new map by placing the first room, even though it is not nested or adjacent.
+- **Work:**
+  - Extend the shared placement validity and request contract to include a "seed"/"free" placement mode.
+  - Renderer preview: when the map has no sectors/walls, allow placement as valid and send placement kind `room-placement/seed`.
+  - Main engine: allow `room-placement/seed` only when the current map has no sectors/walls; create the room with exterior walls (no portal wiring).
+  - Add unit tests for the new conditional path (allowed only on empty maps; rejected otherwise).
+  - Update docs describing this exception to the connectivity rule.
+- **Done when:** On an empty map, the Room tool shows green preview and allows click-to-create the first room; on non-empty maps, behavior remains nested/adjacent-only.
+
+## S017 — Make New Map create an empty map document (enables seed-room workflow)
+- **Intent:** Ensure the “seed room” rule is reachable in the actual UI by making File → New Map open a valid, empty map document instead of clearing the document entirely.
+- **Work:**
+  - Update the main-process New Map handler so it creates a new in-memory map document with empty `vertices`/`walls`/`sectors` arrays (and empty optional arrays), rather than setting `mapDocument` to null.
+  - Prompt the user for a destination path up-front (Save dialog) so Save/unsaved-changes guard remains safe and functional.
+  - Clear edit history and selection like current behavior.
+- **Done when:** File → New Map results in an editable empty map (Room tool can create the first room via seed placement), and normal maps still support adjacent placement.

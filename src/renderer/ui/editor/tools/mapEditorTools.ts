@@ -1,11 +1,14 @@
 import type { MapEditorInteractionMode } from '../MapEditorCanvas';
 import type { IconName } from '@blueprintjs/icons';
 
-export type MapEditorToolId = 'select' | 'move' | 'door' | 'zoom' | 'pan';
+export type MapEditorToolId = 'select' | 'move' | 'door' | 'room' | 'zoom' | 'pan';
 
 export type MapEditorToolbarCommandId =
   | 'select/delete'
   | 'select/clone'
+  | 'room/rectangle'
+  | 'room/square'
+  | 'room/triangle'
   | 'zoom/in'
   | 'zoom/out'
   | 'zoom/default'
@@ -53,6 +56,19 @@ export const MAP_EDITOR_TOOLS: readonly MapEditorToolDefinition[] = [
     icon: 'log-in',
     interactionMode: 'door',
     toolbarCommands: []
+  },
+  {
+    id: 'room',
+    label: 'Room',
+    tooltip: 'Room',
+    // Blueprint: pencil/edit icon
+    icon: 'edit',
+    interactionMode: 'room',
+    toolbarCommands: [
+      { id: 'room/rectangle', label: 'Rectangle' },
+      { id: 'room/square', label: 'Square' },
+      { id: 'room/triangle', label: 'Triangle' }
+    ]
   },
   {
     id: 'zoom',

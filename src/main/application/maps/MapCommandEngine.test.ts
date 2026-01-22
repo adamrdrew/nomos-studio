@@ -1,6 +1,7 @@
 import { MapCommandEngine } from './MapCommandEngine';
 
 import type { MapDocument } from '../../../shared/domain/models';
+import type { CreateRoomRequest } from '../../../shared/domain/mapRoomCreation';
 import type { MapEditCommand } from '../../../shared/ipc/nomosIpc';
 
 function baseMapJson(): Record<string, unknown> {
@@ -16,6 +17,44 @@ function baseMapJsonForDoorCreation(args: { walls: unknown; doors?: unknown }): 
   return {
     walls: args.walls,
     ...(args.doors === undefined ? {} : { doors: args.doors })
+  };
+}
+
+function baseMapJsonForRoomCreation(): Record<string, unknown> {
+  return {
+    vertices: [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 },
+      { x: 0, y: 10 }
+    ],
+    sectors: [
+      {
+        id: 1,
+        floor_z: 0,
+        ceil_z: 4,
+        floor_tex: 'FLOOR.PNG',
+        ceil_tex: 'CEIL.PNG',
+        light: 1
+      }
+    ],
+    walls: [
+      { v0: 0, v1: 1, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+      { v0: 1, v1: 2, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+      { v0: 2, v1: 3, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+      { v0: 3, v1: 0, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' }
+    ]
+  };
+}
+
+function baseCreateRoomDefaults(): Record<string, unknown> {
+  return {
+    wallTex: 'WALL.PNG',
+    floorTex: 'FLOOR.PNG',
+    ceilTex: 'CEIL.PNG',
+    floorZ: 0,
+    ceilZ: 4,
+    light: 1
   };
 }
 
@@ -149,6 +188,311 @@ describe('MapCommandEngine', () => {
       throw new Error('Expected failure');
     }
     expect(result.error.code).toBe('map-edit/not-found');
+  });
+
+  describe('create-room', () => {
+    it('creates a seed room on an empty map and selects the new sector', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(
+        baseDocument({ vertices: [], sectors: [], walls: [] }),
+        {
+          kind: 'map-edit/create-room',
+          request: {
+            template: 'rectangle',
+            center: { x: 5, y: 5 },
+            size: { width: 4, height: 4 },
+            rotationQuarterTurns: 0,
+            defaults: baseCreateRoomDefaults(),
+            placement: { kind: 'room-placement/seed' }
+          } as unknown as CreateRoomRequest
+        } as unknown as MapEditCommand
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error('Expected success');
+      }
+
+      expect(result.value.selection.kind).toBe('map-edit/selection/set');
+      if (result.value.selection.kind !== 'map-edit/selection/set') {
+        throw new Error('Expected selection/set');
+      }
+      expect(result.value.selection.ref).toEqual({ kind: 'sector', id: 1 });
+
+      const next = result.value.nextJson;
+      expect((next['sectors'] as unknown[]).length).toBe(1);
+      expect((next['walls'] as unknown[]).length).toBe(4);
+      expect((next['vertices'] as unknown[]).length).toBe(4);
+
+      const walls = next['walls'] as Record<string, unknown>[];
+      for (const wall of walls) {
+        expect(wall['front_sector']).toBe(1);
+        expect(wall['back_sector']).toBe(-1);
+        expect(wall['tex']).toBe('WALL.PNG');
+      }
+    });
+
+    it('rejects seed placement when the map is not empty', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: 5 },
+          size: { width: 4, height: 4 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/seed' }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/create-room/invalid-request');
+    });
+
+    it('creates a nested rectangle room and selects the new sector', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: 5 },
+          size: { width: 4, height: 4 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error('Expected success');
+      }
+
+      expect(result.value.selection.kind).toBe('map-edit/selection/set');
+      if (result.value.selection.kind !== 'map-edit/selection/set') {
+        throw new Error('Expected selection/set');
+      }
+      expect(result.value.selection.ref).toEqual({ kind: 'sector', id: 2 });
+
+      const next = result.value.nextJson;
+      expect((next['sectors'] as unknown[]).length).toBe(2);
+
+      const walls = next['walls'] as unknown[];
+      expect(walls.length).toBe(8);
+      const newWalls = walls.slice(4) as Record<string, unknown>[];
+      for (const wall of newWalls) {
+        expect(wall['front_sector']).toBe(2);
+        expect(wall['back_sector']).toBe(1);
+        expect(wall['tex']).toBe('WALL.PNG');
+      }
+    });
+
+    it('creates an adjacent room joined by a portal without reordering existing walls', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+      const originalWalls = (json['walls'] as unknown[]).map((w) => ({ ...(w as Record<string, unknown>) }));
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: -1.1 },
+          size: { width: 6, height: 2 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/adjacent', targetWallIndex: 0, snapDistancePx: 10 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error('Expected success');
+      }
+
+      const nextWalls = result.value.nextJson['walls'] as unknown[];
+      expect(nextWalls.length).toBeGreaterThanOrEqual(12);
+
+      // Indices 1..3 should remain the same walls.
+      expect(nextWalls[1]).toEqual(originalWalls[1]);
+      expect(nextWalls[2]).toEqual(originalWalls[2]);
+      expect(nextWalls[3]).toEqual(originalWalls[3]);
+
+      // Index 0 becomes the portal wall to the new sector.
+      const wall0 = nextWalls[0] as Record<string, unknown>;
+      expect(wall0['front_sector']).toBe(1);
+      expect(wall0['back_sector']).toBe(2);
+
+      // New room should contain a portal segment back to sector 1.
+      const roomPortalCount = nextWalls.filter((w) => {
+        if (typeof w !== 'object' || w === null) {
+          return false;
+        }
+        const rec = w as Record<string, unknown>;
+        return rec['front_sector'] === 2 && rec['back_sector'] === 1;
+      }).length;
+      expect(roomPortalCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('rejects invalid json when vertices/walls/sectors are missing', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument({}), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: 5 },
+          size: { width: 4, height: 4 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/invalid-json');
+      }
+    });
+
+    it('rejects invalid size', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: 5 },
+          size: { width: 0.5, height: 0.5 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/create-room/invalid-size');
+      }
+    });
+
+    it('rejects adjacent placement when snapDistancePx exceeds threshold', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: -1.1 },
+          size: { width: 6, height: 2 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/adjacent', targetWallIndex: 0, snapDistancePx: 13 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/create-room/adjacent-too-far');
+      }
+    });
+
+    it('rejects nested placement when the room intersects existing walls', () => {
+      const engine = new MapCommandEngine();
+      const json: Record<string, unknown> = {
+        vertices: [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+          { x: 10, y: 10 },
+          { x: 0, y: 10 },
+          { x: 5, y: 0 },
+          { x: 5, y: 10 }
+        ],
+        sectors: [
+          {
+            id: 1,
+            floor_z: 0,
+            ceil_z: 4,
+            floor_tex: 'FLOOR.PNG',
+            ceil_tex: 'CEIL.PNG',
+            light: 1
+          }
+        ],
+        walls: [
+          { v0: 0, v1: 1, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 1, v1: 2, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 2, v1: 3, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 3, v1: 0, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 4, v1: 5, front_sector: 999, back_sector: -1, tex: 'WALL.PNG' }
+        ]
+      };
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: 5 },
+          size: { width: 6, height: 2 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/create-room/intersects-walls');
+      }
+    });
+
+    it('rejects adjacent placement when target wall is non-collinear with room edges', () => {
+      const engine = new MapCommandEngine();
+      const json: Record<string, unknown> = {
+        vertices: [
+          { x: 0, y: 0 },
+          { x: 10, y: 10 },
+          { x: 10, y: 0 }
+        ],
+        sectors: [
+          {
+            id: 1,
+            floor_z: 0,
+            ceil_z: 4,
+            floor_tex: 'FLOOR.PNG',
+            ceil_tex: 'CEIL.PNG',
+            light: 1
+          }
+        ],
+        walls: [{ v0: 0, v1: 1, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' }]
+      };
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: -1.1 },
+          size: { width: 6, height: 2 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/adjacent', targetWallIndex: 0, snapDistancePx: 10 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/create-room/non-collinear');
+      }
+    });
   });
 
   it('deletes a particle by index', () => {

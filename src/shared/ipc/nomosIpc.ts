@@ -8,6 +8,7 @@ import type {
   MapRenderMode,
   MapSectorSurface
 } from '../domain/models';
+import type { CreateRoomRequest } from '../domain/mapRoomCreation';
 import type {
   AssetIndexError,
   MapEditError,
@@ -103,6 +104,7 @@ export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/create-door'; atWallIndex: number }>
+  | Readonly<{ kind: 'map-edit/create-room'; request: CreateRoomRequest }>
   | Readonly<{
       kind: 'map-edit/update-fields';
       target: MapEditTargetRef;

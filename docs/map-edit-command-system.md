@@ -43,6 +43,7 @@ Atomic commands are the building blocks for edits.
 - `map-edit/delete`
 - `map-edit/clone`
 - `map-edit/create-door`
+- `map-edit/create-room`
 - `map-edit/update-fields`
 - `map-edit/move-entity`
 - `map-edit/move-light`
@@ -115,6 +116,68 @@ Create-door semantics:
   - `starts_closed: true`
   - no default `tex` (texture is intentionally unset)
 - Selection effect is `map-edit/selection/set` to the newly created `{ kind: 'door', id }`.
+
+`map-edit/create-room` creates room geometry (new `vertices`/`walls`/`sectors`) as a single atomic edit:
+```ts
+{
+  kind: 'map-edit/create-room';
+  request: {
+    template: 'rectangle' | 'square' | 'triangle';
+    center: { x: number; y: number };
+    size: { width: number; height: number };
+    rotationQuarterTurns: 0 | 1 | 2 | 3;
+    defaults: {
+      wallTex: string;
+      floorTex: string;
+      ceilTex: string;
+      floorZ: number;
+      ceilZ: number;
+      light: number;
+    };
+    placement:
+      | { kind: 'room-placement/nested'; enclosingSectorId: number }
+      | { kind: 'room-placement/adjacent'; targetWallIndex: number; snapDistancePx: number }
+      | { kind: 'room-placement/seed' };
+  };
+}
+```
+
+Create-room validation rules (high level):
+- Map JSON must include valid `vertices`/`walls`/`sectors` arrays (and be cloneable).
+- The request must be well-formed:
+  - `template` is one of the supported shapes.
+  - `rotationQuarterTurns` is an integer `0..3`.
+  - `defaults.wallTex/floorTex/ceilTex` are non-empty strings.
+  - `defaults.ceilZ > defaults.floorZ`.
+  - `size.width/height` are finite and must be >= the configured min size.
+- Placement must be valid against the current JSON:
+  - **Nested:** the polygon must be fully inside the requested `enclosingSectorId`.
+  - **Adjacent:** the room must be outside all sectors and joinable to the requested `targetWallIndex` within the snap threshold.
+  - **Seed:** only allowed when the map has no sectors and no walls; creates the first room with exterior walls only.
+- Topology correctness:
+  - The room polygon must not intersect existing wall segments (except for the intentional portal join in adjacent placement).
+  - Adjacent joins must be collinear/axis-aligned and must produce a portal segment.
+
+Create-room semantics:
+- Allocates a new sector id deterministically:
+  - If sectors exist: `max(id) + 1`.
+  - If the map is empty (seed placement): `1`.
+- Adds a new sector with the provided defaults.
+- Adds new vertices/walls for the room boundary.
+- Back-sector rules:
+  - Nested: new room walls have `back_sector = enclosingSectorId`.
+  - Adjacent: new room walls default `back_sector = -1` except the portal segment.
+- Adjacent portal wiring:
+
+Texture naming note:
+- `wall.tex`, `sector.floor_tex`, and `sector.ceil_tex` are treated as **texture filenames** (e.g. `WALL_1.PNG`), not full asset paths.
+- The renderer resolves these by prefixing `Images/Textures/` when loading bytes.
+
+Adjacent portal wiring:
+  - Splits (“cuts”) the target wall and creates a matching portal segment on the new room edge.
+  - Preserves wall index stability: existing `walls[]` entries are never reordered; split segments are appended.
+  - Reuses shared portal endpoint vertex indices on both sides.
+- Selection effect is `map-edit/selection/set` to the newly created `{ kind: 'sector', id }`.
 
 ### Transaction command
 A transaction bundles multiple atomic commands into a single atomic operation.

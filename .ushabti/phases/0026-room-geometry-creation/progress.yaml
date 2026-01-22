@@ -2,89 +2,174 @@ phase:
   id: 0026
   slug: room-geometry-creation
   title: Room Geometry Creation
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Record current map geometry invariants (repo truth)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Confirmed sector-id semantics and portal predicate: renderer decode maps walls[].front_sector/back_sector directly to MapWall.frontSector/backSector (no index remap) in src/renderer/ui/editor/map/mapDecoder.ts and src/renderer/ui/editor/map/mapViewModel.ts, so walls reference sector ids in-editor. Portal-ness is consistently wall.backSector > -1 (MapEditorCanvas Door tool canPlaceDoorAtWallIndex and portal overlay). Wall order must remain stable because doors bind by wall array index (MapDoor.wallIndex) and MapCommandEngine create-door uses wall_index; therefore create-room must never reorder walls and must preserve existing indices when splitting (append new segments)."
+    touched:
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S002
     title: Define the room placement contract + defaults
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Defined shared, deterministic create-room contract in src/shared/domain/mapRoomCreation.ts: CreateRoomRequest (template, center, size, rotationQuarterTurns, defaults, placement plan) plus constants (snapThresholdPx=12, rotation step, scale step, min size). Texture defaults are passed explicitly as strings (renderer-selected from AssetIndex) to keep main command deterministic and game-agnostic."
+    touched:
+      - src/shared/domain/mapRoomCreation.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S003
     title: Implement pure geometry helpers for preview + validation (domain)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added deterministic, pure geometry helpers in src/shared/domain/mapRoomGeometry.ts: template polygon generation (rectangle/square/triangle), 90° rotation, edge extraction, segment intersection, point-in-sector containment and enclosing-sector selection, nearest-wall snapping (px threshold), adjacent portal planning (axis-aligned collinearity + snap translation + overlap interval), and a structured validity result (nested vs adjacent vs invalid with reason). Added unit tests covering nested, intersection rejection, adjacent snap acceptance, portal planning, non-collinear rejection, and no-snap rejection in src/shared/domain/mapRoomGeometry.test.ts; full Jest suite passes."
+    touched:
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S004
     title: Extend shared IPC types with map-edit/create-room
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Extended shared IPC typing to include the new atomic command kind 'map-edit/create-room' carrying CreateRoomRequest (src/shared/ipc/nomosIpc.ts). Added create-room-specific MapEditError codes in src/shared/domain/results.ts. Updated exhaustiveness across command unions; behavior is implemented in S005. Typecheck and Jest suite pass."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/shared/domain/results.ts
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S005
     title: Implement map-edit/create-room in MapCommandEngine
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented 'map-edit/create-room' in MapCommandEngine with strict request/json validation, nested vs adjacent placement handling, intersection rejection, deterministic sector id allocation (max+1), portal wiring via wall splitting without reordering existing walls, and selection set to the new sector. Verified via Jest coverage on create-room scenarios."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/shared/domain/mapRoomCreation.ts
+      - src/shared/domain/mapRoomGeometry.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S006
     title: Unit tests: MapCommandEngine create-room
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added MapCommandEngine create-room unit tests covering nested + adjacent success paths and major failure modes (invalid JSON, invalid size, adjacent-too-far, intersects-walls, non-collinear). Confirmed full Jest suite passes."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S007
     title: Unit tests: MapEditService integration
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated MapEditService to allow and correctly return results for map-edit/create-room, and added/ran integration tests covering revision gating, dirty/lastValidation semantics, and undo/redo behavior for create-room. Confirmed full Jest suite passes under coverage."
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S008
     title: Add Room tool to renderer tool registry + toolbox button
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Registered the Room tool in the renderer tool registry (MapEditorToolId + toolbar command ids + tool definition with a pencil/edit icon) and wired the Map Editor toolbar command handler to track the active room template (rectangle/square/triangle). Extended MapEditorInteractionMode to include 'room' so the tool is selectable without type errors."
+    touched:
+      - src/renderer/ui/editor/tools/mapEditorTools.ts
+      - src/renderer/ui/editor/tools/mapEditorTools.test.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S009
     title: Implement Room tool preview rendering + click behavior
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented Room tool interaction in MapEditorCanvas: mouse move computes a template polygon under cursor, validates via shared pure geometry helpers (nested vs adjacent with 12px snap threshold), renders a red/green outline, and sets cursor to not-allowed/crosshair. Clicking when valid issues window.nomos.map.edit with map-edit/create-room (renderer supplies deterministic texture defaults from AssetIndex as texture filenames/basenames) and applies the returned selection effect; stale revisions refresh the snapshot without auto-retry."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S010
     title: Implement modifier key behavior for rotate/scale
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added Room preview key handling in MapEditorCanvas: primary modifier (Cmd on macOS, Ctrl on Windows/Linux) + left/right rotates by 90°; primary + alt/option + arrows scales non-uniformly along view axes in fixed steps, clamped to min size. Shortcuts ignore key events when typing in inputs and call preventDefault/stopPropagation when handled."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S011
     title: Docs update (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Documented map-edit/create-room in command-system docs and documented Room tool UX (templates, preview validity, click-to-create, texture defaults, keybindings) in renderer UI docs."
+    touched:
+      - docs/map-edit-command-system.md
+      - docs/renderer-ui-system.md
 
   - id: S012
     title: Quality gates + manual verification record
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Quality gates (post-fix): npm test (35/35 suites, 378 tests passed), npm run typecheck (pass), npm run lint (pass; emits TypeScript version support warning from @typescript-eslint). Manual verification to re-check: adjacent placement becomes valid within 12px snap threshold (green preview) and creates a portal; Rectangle defaults to a long/thin hall distinct from Square; undo/redo works."
+    touched:
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S013
+    title: Fix adjacent placement preview (edge-based snap detection)
+    implemented: true
+    reviewed: false
+    notes: "Updated shared snap-target detection to use segment-to-segment distance from the candidate polygon boundary (not polygon bbox center), enabling adjacent placement for large/long rooms. Added a unit test covering the edge-within-threshold case."
+    touched:
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S014
+    title: Make Rectangle template default long-and-thin
+    implemented: true
+    reviewed: false
+    notes: "Renderer Room tool now uses template-specific default sizes and resets size/rotation when switching templates: Rectangle defaults to a long/thin hall; Square defaults square; Triangle uses a moderate default."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S015
+    title: Add Room tool keyboard hint text in the Map Editor command bar
+    implemented: true
+    reviewed: false
+    notes: "Added a right-aligned, white-text hint block in the Map Editor command bar when the Room tool is active, showing platform-idiomatic rotate/scale shortcuts (Cmd/Ctrl + arrows, Cmd/Ctrl + Option/Alt + arrows)."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S016
+    title: Allow seed room creation in an empty map
+    implemented: true
+    reviewed: false
+    notes: "Added seed room placement mode (room-placement/seed) for creating the first room on an empty map (no sectors/walls). Shared placement validity now returns room-valid/seed for empty geometry; renderer sends seed placement in that case; main MapCommandEngine accepts seed placement only when sectors/walls are empty and creates a sector with exterior walls (no portal wiring). Added unit tests for domain validity and engine success/rejection, and updated docs describing the exception."
+    touched:
+      - src/shared/domain/mapRoomCreation.ts
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - docs/map-edit-command-system.md
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S017
+    title: Make New Map create an empty map document (enables seed-room workflow)
+    implemented: true
+    reviewed: false
+    notes: "Updated File → New Map handling in main process to create a new empty, valid map document (empty vertices/walls/sectors plus empty optional arrays) after prompting for a destination path. This makes seed-room creation reachable in the UI while keeping Save/unsaved-changes behavior safe."
+    touched:
+      - src/main/main.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml

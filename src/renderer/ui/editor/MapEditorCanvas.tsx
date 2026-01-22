@@ -11,8 +11,12 @@ import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
 import type { WallStripPolygon } from './map/wallStripGeometry';
+import { ROOM_CREATION_DEFAULTS } from '../../../shared/domain/mapRoomCreation';
+import type { CreateRoomRequest, RoomTemplate } from '../../../shared/domain/mapRoomCreation';
+import { computeRoomPlacementValidity, computeRoomPolygon } from '../../../shared/domain/mapRoomGeometry';
+import type { RoomMapGeometry, RoomPlacementValidity, Vec2 } from '../../../shared/domain/mapRoomGeometry';
 
-export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'pan' | 'zoom';
+export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom';
 
 export type MapEditorViewportApi = Readonly<{
   zoomIn: () => void;
@@ -39,6 +43,55 @@ const TEXTURE_TILE_WORLD_UNITS = 4;
 // Textured wall strip thickness is defined in world units so it scales proportionally with zoom.
 // Derive from the texture tile world size to keep wall-to-texture proportions stable.
 const TEXTURED_WALL_THICKNESS_WORLD = TEXTURE_TILE_WORLD_UNITS * 0.1;
+
+function toRoomMapGeometry(map: MapViewModel): RoomMapGeometry {
+  return {
+    vertices: map.vertices,
+    sectorIds: map.sectors.map((sector) => sector.id),
+    walls: map.walls.map((wall) => ({
+      index: wall.index,
+      v0: wall.v0,
+      v1: wall.v1,
+      frontSectorId: wall.frontSector,
+      backSectorId: wall.backSector
+    }))
+  };
+}
+
+function pickDefaultRoomTextures(assetIndex: Readonly<{ entries: readonly string[] }> | null):
+  | Readonly<{ wallTex: string; floorTex: string; ceilTex: string }>
+  | null {
+  if (assetIndex === null) {
+    return null;
+  }
+
+  const prefixes = ['Images/Textures/', 'Assets/Images/Textures/'] as const;
+
+  let matches: string[] = [];
+  for (const prefix of prefixes) {
+    const candidate = assetIndex.entries
+      .filter((entry) => entry.startsWith(prefix))
+      .map((entry) => entry.slice(prefix.length))
+      .filter((fileName) => fileName.trim().length > 0);
+
+    if (candidate.length > 0) {
+      matches = candidate;
+      break;
+    }
+  }
+
+  matches.sort((a, b) => a.localeCompare(b));
+
+  const wallTex = matches[0] ?? null;
+  const floorTex = matches[1] ?? null;
+  const ceilTex = matches[2] ?? null;
+
+  if (wallTex === null || floorTex === null || ceilTex === null) {
+    return null;
+  }
+
+  return { wallTex, floorTex, ceilTex };
+}
 
 function canPlaceDoorAtWallIndex(map: MapViewModel, wallIndex: number): boolean {
   const wall = map.walls[wallIndex];
@@ -276,7 +329,13 @@ function chooseMinorGridWorldSpacing(viewScale: number): number {
   return best;
 }
 
-export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interactionMode: MapEditorInteractionMode }>(
+export const MapEditorCanvas = React.forwardRef<
+  MapEditorViewportApi,
+  {
+    interactionMode: MapEditorInteractionMode;
+    roomTemplate?: RoomTemplate;
+  }
+>(
   function MapEditorCanvas(props, ref): JSX.Element {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const stageRef = React.useRef<
@@ -292,6 +351,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const mapHighlightToggleWalls = useNomosStore((state) => state.mapHighlightToggleWalls);
   const mapDoorVisibility = useNomosStore((state) => state.mapDoorVisibility);
   const mapSelection = useNomosStore((state) => state.mapSelection);
+    const assetIndex = useNomosStore((state) => state.assetIndex);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
   const applyMapSelectionEffect = useNomosStore((state) => state.applyMapSelectionEffect);
 
@@ -656,6 +716,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const isSelectEnabled = props.interactionMode === 'select';
   const isMoveEnabled = props.interactionMode === 'move';
   const isDoorEnabled = props.interactionMode === 'door';
+  const isRoomEnabled = props.interactionMode === 'room';
 
   React.useEffect(() => {
     if (!isSelectEnabled && !isDoorEnabled) {
@@ -664,13 +725,222 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   }, [isDoorEnabled, isSelectEnabled]);
 
   React.useEffect(() => {
-    if (isDoorEnabled) {
+    if (isDoorEnabled || isRoomEnabled) {
       return;
     }
     if (containerRef.current !== null) {
       containerRef.current.style.cursor = '';
     }
-  }, [isDoorEnabled]);
+  }, [isDoorEnabled, isRoomEnabled]);
+
+  const [roomCenter, setRoomCenter] = React.useState<Point | null>(null);
+  React.useEffect(() => {
+    if (!isRoomEnabled) {
+      setRoomCenter(null);
+      return;
+    }
+  }, [isRoomEnabled]);
+
+  const getDefaultRoomSizeForTemplate = (template: RoomTemplate): Readonly<{ width: number; height: number }> => {
+    if (template === 'square') {
+      return { width: 6, height: 6 };
+    }
+    if (template === 'rectangle') {
+      // Default hall: long and thin.
+      return { width: 16, height: 4 };
+    }
+    // triangle
+    return { width: 8, height: 6 };
+  };
+
+  const [roomSize, setRoomSize] = React.useState<Readonly<{ width: number; height: number }>>({ width: 6, height: 6 });
+  const [roomRotationQuarterTurns, setRoomRotationQuarterTurns] = React.useState<0 | 1 | 2 | 3>(0);
+
+  React.useEffect(() => {
+    if (!isRoomEnabled) {
+      return;
+    }
+
+    const template = props.roomTemplate;
+    if (template === undefined) {
+      return;
+    }
+
+    setRoomSize(getDefaultRoomSizeForTemplate(template));
+    setRoomRotationQuarterTurns(0);
+  }, [isRoomEnabled, props.roomTemplate]);
+
+  React.useEffect(() => {
+    if (!isRoomEnabled) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      // Avoid stealing arrows while typing in UI controls.
+      const target = event.target as HTMLElement | null;
+      if (target !== null) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) {
+          return;
+        }
+      }
+
+      const isMac = navigator.platform.toLowerCase().includes('mac');
+      const isPrimary = isMac ? event.metaKey : event.ctrlKey;
+      if (!isPrimary) {
+        return;
+      }
+
+      const template = props.roomTemplate;
+      if (template === undefined) {
+        return;
+      }
+
+      const isRotate = !event.altKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight');
+      const isScale = event.altKey &&
+        (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown');
+
+      if (!isRotate && !isScale) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (isRotate) {
+        const delta = event.key === 'ArrowRight' ? 1 : -1;
+        setRoomRotationQuarterTurns((current) => {
+          const next = ((current + delta) % 4 + 4) % 4;
+          return next as 0 | 1 | 2 | 3;
+        });
+        return;
+      }
+
+      // Scale along the view axes (screen X/Y). Since the view has no rotation, these map to world X/Y.
+      // The room template applies rotation after sizing, so when the room is rotated 90°/270° we swap
+      // which size dimension affects the view-axis extents.
+      const delta = event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? -ROOM_CREATION_DEFAULTS.scaleStep : ROOM_CREATION_DEFAULTS.scaleStep;
+      const axis: 'horizontal' | 'vertical' = event.key === 'ArrowLeft' || event.key === 'ArrowRight' ? 'horizontal' : 'vertical';
+
+      setRoomSize((current) => {
+        const isOddRotation = roomRotationQuarterTurns % 2 === 1;
+
+        let width = current.width;
+        let height = current.height;
+
+        if (template === 'square') {
+          const next = Math.max(ROOM_CREATION_DEFAULTS.minSizeWorld, width + delta);
+          return { width: next, height: next };
+        }
+
+        const affectsWidth = (axis === 'horizontal' && !isOddRotation) || (axis === 'vertical' && isOddRotation);
+        if (affectsWidth) {
+          width = Math.max(ROOM_CREATION_DEFAULTS.minSizeWorld, width + delta);
+        } else {
+          height = Math.max(ROOM_CREATION_DEFAULTS.minSizeWorld, height + delta);
+        }
+
+        return { width, height };
+      });
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isRoomEnabled, props.roomTemplate, roomRotationQuarterTurns]);
+
+  const roomPreview = React.useMemo<
+    | Readonly<{
+        polygon: readonly Vec2[];
+        validity: RoomPlacementValidity;
+        request: CreateRoomRequest | null;
+      }>
+    | null
+  >(() => {
+    if (!isRoomEnabled) {
+      return null;
+    }
+    if (roomCenter === null) {
+      return null;
+    }
+    if (decodedMap === null || !decodedMap.ok) {
+      return null;
+    }
+    if (props.roomTemplate === undefined) {
+      return null;
+    }
+
+    const template = props.roomTemplate;
+    const size =
+      template === 'square'
+        ? { width: roomSize.width, height: roomSize.width }
+        : { width: roomSize.width, height: roomSize.height };
+
+    const polygon = computeRoomPolygon({
+      template,
+      center: roomCenter,
+      size,
+      rotationQuarterTurns: roomRotationQuarterTurns
+    });
+
+    const geometry = toRoomMapGeometry(decodedMap.value);
+
+    const validity = computeRoomPlacementValidity({
+      geometry,
+      polygon,
+      viewScale: view.scale,
+      snapThresholdPx: ROOM_CREATION_DEFAULTS.snapThresholdPx,
+      minSizeWorld: ROOM_CREATION_DEFAULTS.minSizeWorld
+    });
+
+    const textures = pickDefaultRoomTextures(assetIndex);
+    if (textures === null) {
+      return {
+        polygon,
+        validity: { ok: false, kind: 'room-invalid', reason: 'ambiguous' },
+        request: null
+      };
+    }
+
+    if (!validity.ok) {
+      return { polygon, validity, request: null };
+    }
+
+    const placement =
+      validity.kind === 'room-valid/seed'
+        ? ({ kind: 'room-placement/seed' } as const)
+        : validity.kind === 'room-valid/nested'
+          ? ({ kind: 'room-placement/nested', enclosingSectorId: validity.enclosingSectorId } as const)
+          : ({ kind: 'room-placement/adjacent', targetWallIndex: validity.targetWallIndex, snapDistancePx: validity.snapDistancePx } as const);
+
+    const request: CreateRoomRequest = {
+      template,
+      center: roomCenter,
+      size,
+      rotationQuarterTurns: roomRotationQuarterTurns,
+      defaults: {
+        wallTex: textures.wallTex,
+        floorTex: textures.floorTex,
+        ceilTex: textures.ceilTex,
+        floorZ: 0,
+        ceilZ: 4,
+        light: 1
+      },
+      placement
+    };
+
+    return { polygon, validity, request };
+  }, [assetIndex, decodedMap, isRoomEnabled, props.roomTemplate, roomCenter, roomRotationQuarterTurns, roomSize.height, roomSize.width, view.scale]);
+
+  React.useEffect(() => {
+    if (!isRoomEnabled) {
+      return;
+    }
+
+    const canCreate = roomPreview !== null && roomPreview.validity.ok && roomPreview.request !== null;
+    if (containerRef.current !== null) {
+      containerRef.current.style.cursor = canCreate ? 'crosshair' : 'not-allowed';
+    }
+  }, [isRoomEnabled, roomPreview]);
 
   const isDraggingRef = React.useRef<boolean>(false);
   const lastPointerRef = React.useRef<Readonly<{ x: number; y: number }> | null>(null);
@@ -715,6 +985,42 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   }, [mapDocument?.revision, mapFilePath]);
 
   const onMouseDown = (event: KonvaEventObject<MouseEvent>): void => {
+        if (isRoomEnabled) {
+          if (mapDocument === null) {
+            return;
+          }
+          if (roomPreview === null || !roomPreview.validity.ok || roomPreview.request === null) {
+            return;
+          }
+
+          const request = roomPreview.request;
+
+          void (async () => {
+            const result = await window.nomos.map.edit({
+              baseRevision: mapDocument.revision,
+              command: {
+                kind: 'map-edit/create-room',
+                request
+              }
+            });
+
+            if (!result.ok) {
+              if (result.error.code === 'map-edit/stale-revision') {
+                await useNomosStore.getState().refreshFromMain();
+                return;
+              }
+              // eslint-disable-next-line no-console
+              console.error('[nomos] map create-room failed', result.error);
+              return;
+            }
+
+            if (result.value.kind === 'map-edit/applied') {
+              applyMapSelectionEffect(result.value.selection);
+            }
+          })();
+
+          return;
+        }
     if (isDoorEnabled) {
       if (mapDocument === null) {
         return;
@@ -944,6 +1250,27 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   };
 
   const onMouseMove = (event: KonvaEventObject<MouseEvent>): void => {
+        if (isRoomEnabled) {
+          const stage = event.target.getStage();
+          const pointer = stage?.getPointerPosition();
+          if (pointer == null) {
+            return;
+          }
+
+          const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+          const authoredWorldPoint: Point = {
+            x: renderWorldPoint.x + mapOrigin.x,
+            y: renderWorldPoint.y + mapOrigin.y
+          };
+
+          setRoomCenter((current) =>
+            current !== null && Math.abs(current.x - authoredWorldPoint.x) < 1e-6 && Math.abs(current.y - authoredWorldPoint.y) < 1e-6
+              ? current
+              : authoredWorldPoint
+          );
+
+          return;
+        }
     if (isDoorEnabled) {
       const stage = event.target.getStage();
       const pointer = stage?.getPointerPosition();
@@ -1175,6 +1502,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   }
 
   const wallLines: JSX.Element[] = [];
+    const roomPreviewOverlays: JSX.Element[] = [];
   const doorMarkers: JSX.Element[] = [];
   const texturedFloors: JSX.Element[] = [];
   const texturedWalls: JSX.Element[] = [];
@@ -1190,6 +1518,29 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
 
     const toRenderX = (authoredX: number): number => authoredX - mapOrigin.x;
     const toRenderY = (authoredY: number): number => authoredY - mapOrigin.y;
+
+    if (isRoomEnabled && roomPreview !== null) {
+      const points: number[] = [];
+      for (const p of roomPreview.polygon) {
+        points.push(toRenderX(p.x), toRenderY(p.y));
+      }
+
+      if (points.length >= 6) {
+        const stroke = roomPreview.validity.ok && roomPreview.request !== null ? Colors.GREEN5 : Colors.RED5;
+        roomPreviewOverlays.push(
+          <Line
+            key="room-preview"
+            points={points}
+            closed={true}
+            stroke={stroke}
+            strokeWidth={2}
+            strokeScaleEnabled={false}
+            lineCap="round"
+            lineJoin="round"
+          />
+        );
+      }
+    }
 
     // Marker sizes are defined in screen pixels and converted to world units.
     const safeScale = Math.max(0.0001, view.scale);
@@ -1872,6 +2223,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           {lightMarkers}
           {particleMarkers}
           {entityMarkers}
+          {roomPreviewOverlays}
           {hoverOverlays}
           {selectionOverlays}
         </Layer>

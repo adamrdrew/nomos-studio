@@ -540,9 +540,42 @@ app.on('ready', () => {
   };
 
   const newMap = async (): Promise<void> => {
+    if (mainWindow === null) {
+      return;
+    }
+
     await unsavedChangesGuard.runGuarded(async () => {
+      const dialogResult = await dialog.showSaveDialog(mainWindow, {
+        defaultPath: 'untitled.json',
+        filters: [{ name: 'JSON', extensions: ['json'] }]
+      });
+
+      if (dialogResult.canceled) {
+        return;
+      }
+
+      const destinationPath = dialogResult.filePath;
+      if (destinationPath === undefined) {
+        return;
+      }
+
       mapEditHistory.clear();
-      store.setMapDocument(null);
+      store.setMapDocument({
+        filePath: destinationPath,
+        json: {
+          vertices: [],
+          sectors: [],
+          walls: [],
+          doors: [],
+          lights: [],
+          particles: [],
+          entities: []
+        },
+        dirty: true,
+        lastValidation: null,
+        revision: 1
+      });
+
       sendSelectionEffect({ kind: 'map-edit/selection/clear', reason: 'invalidated' });
     });
   };

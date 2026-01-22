@@ -116,7 +116,7 @@ The editor UI is organized like a traditional creative tool:
 	- Object markers (doors/entities/lights/particles) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
 	- The active selection is outlined in red to improve focus.
 	- When the Select tool is active, a yellow hover outline previews what will be selected on click.
-- **Toolbox** (left overlay within the Map Editor): Select / Zoom / Pan tool modes.
+- **Toolbox** (left overlay within the Map Editor): Select / Move / Door / Room / Zoom / Pan tool modes.
 	- Move mode allows dragging the currently selected entity or light to a new position.
 		- The renderer maintains a local preview while dragging.
 		- On mouse-up, the renderer commits a single main-process edit (`map-edit/move-entity` or `map-edit/move-light`) and clears the preview.
@@ -127,6 +127,23 @@ The editor UI is organized like a traditional creative tool:
 		- On a valid click, the renderer requests `map-edit/create-door` via `window.nomos.map.edit(...)`.
 		- The created door is selected on success.
 		- Doors are created without a default `tex`; the Inspector shows an explicit “(select texture)” placeholder state.
+	- Room mode allows creating room geometry (sectors/walls/vertices) from a template by clicking.
+		- The tool bar exposes template commands: Rectangle, Square, Triangle.
+		- The command bar (top toolbar) shows a small hint on the upper-right with rotate/scale shortcuts.
+		- A live outline preview tracks the mouse:
+			- green when placement is valid (click would create a room)
+			- red when invalid (click does nothing)
+		- Validity is enforced (not advisory): rooms must be nested inside a sector or adjacent/snapped to an existing wall; intersections are rejected.
+			- Exception: if the map has no sectors and no walls, the first room may be created as a “seed” room (not nested/adjacent).
+		- On a valid click, the renderer requests `map-edit/create-room` via `window.nomos.map.edit(...)`.
+		- Texture defaults are computed in the renderer from the current `assetIndex.entries`:
+			- filter entries under `Images/Textures/`
+			- sort lexicographically by relative path
+			- take the first 3 filenames (prefix stripped) as `{ wallTex, floorTex, ceilTex }`
+			- if fewer than 3 textures exist, room creation is blocked (invalid preview).
+		- Key bindings while preview is visible:
+			- primary modifier + left/right: rotate 90° (CCW/CW)
+			- primary modifier + alt/option + arrows: scale along view axes in fixed steps
 	- Buttons are icon-based with tooltips, fill the toolbox width, and do not stretch to fill the vertical space.
 	- The toolbox is a compact, scrollable column so additional tools can be added without odd stretching.
 

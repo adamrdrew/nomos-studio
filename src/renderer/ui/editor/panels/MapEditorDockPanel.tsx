@@ -9,6 +9,7 @@ import type { MapEditorToolDefinition, MapEditorToolId, MapEditorToolbarCommandI
 import { useNomosStore } from '../../../store/nomosStore';
 import type { MapSelection } from '../map/mapSelection';
 import type { MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
+import type { RoomTemplate } from '../../../../shared/domain/mapRoomCreation';
 
 const toaster = Toaster.create({ position: Position.TOP });
 
@@ -16,6 +17,7 @@ function MapEditorToolBar(props: {
   activeTool: MapEditorToolDefinition;
   onCommand: (commandId: MapEditorToolbarCommandId) => void;
   isCommandEnabled: (commandId: MapEditorToolbarCommandId) => boolean;
+  rightSlot?: React.ReactNode;
 }): JSX.Element {
   return (
     <div
@@ -24,6 +26,7 @@ function MapEditorToolBar(props: {
         display: 'flex',
         alignItems: 'center',
         gap: 8,
+        justifyContent: 'space-between',
         padding: 8,
         minHeight: 46,
         background: Colors.DARK_GRAY2,
@@ -31,16 +34,33 @@ function MapEditorToolBar(props: {
         boxSizing: 'border-box'
       }}
     >
-      {props.activeTool.toolbarCommands.map((command) => (
-        <Button
-          key={command.id}
-          minimal={true}
-          text={command.label}
-          disabled={!props.isCommandEnabled(command.id)}
-          style={{ color: Colors.WHITE }}
-          onClick={() => props.onCommand(command.id)}
-        />
-      ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        {props.activeTool.toolbarCommands.map((command) => (
+          <Button
+            key={command.id}
+            minimal={true}
+            text={command.label}
+            disabled={!props.isCommandEnabled(command.id)}
+            style={{ color: Colors.WHITE }}
+            onClick={() => props.onCommand(command.id)}
+          />
+        ))}
+      </div>
+
+      {props.rightSlot ? (
+        <div
+          style={{
+            marginLeft: 8,
+            textAlign: 'right',
+            color: Colors.WHITE,
+            fontSize: 12,
+            lineHeight: 1.2,
+            opacity: 0.95
+          }}
+        >
+          {props.rightSlot}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -69,6 +89,8 @@ export function MapEditorDockPanel(): JSX.Element {
   const [toolId, setToolId] = React.useState<MapEditorToolId>(getDefaultMapEditorToolId());
   const tool = getMapEditorTool(toolId);
 
+  const [roomTemplate, setRoomTemplate] = React.useState<RoomTemplate>('rectangle');
+
   const mapDocument = useNomosStore((state) => state.mapDocument);
   const selection = useNomosStore((state) => state.mapSelection);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
@@ -95,6 +117,18 @@ export function MapEditorDockPanel(): JSX.Element {
 
   const onToolBarCommand = (commandId: MapEditorToolbarCommandId): void => {
     switch (commandId) {
+      case 'room/rectangle': {
+        setRoomTemplate('rectangle');
+        return;
+      }
+      case 'room/square': {
+        setRoomTemplate('square');
+        return;
+      }
+      case 'room/triangle': {
+        setRoomTemplate('triangle');
+        return;
+      }
       case 'zoom/in': {
         viewportRef.current?.zoomIn();
         return;
@@ -208,12 +242,34 @@ export function MapEditorDockPanel(): JSX.Element {
     }
   };
 
+  const roomToolHints = React.useMemo((): React.ReactNode | null => {
+    if (toolId !== 'room') {
+      return null;
+    }
+
+    const isMac = navigator.platform.toLowerCase().includes('mac');
+    const primary = isMac ? 'Cmd' : 'Ctrl';
+    const alt = isMac ? 'Option' : 'Alt';
+
+    return (
+      <div>
+          <div>{`Rotate: ${primary} + ←/→`}</div>
+          <div>{`Scale: ${primary} + ${alt} + ←/→/↑/↓`}</div>
+      </div>
+    );
+  }, [toolId]);
+
   return (
     <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <MapEditorToolBar activeTool={tool} onCommand={onToolBarCommand} isCommandEnabled={isToolBarCommandEnabled} />
+      <MapEditorToolBar
+        activeTool={tool}
+        onCommand={onToolBarCommand}
+        isCommandEnabled={isToolBarCommandEnabled}
+        rightSlot={roomToolHints}
+      />
 
       <div style={{ flex: '1 1 auto', position: 'relative', overflow: 'hidden' }}>
-        <MapEditorCanvas ref={viewportRef} interactionMode={tool.interactionMode} />
+        <MapEditorCanvas ref={viewportRef} interactionMode={tool.interactionMode} roomTemplate={roomTemplate} />
 
         <div
           style={{

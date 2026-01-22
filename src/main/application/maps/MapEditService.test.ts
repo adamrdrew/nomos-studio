@@ -3,6 +3,7 @@ import { MapCommandEngine } from './MapCommandEngine';
 import { MapEditHistory } from './MapEditHistory';
 import type { MapEditHistoryPort, MapHistoryEntry } from './MapEditHistory';
 import type { AppStore } from '../store/AppStore';
+import type { CreateRoomRequest } from '../../../shared/domain/mapRoomCreation';
 import type { MapDocument, MapValidationRecord } from '../../../shared/domain/models';
 
 type StoredMapDocument = Readonly<{ dirty: boolean; json: unknown }>;
@@ -377,6 +378,172 @@ describe('MapEditService', () => {
     const result = service.edit({
       baseRevision: 1,
       command: { kind: 'map-edit/create-door', atWallIndex: 0 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/stale-revision');
+      if (result.error.code === 'map-edit/stale-revision') {
+        expect(result.error.currentRevision).toBe(2);
+      }
+    }
+    expect(setCalls).toHaveLength(0);
+  });
+
+  it('create-room succeeds, marks dirty, clears lastValidation, bumps revision, and supports undo/redo', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: {
+        ...baseMapJson(),
+        vertices: [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+          { x: 10, y: 10 },
+          { x: 0, y: 10 }
+        ],
+        sectors: [
+          {
+            id: 1,
+            floor_z: 0,
+            ceil_z: 4,
+            floor_tex: 'FLOOR.PNG',
+            ceil_tex: 'CEIL.PNG',
+            light: 1
+          }
+        ],
+        walls: [
+          { v0: 0, v1: 1, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 1, v1: 2, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 2, v1: 3, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 3, v1: 0, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' }
+        ]
+      },
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    const service = createService(store);
+
+    const request: CreateRoomRequest = {
+      template: 'rectangle',
+      center: { x: 5, y: 5 },
+      size: { width: 4, height: 4 },
+      rotationQuarterTurns: 0,
+      defaults: {
+        wallTex: 'WALL.PNG',
+        floorTex: 'FLOOR.PNG',
+        ceilTex: 'CEIL.PNG',
+        floorZ: 0,
+        ceilZ: 4,
+        light: 1
+      },
+      placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+    };
+
+    const created = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/create-room', request }
+    });
+
+    expect(created.ok).toBe(true);
+    if (!created.ok) {
+      throw new Error('Expected success');
+    }
+    expect(created.value.kind).toBe('map-edit/applied');
+
+    if (created.value.kind !== 'map-edit/applied') {
+      throw new Error('Expected map-edit/applied');
+    }
+    expect(created.value.selection.kind).toBe('map-edit/selection/set');
+    if (created.value.selection.kind === 'map-edit/selection/set') {
+      expect(created.value.selection.ref).toEqual({ kind: 'sector', id: 2 });
+    }
+
+    const afterCreate = getDocument();
+    expect(afterCreate?.revision).toBe(2);
+    expect(afterCreate?.dirty).toBe(true);
+    expect(afterCreate?.lastValidation).toBeNull();
+    expect(((afterCreate?.json as Record<string, unknown>)?.['sectors'] as unknown[]).length).toBe(2);
+
+    const undone = service.undo({ baseRevision: 2, steps: 1 });
+    expect(undone.ok).toBe(true);
+    if (!undone.ok) {
+      throw new Error('Expected undo success');
+    }
+    expect(undone.value.kind).toBe('map-edit/applied');
+
+    const afterUndo = getDocument();
+    expect(afterUndo?.revision).toBe(3);
+    expect(((afterUndo?.json as Record<string, unknown>)?.['sectors'] as unknown[]).length).toBe(1);
+
+    const redone = service.redo({ baseRevision: 3, steps: 1 });
+    expect(redone.ok).toBe(true);
+    if (!redone.ok) {
+      throw new Error('Expected redo success');
+    }
+    expect(redone.value.kind).toBe('map-edit/applied');
+
+    const afterRedo = getDocument();
+    expect(afterRedo?.revision).toBe(4);
+    expect(((afterRedo?.json as Record<string, unknown>)?.['sectors'] as unknown[]).length).toBe(2);
+  });
+
+  it('create-room rejects mismatched baseRevision with stale-revision and does not mutate store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: {
+        ...baseMapJson(),
+        vertices: [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+          { x: 10, y: 10 },
+          { x: 0, y: 10 }
+        ],
+        sectors: [
+          {
+            id: 1,
+            floor_z: 0,
+            ceil_z: 4,
+            floor_tex: 'FLOOR.PNG',
+            ceil_tex: 'CEIL.PNG',
+            light: 1
+          }
+        ],
+        walls: [
+          { v0: 0, v1: 1, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 1, v1: 2, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 2, v1: 3, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 3, v1: 0, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' }
+        ]
+      },
+      dirty: false,
+      lastValidation: null,
+      revision: 2
+    });
+
+    const service = createService(store);
+    const request: CreateRoomRequest = {
+      template: 'rectangle',
+      center: { x: 5, y: 5 },
+      size: { width: 4, height: 4 },
+      rotationQuarterTurns: 0,
+      defaults: {
+        wallTex: 'WALL.PNG',
+        floorTex: 'FLOOR.PNG',
+        ceilTex: 'CEIL.PNG',
+        floorZ: 0,
+        ceilZ: 4,
+        light: 1
+      },
+      placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+    };
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/create-room', request }
     });
 
     expect(result.ok).toBe(false);
