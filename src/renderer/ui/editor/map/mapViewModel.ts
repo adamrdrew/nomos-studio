@@ -30,7 +30,7 @@ export type MapWall = Readonly<{
 export type MapDoor = Readonly<{
   id: string;
   wallIndex: number;
-  tex: string;
+  tex: string | null;
   startsClosed: boolean;
   requiredItem: string | null;
   requiredItemMissingMessage: string | null;

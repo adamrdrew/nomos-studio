@@ -102,6 +102,7 @@ export type MapEditFieldValue = MapEditPrimitiveValue | MapEditUnset;
 export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
+  | Readonly<{ kind: 'map-edit/create-door'; atWallIndex: number }>
   | Readonly<{
       kind: 'map-edit/update-fields';
       target: MapEditTargetRef;

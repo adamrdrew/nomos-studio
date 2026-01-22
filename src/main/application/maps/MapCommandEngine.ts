@@ -111,6 +111,14 @@ function ensureUniqueDoorId(existingIds: ReadonlySet<string>, baseId: string): s
   return `${baseId}-copy-${suffix}`;
 }
 
+function createNewDoorId(existingIds: ReadonlySet<string>): string {
+  let suffix = 1;
+  while (existingIds.has(`door-${suffix}`)) {
+    suffix += 1;
+  }
+  return `door-${suffix}`;
+}
+
 function targetEquals(a: MapEditTargetRef | null, b: MapEditTargetRef | null): boolean {
   if (a === null || b === null) {
     return a === b;
@@ -265,6 +273,21 @@ export class MapCommandEngine {
           }
         };
       }
+      case 'map-edit/create-door': {
+        const createResult = this.createDoorAtPortalWallIndex(json, command.atWallIndex);
+        if (!createResult.ok) {
+          return createResult;
+        }
+
+        return {
+          ok: true,
+          value: {
+            nextJson: createResult.value.nextJson,
+            selection: { kind: 'map-edit/selection/set', ref: createResult.value.newRef },
+            nextSelection: createResult.value.newRef
+          }
+        };
+      }
       case 'map-edit/update-fields': {
         const validateSet = validateUpdateFieldsSet(command.set as unknown as Record<string, unknown>);
         if (!validateSet.ok) {
@@ -332,6 +355,78 @@ export class MapCommandEngine {
         return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
       }
     }
+  }
+
+  private createDoorAtPortalWallIndex(
+    json: Record<string, unknown>,
+    atWallIndex: number
+  ): Result<Readonly<{ nextJson: Record<string, unknown>; newRef: MapEditTargetRef }>, MapEditError> {
+    if (!Number.isInteger(atWallIndex) || atWallIndex < 0) {
+      return err('map-edit/not-found', `No wall entry exists at index ${atWallIndex}.`);
+    }
+
+    const walls = asArray(json['walls'], 'walls');
+    if (!walls.ok) {
+      return walls;
+    }
+
+    const wall = walls.value[atWallIndex];
+    if (wall === undefined) {
+      return err('map-edit/not-found', `No wall entry exists at index ${atWallIndex}.`);
+    }
+
+    const wallRecord = asRecord(wall, `walls[${atWallIndex}]`);
+    if (!wallRecord.ok) {
+      return wallRecord;
+    }
+
+    const backSector = wallRecord.value['back_sector'];
+    if (typeof backSector !== 'number' || !Number.isFinite(backSector) || !Number.isInteger(backSector)) {
+      return err('map-edit/invalid-json', `walls[${atWallIndex}].back_sector must be an integer`);
+    }
+
+    if (backSector <= -1) {
+      return err('map-edit/not-a-portal', `Wall at index ${atWallIndex} is not a portal.`);
+    }
+
+    const doorsRaw = json['doors'];
+    const doors = doorsRaw === undefined ? ({ ok: true, value: [] as unknown[] } as const) : asArray(doorsRaw, 'doors');
+    if (!doors.ok) {
+      return doors;
+    }
+
+    for (let doorIndex = 0; doorIndex < doors.value.length; doorIndex += 1) {
+      const candidate = doors.value[doorIndex];
+      if (!isRecord(candidate)) {
+        continue;
+      }
+      if (candidate['wall_index'] === atWallIndex) {
+        return err('map-edit/door-already-exists', `A door already exists at wall_index ${atWallIndex}.`);
+      }
+    }
+
+    const existingIds = new Set<string>();
+    for (const candidate of doors.value) {
+      if (!isRecord(candidate)) {
+        continue;
+      }
+      const candidateId = candidate['id'];
+      if (typeof candidateId === 'string' && candidateId.trim().length > 0) {
+        existingIds.add(candidateId);
+      }
+    }
+
+    const nextId = createNewDoorId(existingIds);
+
+    const nextDoor: Record<string, unknown> = {
+      id: nextId,
+      wall_index: atWallIndex,
+      starts_closed: true
+    };
+
+    const nextDoors = doors.value.concat([nextDoor]);
+
+    return { ok: true, value: { nextJson: { ...json, doors: nextDoors }, newRef: { kind: 'door', id: nextId } } };
   }
 
   private updateFieldsInJson(

@@ -12,6 +12,13 @@ function baseMapJson(): Record<string, unknown> {
   };
 }
 
+function baseMapJsonForDoorCreation(args: { walls: unknown; doors?: unknown }): Record<string, unknown> {
+  return {
+    walls: args.walls,
+    ...(args.doors === undefined ? {} : { doors: args.doors })
+  };
+}
+
 function baseDocument(json: unknown): MapDocument {
   return {
     filePath: '/maps/test.json',
@@ -1211,6 +1218,133 @@ describe('MapCommandEngine', () => {
     expect(ids).toContain('door-1-copy');
     expect(ids).toContain('door-1-copy-2');
     expect(ids).toContain('door-1-copy-3');
+  });
+
+  describe('map-edit/create-door', () => {
+    it('creates a door on a portal wall and selects it (doors missing -> treated as empty)', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForDoorCreation({ walls: [{ back_sector: 0 }] });
+
+      const result = engine.apply(baseDocument(json), { kind: 'map-edit/create-door', atWallIndex: 0 });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error('Expected success');
+      }
+
+      expect(result.value.selection).toEqual({
+        kind: 'map-edit/selection/set',
+        ref: { kind: 'door', id: 'door-1' }
+      });
+
+      const doors = result.value.nextJson['doors'] as unknown as ReadonlyArray<Record<string, unknown>>;
+      expect(doors.length).toBe(1);
+      const firstDoor = doors[0];
+      if (firstDoor === undefined) {
+        throw new Error('Expected door entry');
+      }
+      expect(firstDoor).toMatchObject({ id: 'door-1', wall_index: 0, starts_closed: true });
+      expect('tex' in firstDoor).toBe(false);
+    });
+
+    it('returns not-found when wall index is out of bounds', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForDoorCreation({ walls: [{ back_sector: 0 }], doors: [] });
+      const result = engine.apply(baseDocument(json), { kind: 'map-edit/create-door', atWallIndex: 1 });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/not-found');
+    });
+
+    it('returns not-found when wall index is not an integer', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForDoorCreation({ walls: [{ back_sector: 0 }], doors: [] });
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-door',
+        atWallIndex: 0.5
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/not-found');
+    });
+
+    it('returns not-a-portal when wall back_sector indicates no backing sector', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForDoorCreation({ walls: [{ back_sector: -1 }], doors: [] });
+      const result = engine.apply(baseDocument(json), { kind: 'map-edit/create-door', atWallIndex: 0 });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/not-a-portal');
+    });
+
+    it('returns door-already-exists when a door already exists at wall_index', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForDoorCreation({
+        walls: [{ back_sector: 0 }],
+        doors: [{ id: 'door-1', wall_index: 0, tex: 'door.png', starts_closed: false }]
+      });
+
+      const result = engine.apply(baseDocument(json), { kind: 'map-edit/create-door', atWallIndex: 0 });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/door-already-exists');
+    });
+
+    it('returns invalid-json when doors is present but not an array', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForDoorCreation({ walls: [{ back_sector: 0 }], doors: {} });
+      const result = engine.apply(baseDocument(json), { kind: 'map-edit/create-door', atWallIndex: 0 });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+
+    it('returns invalid-json when walls entry is not an object', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForDoorCreation({ walls: [123], doors: [] });
+      const result = engine.apply(baseDocument(json), { kind: 'map-edit/create-door', atWallIndex: 0 });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+
+    it('returns invalid-json when walls[].back_sector is not an integer', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForDoorCreation({ walls: [{ back_sector: '0' }], doors: [] });
+      const result = engine.apply(baseDocument(json), { kind: 'map-edit/create-door', atWallIndex: 0 });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
   });
 
   it('returns transaction-step-failed and does not partially apply when a later step fails', () => {

@@ -506,13 +506,13 @@ function DoorEditor(props: {
 
   const selectionKey = `door:${props.door.id}`;
 
-  const [tex, setTex] = React.useState<string>(props.door.tex);
+  const [tex, setTex] = React.useState<string>(props.door.tex ?? '');
   const [startsClosed, setStartsClosed] = React.useState<boolean>(props.door.startsClosed);
   const [requiredItemText, setRequiredItemText] = React.useState<string>(props.door.requiredItem ?? '');
   const [requiredItemMissingMessageText, setRequiredItemMissingMessageText] = React.useState<string>(props.door.requiredItemMissingMessage ?? '');
 
   React.useEffect(() => {
-    setTex(props.door.tex);
+    setTex(props.door.tex ?? '');
     setStartsClosed(props.door.startsClosed);
     setRequiredItemText(props.door.requiredItem ?? '');
     setRequiredItemMissingMessageText(props.door.requiredItemMissingMessage ?? '');
@@ -545,12 +545,19 @@ function DoorEditor(props: {
           onChange={(event) => {
             const next = event.currentTarget.value;
             setTex(next);
-            if (next !== props.door.tex) {
-              void commitUpdateFields(props.target, { tex: next });
+            const current = props.door.tex ?? '';
+            if (next === current) {
+              return;
             }
+            if (next.trim().length === 0) {
+              void commitUpdateFields(props.target, { tex: MAP_EDIT_UNSET });
+              return;
+            }
+            void commitUpdateFields(props.target, { tex: next });
           }}
           style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
         >
+          <option value="">(select texture)</option>
           {textureOptions.length === 0 ? <option value={tex}>No textures indexed</option> : null}
           {textureOptions.map((fileName) => (
             <option key={fileName} value={fileName}>

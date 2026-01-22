@@ -61,6 +61,8 @@ export type MapEditError =
         | 'map-edit/no-document'
         | 'map-edit/invalid-json'
         | 'map-edit/not-found'
+        | 'map-edit/not-a-portal'
+        | 'map-edit/door-already-exists'
         | 'map-edit/unsupported-target'
         | 'map-edit/transaction-empty'
         | 'map-edit/transaction-too-large'

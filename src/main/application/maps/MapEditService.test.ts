@@ -307,6 +307,88 @@ describe('MapEditService', () => {
     });
   });
 
+  it('create-door succeeds, marks dirty, clears lastValidation, bumps revision, and supports undo/redo', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), walls: [{ back_sector: 0 }] },
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    const service = createService(store);
+
+    const created = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/create-door', atWallIndex: 0 }
+    });
+
+    expect(created.ok).toBe(true);
+    if (!created.ok) {
+      throw new Error('Expected success');
+    }
+    expect(created.value.kind).toBe('map-edit/applied');
+
+    const afterCreate = getDocument();
+    expect(afterCreate?.revision).toBe(2);
+    expect(afterCreate?.dirty).toBe(true);
+    expect(afterCreate?.lastValidation).toBeNull();
+
+    const doorsAfterCreate = ((afterCreate?.json as Record<string, unknown>)?.['doors'] as unknown[])[0] as Record<string, unknown>;
+    expect(doorsAfterCreate).toMatchObject({ id: 'door-1', wall_index: 0, starts_closed: true });
+    expect('tex' in doorsAfterCreate).toBe(false);
+
+    const undone = service.undo({ baseRevision: 2, steps: 1 });
+    expect(undone.ok).toBe(true);
+    if (!undone.ok) {
+      throw new Error('Expected undo success');
+    }
+    expect(undone.value.kind).toBe('map-edit/applied');
+
+    const afterUndo = getDocument();
+    expect(afterUndo?.revision).toBe(3);
+    expect(((afterUndo?.json as Record<string, unknown>)?.['doors'] as unknown[]).length).toBe(0);
+
+    const redone = service.redo({ baseRevision: 3, steps: 1 });
+    expect(redone.ok).toBe(true);
+    if (!redone.ok) {
+      throw new Error('Expected redo success');
+    }
+    expect(redone.value.kind).toBe('map-edit/applied');
+
+    const afterRedo = getDocument();
+    expect(afterRedo?.revision).toBe(4);
+    expect((((afterRedo?.json as Record<string, unknown>)?.['doors'] as unknown[])[0] as Record<string, unknown>)['id']).toBe('door-1');
+  });
+
+  it('create-door rejects mismatched baseRevision with stale-revision and does not mutate store', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), walls: [{ back_sector: 0 }] },
+      dirty: false,
+      lastValidation: null,
+      revision: 2
+    });
+
+    const service = createService(store);
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/create-door', atWallIndex: 0 }
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe('map-edit/stale-revision');
+      if (result.error.code === 'map-edit/stale-revision') {
+        expect(result.error.currentRevision).toBe(2);
+      }
+    }
+    expect(setCalls).toHaveLength(0);
+  });
+
   it('move-light succeeds, marks dirty, clears lastValidation, bumps revision, and supports undo/redo', () => {
     const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
 

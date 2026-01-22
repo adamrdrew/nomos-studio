@@ -222,6 +222,30 @@ describe('decodeMapViewModel', () => {
     expect(door0.requiredItemMissingMessage).toBeNull();
   });
 
+  it('allows doors with missing tex and decodes tex as null', () => {
+    const json = {
+      vertices: [{ x: 0, y: 0 }],
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, floor_tex: 'floor.png', ceil_tex: 'ceil.png', light: 1 }],
+      walls: [{ v0: 0, v1: 0, front_sector: 1, back_sector: -1, tex: 'wall.png' }],
+      doors: [{ id: 'door-1', wall_index: 0, starts_closed: true }]
+    };
+
+    const result = decodeMapViewModel(json);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.value.doors).toHaveLength(1);
+    const door0 = result.value.doors[0];
+    expect(door0).toBeDefined();
+    if (!door0) {
+      return;
+    }
+    expect(door0.tex).toBeNull();
+  });
+
   it('fails when top-level is not an object', () => {
     const result = decodeMapViewModel('nope');
     expect(result.ok).toBe(false);

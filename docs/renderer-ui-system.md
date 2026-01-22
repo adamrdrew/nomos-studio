@@ -120,6 +120,13 @@ The editor UI is organized like a traditional creative tool:
 	- Move mode allows dragging the currently selected entity or light to a new position.
 		- The renderer maintains a local preview while dragging.
 		- On mouse-up, the renderer commits a single main-process edit (`map-edit/move-entity` or `map-edit/move-light`) and clears the preview.
+	- Door mode allows creating a door on a portal wall by clicking.
+		- The cursor indicates validity:
+			- `crosshair` over a portal wall with no existing door
+			- `not-allowed` everywhere else
+		- On a valid click, the renderer requests `map-edit/create-door` via `window.nomos.map.edit(...)`.
+		- The created door is selected on success.
+		- Doors are created without a default `tex`; the Inspector shows an explicit “(select texture)” placeholder state.
 	- Buttons are icon-based with tooltips, fill the toolbox width, and do not stretch to fill the vertical space.
 	- The toolbox is a compact, scrollable column so additional tools can be added without odd stretching.
 

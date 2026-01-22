@@ -1,0 +1,109 @@
+phase:
+  id: 0025
+  slug: door-tool
+  title: Door Tool
+  status: complete
+
+steps:
+  - id: S001
+    title: Inspect current toolbox/tool registry + wall picking + portal predicate
+    implemented: true
+    reviewed: true
+    notes: "Tool registry + toolbox: src/renderer/ui/editor/tools/mapEditorTools.ts (MapEditorToolId union + MAP_EDITOR_TOOLS) rendered by src/renderer/ui/editor/panels/MapEditorDockPanel.tsx. Wall-under-cursor and selection picking: src/renderer/ui/editor/MapEditorCanvas.tsx uses pickMapSelection(...) from src/renderer/ui/editor/map/mapPicking.ts for both click and hover. Canonical portal predicate used by Highlight Portals overlay is wall.backSector > -1 (rendering in MapEditorCanvas.tsx); wall.backSector comes from renderer decode of JSON key walls[].back_sector in src/renderer/ui/editor/map/mapDecoder.ts."
+    touched:
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S002
+    title: Confirm door JSON schema + decide defaults + uniqueness rule
+    implemented: true
+    reviewed: true
+    notes: "Renderer door decode requires doors[].id (non-empty string), doors[].wall_index (int), doors[].tex (non-empty string), and doors[].starts_closed (optional boolean default true); optional lock fields required_item and required_item_missing_message decode as null when missing/blank (src/renderer/ui/editor/map/mapDecoder.ts + mapViewModel.ts). No existing repo fixtures under docs/repro-maps include doors. Phase decisions: starts_closed defaults true (already matches decoder default). No default tex: to avoid post-create decode failure, we will implement S002a to make door tex optional (string|null) in renderer decode/view model and show a '(select texture)' placeholder in the Door Properties editor. Uniqueness invariant: enforce one door per wall_index (scan existing doors for matching wall_index before creating)."
+    touched:
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S002a
+    title: Allow doors to exist without a texture (renderer decode + UI)
+    implemented: true
+    reviewed: true
+    notes: "Made door tex optional end-to-end in the renderer so door creation can omit tex: MapDoor.tex is now string|null; map decoder uses asOptionalString for doors[].tex (missing/blank => null); Door Properties editor shows a '(select texture)' placeholder and unsets tex via MAP_EDIT_UNSET when cleared. Added map decoder unit test covering missing tex decoding to null."
+    touched:
+      - src/renderer/ui/editor/map/mapViewModel.ts
+      - src/renderer/ui/editor/map/mapDecoder.ts
+      - src/renderer/ui/editor/map/mapDecoder.test.ts
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S003
+    title: Extend shared IPC types with a create-door atomic command
+    implemented: true
+    reviewed: true
+    notes: "Extended shared IPC contract to include atomic command kind 'map-edit/create-door' with payload { atWallIndex }. Added explicit MapEditError codes for create-door failure modes: map-edit/not-a-portal and map-edit/door-already-exists."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/shared/domain/results.ts
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S004
+    title: Implement create-door in main MapCommandEngine
+    implemented: true
+    reviewed: true
+    notes: "Implemented atomic kind map-edit/create-door in MapCommandEngine. Validates walls array and in-range integer wall index, validates portal predicate via walls[atWallIndex].back_sector > -1, allows missing doors array (treats as empty), rejects non-array doors, rejects duplicate door at same wall_index with error code map-edit/door-already-exists, creates new door with unique id, wall_index, starts_closed: true, and omits tex; returns selection effect selecting the new door."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S005
+    title: Unit tests: MapCommandEngine create-door
+    implemented: true
+    reviewed: true
+    notes: "Added MapCommandEngine unit tests covering map-edit/create-door success path and all key failure branches: out-of-bounds index, non-integer index, not-a-portal, door-already-exists, doors not array, malformed wall entry, and invalid back_sector shape."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S006
+    title: Unit tests: MapEditService integration for create-door
+    implemented: true
+    reviewed: true
+    notes: "Added MapEditService integration tests verifying create-door success (dirty=true, lastValidation cleared, revision bump) and undo/redo behavior, plus a create-door stale baseRevision rejection test that confirms no store mutation occurs."
+    touched:
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S007
+    title: Add Door tool to renderer tool registry + toolbox button
+    implemented: true
+    reviewed: true
+    notes: "Added a new tool id 'door' to the renderer tool registry and toolbox list with Blueprint icon 'log-in' and tooltip/label 'Door'. Extended MapEditorInteractionMode to include 'door' so it can be selected without type errors."
+    touched:
+      - src/renderer/ui/editor/tools/mapEditorTools.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S008
+    title: Implement Door tool interaction in MapEditorCanvas (hover + click)
+    implemented: true
+    reviewed: true
+    notes: "Implemented Door tool interaction in MapEditorCanvas: hover computes whether a door can be placed at the hovered wall (portal wall with no existing door) and sets cursor to crosshair vs not-allowed; click on a valid wall issues window.nomos.map.edit with map-edit/create-door and applies returned selection effect. Stale revisions trigger refreshFromMain; known invalid placement errors are ignored without crashing."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S009
+    title: Docs update (L09)
+    implemented: true
+    reviewed: true
+    notes: "Updated map edit command system docs to include the new map-edit/create-door atomic command (shape, validation, semantics) and updated renderer UI docs to describe Door tool behavior, cursor feedback, and the texture-unset authoring flow."
+    touched:
+      - docs/map-edit-command-system.md
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0025-door-tool/progress.yaml
+
+  - id: S010
+    title: Quality gates + manual verification record
+    implemented: true
+    reviewed: true
+    notes: "Automated quality gates run (npm test, npm run typecheck, npm run lint). Manual verification completed in the editor; Door tool behavior matches the Phase acceptance criteria."
+    touched:
+      - .ushabti/phases/0025-door-tool/review.md
+      - .ushabti/phases/0025-door-tool/progress.yaml

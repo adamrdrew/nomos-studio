@@ -12,7 +12,7 @@ import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
 import type { WallStripPolygon } from './map/wallStripGeometry';
 
-export type MapEditorInteractionMode = 'select' | 'move' | 'pan' | 'zoom';
+export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'pan' | 'zoom';
 
 export type MapEditorViewportApi = Readonly<{
   zoomIn: () => void;
@@ -39,6 +39,17 @@ const TEXTURE_TILE_WORLD_UNITS = 4;
 // Textured wall strip thickness is defined in world units so it scales proportionally with zoom.
 // Derive from the texture tile world size to keep wall-to-texture proportions stable.
 const TEXTURED_WALL_THICKNESS_WORLD = TEXTURE_TILE_WORLD_UNITS * 0.1;
+
+function canPlaceDoorAtWallIndex(map: MapViewModel, wallIndex: number): boolean {
+  const wall = map.walls[wallIndex];
+  if (!wall) {
+    return false;
+  }
+  if (wall.backSector <= -1) {
+    return false;
+  }
+  return !map.doors.some((door) => door.wallIndex === wallIndex);
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -282,6 +293,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const mapDoorVisibility = useNomosStore((state) => state.mapDoorVisibility);
   const mapSelection = useNomosStore((state) => state.mapSelection);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
+  const applyMapSelectionEffect = useNomosStore((state) => state.applyMapSelectionEffect);
 
   const [hoveredSelection, setHoveredSelection] = React.useState<MapSelection | null>(null);
 
@@ -643,12 +655,22 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const isZoomEnabled = props.interactionMode === 'zoom';
   const isSelectEnabled = props.interactionMode === 'select';
   const isMoveEnabled = props.interactionMode === 'move';
+  const isDoorEnabled = props.interactionMode === 'door';
 
   React.useEffect(() => {
-    if (!isSelectEnabled) {
+    if (!isSelectEnabled && !isDoorEnabled) {
       setHoveredSelection(null);
     }
-  }, [isSelectEnabled]);
+  }, [isDoorEnabled, isSelectEnabled]);
+
+  React.useEffect(() => {
+    if (isDoorEnabled) {
+      return;
+    }
+    if (containerRef.current !== null) {
+      containerRef.current.style.cursor = '';
+    }
+  }, [isDoorEnabled]);
 
   const isDraggingRef = React.useRef<boolean>(false);
   const lastPointerRef = React.useRef<Readonly<{ x: number; y: number }> | null>(null);
@@ -693,6 +715,71 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   }, [mapDocument?.revision, mapFilePath]);
 
   const onMouseDown = (event: KonvaEventObject<MouseEvent>): void => {
+    if (isDoorEnabled) {
+      if (mapDocument === null) {
+        return;
+      }
+      if (!decodedMap?.ok) {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+      const selection = pickMapSelection({
+        worldPoint: authoredWorldPoint,
+        viewScale: view.scale,
+        map: decodedMap.value,
+        renderMode: mapRenderMode,
+        texturedWallPolygons
+      });
+
+      if (selection?.kind !== 'wall') {
+        return;
+      }
+
+      if (!canPlaceDoorAtWallIndex(decodedMap.value, selection.index)) {
+        return;
+      }
+
+      void (async () => {
+        const result = await window.nomos.map.edit({
+          baseRevision: mapDocument.revision,
+          command: {
+            kind: 'map-edit/create-door',
+            atWallIndex: selection.index
+          }
+        });
+
+        if (!result.ok) {
+          if (result.error.code === 'map-edit/stale-revision') {
+            await useNomosStore.getState().refreshFromMain();
+            return;
+          }
+          if (result.error.code === 'map-edit/not-a-portal' || result.error.code === 'map-edit/door-already-exists') {
+            return;
+          }
+          // eslint-disable-next-line no-console
+          console.error('[nomos] map create-door failed', result.error);
+          return;
+        }
+
+        if (result.value.kind === 'map-edit/applied') {
+          applyMapSelectionEffect(result.value.selection);
+        }
+      })();
+
+      return;
+    }
+
     if (isSelectEnabled) {
       const stage = event.target.getStage();
       const pointer = stage?.getPointerPosition();
@@ -857,6 +944,43 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   };
 
   const onMouseMove = (event: KonvaEventObject<MouseEvent>): void => {
+    if (isDoorEnabled) {
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      if (decodedMap?.ok) {
+        const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+        const authoredWorldPoint: Point = {
+          x: renderWorldPoint.x + mapOrigin.x,
+          y: renderWorldPoint.y + mapOrigin.y
+        };
+        const nextHovered = pickMapSelection({
+          worldPoint: authoredWorldPoint,
+          viewScale: view.scale,
+          map: decodedMap.value,
+          renderMode: mapRenderMode,
+          texturedWallPolygons
+        });
+
+        setHoveredSelection((current) => (areSelectionsEqual(current, nextHovered) ? current : nextHovered));
+
+        const canPlace = nextHovered?.kind === 'wall' && canPlaceDoorAtWallIndex(decodedMap.value, nextHovered.index);
+        if (containerRef.current !== null) {
+          containerRef.current.style.cursor = canPlace ? 'crosshair' : 'not-allowed';
+        }
+      } else {
+        setHoveredSelection(null);
+        if (containerRef.current !== null) {
+          containerRef.current.style.cursor = 'not-allowed';
+        }
+      }
+
+      return;
+    }
+
     if (isSelectEnabled) {
       const stage = event.target.getStage();
       const pointer = stage?.getPointerPosition();

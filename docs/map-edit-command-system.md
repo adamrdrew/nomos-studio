@@ -42,11 +42,12 @@ Atomic commands are the building blocks for edits.
 
 - `map-edit/delete`
 - `map-edit/clone`
+- `map-edit/create-door`
 - `map-edit/update-fields`
 - `map-edit/move-entity`
 - `map-edit/move-light`
 
-Each atomic command includes a `target: MapEditTargetRef`.
+Most atomic commands include a `target: MapEditTargetRef`. Some commands instead use specialized inputs (e.g., create operations).
 
 `map-edit/move-entity` moves a single entity by index:
 ```ts
@@ -92,6 +93,28 @@ Update-fields semantics:
 - Fields are set directly onto the target object in map JSON (no schema inference).
   - When `target.kind === 'map'`, fields are set on the map JSON root object.
 - Selection effect is `map-edit/selection/keep`.
+
+`map-edit/create-door` creates a new door bound to a portal wall by wall array index:
+```ts
+{
+  kind: 'map-edit/create-door';
+  atWallIndex: number;
+}
+```
+
+Create-door validation rules:
+- `walls` must exist and be an array; `atWallIndex` must be an in-range integer.
+- The target wall must be a portal (current rule: `walls[atWallIndex].back_sector > -1`).
+- `doors` must be absent or an array.
+- Only one door is allowed per portal wall index (`doors[].wall_index` must not already equal `atWallIndex`).
+
+Create-door semantics:
+- Appends a new door record with:
+  - a unique `id`
+  - `wall_index: atWallIndex`
+  - `starts_closed: true`
+  - no default `tex` (texture is intentionally unset)
+- Selection effect is `map-edit/selection/set` to the newly created `{ kind: 'door', id }`.
 
 ### Transaction command
 A transaction bundles multiple atomic commands into a single atomic operation.

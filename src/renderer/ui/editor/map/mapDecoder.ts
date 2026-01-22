@@ -300,7 +300,7 @@ function decodeDoor(value: unknown, index: number): Result<MapDoor, MapDecodeErr
     return wallIndex;
   }
 
-  const tex = asString(value['tex'], `doors[${index}].tex`);
+  const tex = asOptionalString(value['tex'], `doors[${index}].tex`);
   if (!tex.ok) {
     return tex;
   }
