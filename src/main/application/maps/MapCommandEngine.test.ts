@@ -191,6 +191,46 @@ describe('MapCommandEngine', () => {
   });
 
   describe('create-room', () => {
+    it('still allows creating additional rooms after an adjacent join that uses the full target wall as the portal', () => {
+      const engine = new MapCommandEngine();
+
+      // Start with a single 10x10 sector (id=1) bounded by 4 walls.
+      const json1 = baseMapJsonForRoomCreation();
+
+      // Create an adjacent room below wall 0 (the bottom wall y=0), wide enough that the overlap covers the full wall.
+      const result2 = engine.apply(baseDocument(json1), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          // Exact alignment: top edge lies on y=0 and spans x=0..10
+          center: { x: 5, y: -1 },
+          size: { width: 10, height: 2 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/adjacent', targetWallIndex: 0, snapDistancePx: 10 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      if (!result2.ok) {
+        throw new Error(`Expected adjacent create-room success, got: ${result2.error.code} ${result2.error.message ?? ''}`);
+      }
+
+      // Now create a nested room inside the newly created sector (id=2).
+      const result3 = engine.apply(baseDocument(result2.value.nextJson), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'square',
+          center: { x: 5, y: -1 },
+          size: { width: 1.5, height: 1.5 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 2 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result3.ok).toBe(true);
+    });
+
     it('creates a seed room on an empty map and selects the new sector', () => {
       const engine = new MapCommandEngine();
 
@@ -319,7 +359,10 @@ describe('MapCommandEngine', () => {
       }
 
       const nextWalls = result.value.nextJson['walls'] as unknown[];
-      expect(nextWalls.length).toBeGreaterThanOrEqual(12);
+      // Wall splitting depends on whether the planned portal endpoints align with existing vertices.
+      // In the common case where the portal coincides with a room edge, we should still end up with at least
+      // the original 4 walls plus the 4 new room walls.
+      expect(nextWalls.length).toBeGreaterThanOrEqual(8);
 
       // Indices 1..3 should remain the same walls.
       expect(nextWalls[1]).toEqual(originalWalls[1]);

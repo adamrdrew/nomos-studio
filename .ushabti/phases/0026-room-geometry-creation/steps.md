@@ -34,6 +34,13 @@
 - **Done when:** Helpers are covered by unit tests and can drive preview validity without Konva/Electron.
 
 ## S004 — Extend shared IPC types with `map-edit/create-room`
+
+## S005 — Remove final restriction on adjacent placement for squares/triangles
+- **Intent:** Ensure adjacent placement works for all room shapes, even when the new room's edge is equal to or longer than the target wall, or endpoints coincide.
+- **Work:**
+  - Inspect and update domain logic in src/shared/domain/mapRoomGeometry.ts to guarantee any valid overlap (including zero-length and full-length intervals) is accepted for adjacent placement.
+  - Confirm with passing tests for square/triangle adjacent placement in src/shared/domain/mapRoomGeometry.test.ts.
+- **Done when:** All adjacent placement tests for squares and triangles pass, and no length restriction remains in the domain logic.
 - **Intent:** Make room creation an official, typed main-owned edit (L03).
 - **Work:**
   - Extend `MapEditAtomicCommand` with `kind: 'map-edit/create-room'` and the payload from S002.
@@ -181,3 +188,12 @@
   - Prompt the user for a destination path up-front (Save dialog) so Save/unsaved-changes guard remains safe and functional.
   - Clear edit history and selection like current behavior.
 - **Done when:** File → New Map results in an editable empty map (Room tool can create the first room via seed placement), and normal maps still support adjacent placement.
+
+## S018 — Fix adjacent snap target selection in maps with portals/diagonals
+- **Intent:** Ensure adjacent placement remains reachable as maps grow and contain portal walls and/or diagonal walls (triangles).
+- **Work:**
+  - Update shared placement validity so it only considers **eligible** snap target walls for adjacent placement:
+    - ignore portal walls (`backSectorId > -1`), since main rejects them as join targets
+    - ignore non-axis-aligned walls, since adjacent joins only support collinear axis-aligned boundaries
+  - Add unit tests demonstrating the bug (nearest wall is diagonal/portal, causing adjacent placement to be rejected) and the fix (eligibility filtering restores valid adjacent placement).
+- **Done when:** After creating multiple rooms (including triangles/portals), adjacent placement can still become valid (green preview) near an eligible outer wall, and tests cover the conditional paths.

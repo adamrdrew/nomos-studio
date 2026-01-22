@@ -91,13 +91,13 @@ export function computeRoomPolygon(args: Readonly<{
       ];
     }
 
-    // triangle: isosceles with base on -Y and apex on +Y
+    // triangle: isosceles with base on +Y and apex on -Y
     const halfW = w / 2;
     const halfH = h / 2;
     return [
-      { x: -halfW, y: -halfH },
-      { x: halfW, y: -halfH },
-      { x: 0, y: halfH }
+      { x: -halfW, y: halfH },
+      { x: halfW, y: halfH },
+      { x: 0, y: -halfH }
     ];
   })();
 
@@ -172,7 +172,8 @@ function overlapInterval(a: Readonly<{ min: number; max: number }>, b: Readonly<
   Readonly<{ min: number; max: number }> | null {
   const min = Math.max(a.min, b.min);
   const max = Math.min(a.max, b.max);
-  if (!(max > min)) {
+  // Accept zero-length overlap (endpoints coincide) as valid
+  if (max < min) {
     return null;
   }
   return { min, max };
@@ -197,30 +198,54 @@ export function computeAdjacentPortalPlan(args: Readonly<{
     return { kind: 'room-adjacent-portal-plan-error', reason: 'invalid-wall-index' };
   }
 
-  const orientation = wallOrientation(w0, w1, epsilon);
-  if (orientation === 'other') {
+  const wallAxisOrientation = wallOrientation(w0, w1, epsilon);
+  if (wallAxisOrientation === 'other') {
     return { kind: 'room-adjacent-portal-plan-error', reason: 'non-collinear' };
   }
+  const axis: 'x' | 'y' = wallAxisOrientation === 'horizontal' ? 'x' : 'y';
+  const wallInterval = segmentIntervalOnAxis({ a: w0, b: w1 }, axis);
 
+
+  // Generalize: allow any polygon edge that is parallel to the wall (not just axis-aligned),
+  // and select the closest such edge for snapping.
   const edges = polygonEdges(args.polygon);
   if (edges.length === 0) {
     return { kind: 'room-adjacent-portal-plan-error', reason: 'no-overlap' };
   }
 
-  // Find the polygon edge parallel to the wall with minimal perpendicular distance.
-  let best: { edgeIndex: number; dist: number } | null = null;
+  // Compute wall direction vector
+  const wallDir = sub(w1, w0);
+  const wallLen = Math.sqrt(lengthSquared(wallDir));
+  if (wallLen < epsilon) {
+    return { kind: 'room-adjacent-portal-plan-error', reason: 'invalid-wall-index' };
+  }
+  const wallNorm = { x: wallDir.x / wallLen, y: wallDir.y / wallLen };
+
+  // Find the polygon edge most parallel to the wall (dot product near ±1),
+  // closest in perpendicular distance, and with a positive overlap interval on the wall axis.
+  let best: { edgeIndex: number; dist: number; overlapLen: number } | null = null;
   for (let edgeIndex = 0; edgeIndex < edges.length; edgeIndex += 1) {
     const edge = edges[edgeIndex];
-    if (!edge) {
-      continue;
-    }
-    const edgeOrientation = wallOrientation(edge.a, edge.b, epsilon);
-    if (edgeOrientation !== orientation) {
-      continue;
-    }
-    const d = orientation === 'horizontal' ? Math.abs(edge.a.y - w0.y) : Math.abs(edge.a.x - w0.x);
-    if (best === null || d < best.dist) {
-      best = { edgeIndex, dist: d };
+    if (!edge) continue;
+    const edgeDir = sub(edge.b, edge.a);
+    const edgeLen = Math.sqrt(lengthSquared(edgeDir));
+    if (edgeLen < epsilon) continue;
+    const edgeNorm = { x: edgeDir.x / edgeLen, y: edgeDir.y / edgeLen };
+    // Check parallelism (dot product near ±1). Increase tolerance to allow nearly parallel edges.
+    const dotVal = Math.abs(dot(wallNorm, edgeNorm));
+    if (dotVal < 0.995) continue;
+
+    const edgeInterval = segmentIntervalOnAxis(edge, axis);
+    const overlap = overlapInterval(wallInterval, edgeInterval);
+    if (overlap === null) continue;
+    const overlapLen = overlap.max - overlap.min;
+    if (overlapLen <= epsilon) continue;
+
+    // Compute perpendicular distance from edge to wall
+    // For horizontal/vertical, use y/x diff; for general, use cross product
+    const perpDist = Math.abs(cross(wallDir, sub(edge.a, w0)) / wallLen);
+    if (best === null || perpDist < best.dist - epsilon || (Math.abs(perpDist - best.dist) <= epsilon && overlapLen > best.overlapLen)) {
+      best = { edgeIndex, dist: perpDist, overlapLen };
     }
   }
 
@@ -233,10 +258,13 @@ export function computeAdjacentPortalPlan(args: Readonly<{
     return { kind: 'room-adjacent-portal-plan-error', reason: 'no-overlap' };
   }
 
-  const delta: Vec2 =
-    orientation === 'horizontal'
-      ? { x: 0, y: w0.y - chosen.a.y }
-      : { x: w0.x - chosen.a.x, y: 0 };
+  // Snap chosen edge to wall by translating along perpendicular direction
+  // Compute offset from chosen.a to w0 projected onto wall normal
+  const offset = sub(w0, chosen.a);
+  // For parallel edges, offset along perpendicular direction only
+  const perp = { x: -wallNorm.y, y: wallNorm.x };
+  const perpAmount = dot(offset, perp);
+  const delta = { x: perp.x * perpAmount, y: perp.y * perpAmount };
 
   const snappedPolygon = translatePolygon(args.polygon, delta);
   const snappedEdges = polygonEdges(snappedPolygon);
@@ -245,29 +273,26 @@ export function computeAdjacentPortalPlan(args: Readonly<{
     return { kind: 'room-adjacent-portal-plan-error', reason: 'no-overlap' };
   }
 
-  const axis: 'x' | 'y' = orientation === 'horizontal' ? 'x' : 'y';
-  const wallInterval = segmentIntervalOnAxis({ a: w0, b: w1 }, axis);
+  // Compute overlap interval along wall direction
   const edgeInterval = segmentIntervalOnAxis(snappedEdge, axis);
   const overlap = overlapInterval(wallInterval, edgeInterval);
-  if (overlap === null) {
+  // Accept any valid overlap interval for portal creation, including cases where the edge is equal to or longer than the wall, or endpoints coincide
+  if (overlap === null || overlap.min >= overlap.max) {
     return { kind: 'room-adjacent-portal-plan-error', reason: 'no-overlap' };
   }
 
-  const portalA: Vec2 =
-    orientation === 'horizontal'
-      ? { x: overlap.min, y: w0.y }
-      : { x: w0.x, y: overlap.min };
+  // Always set portal endpoints to the overlap interval, regardless of relative lengths
+  const portalA: Vec2 = axis === 'x' ? { x: overlap.min, y: w0.y } : { x: w0.x, y: overlap.min };
+  const portalB: Vec2 = axis === 'x' ? { x: overlap.max, y: w0.y } : { x: w0.x, y: overlap.max };
 
-  const portalB: Vec2 =
-    orientation === 'horizontal'
-      ? { x: overlap.max, y: w0.y }
-      : { x: w0.x, y: overlap.max };
-
+  // Only allow 'horizontal' or 'vertical' orientation in AdjacentPortalPlan
+  const orientation = wallOrientation(w0, w1, epsilon);
+  const allowedOrientation: 'horizontal' | 'vertical' = orientation === 'horizontal' ? 'horizontal' : 'vertical';
   return {
     kind: 'room-adjacent-portal-plan',
     targetWallIndex: wall.index,
     targetWallFrontSectorId: wall.frontSectorId,
-    orientation,
+    orientation: allowedOrientation,
     polygonEdgeIndex: best.edgeIndex,
     snappedPolygon,
     portalA,
@@ -344,10 +369,41 @@ export function doesPolygonIntersectWalls(args: Readonly<{
   geometry: RoomMapGeometry;
   polygon: RoomPolygon;
   ignoredWallIndices?: ReadonlySet<number>;
+  allowEndpointTouch?: boolean;
   epsilon?: number;
 }>): boolean {
   const epsilon = args.epsilon ?? DEFAULT_EPSILON;
   const polygonSegs = polygonEdges(args.polygon);
+
+  const isSamePoint = (a: Vec2, b: Vec2): boolean => {
+    return Math.abs(a.x - b.x) <= epsilon && Math.abs(a.y - b.y) <= epsilon;
+  };
+
+  const isCollinear = (a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): boolean => {
+    const a = sub(a1, a0);
+    return Math.abs(cross(a, sub(b0, a0))) <= epsilon && Math.abs(cross(a, sub(b1, a0))) <= epsilon;
+  };
+
+  const isEndpointTouchOrCollinearCoincident = (a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): boolean => {
+    // Allow if endpoints coincide OR if segments are collinear and intervals overlap (full-edge join)
+    const endpointsCoincide = isSamePoint(a0, b0) || isSamePoint(a0, b1) || isSamePoint(a1, b0) || isSamePoint(a1, b1);
+    if (endpointsCoincide) {
+      return true;
+    }
+    if (isCollinear(a0, a1, b0, b1)) {
+      const axis: 'x' | 'y' = Math.abs(a1.x - a0.x) >= Math.abs(a1.y - a0.y) ? 'x' : 'y';
+      const aMin = Math.min(a0[axis], a1[axis]);
+      const aMax = Math.max(a0[axis], a1[axis]);
+      const bMin = Math.min(b0[axis], b1[axis]);
+      const bMax = Math.max(b0[axis], b1[axis]);
+      const overlapMin = Math.max(aMin, bMin);
+      const overlapMax = Math.min(aMax, bMax);
+      const overlapLen = overlapMax - overlapMin;
+      // Allow any non-negative overlap (full-edge join or endpoint touch)
+      return overlapLen >= -epsilon;
+    }
+    return false;
+  };
 
   for (const wall of args.geometry.walls) {
     if (args.ignoredWallIndices?.has(wall.index)) {
@@ -362,6 +418,9 @@ export function doesPolygonIntersectWalls(args: Readonly<{
 
     for (const seg of polygonSegs) {
       if (segmentsIntersect(seg.a, seg.b, v0, v1, epsilon)) {
+        if (args.allowEndpointTouch && isEndpointTouchOrCollinearCoincident(seg.a, seg.b, v0, v1)) {
+          continue;
+        }
         return true;
       }
     }
@@ -542,6 +601,88 @@ export function findNearestWallToPolygonWithinThresholdPx(args: Readonly<{
   return best;
 }
 
+function findNearestEligibleWallToPolygonWithinThresholdPx(args: Readonly<{
+  geometry: RoomMapGeometry;
+  polygon: RoomPolygon;
+  viewScale: number;
+  thresholdPx: number;
+  epsilon?: number;
+}>): Readonly<{ wallIndex: number; distancePx: number }> | null {
+  const epsilon = args.epsilon ?? DEFAULT_EPSILON;
+  const safeScale = Math.max(0.0001, args.viewScale);
+  const polygonSegs = polygonEdges(args.polygon);
+
+  if (polygonSegs.length === 0) {
+    return null;
+  }
+
+  let best: { wallIndex: number; distancePx: number } | null = null;
+
+  for (const wall of args.geometry.walls) {
+    // Adjacent joins only support snapping to solid, axis-aligned walls.
+    if (wall.backSectorId > -1) {
+      continue;
+    }
+
+    const v0 = args.geometry.vertices[wall.v0];
+    const v1 = args.geometry.vertices[wall.v1];
+    if (!v0 || !v1) {
+      continue;
+    }
+
+    const wallAxisOrientation = wallOrientation(v0, v1, epsilon);
+    if (wallAxisOrientation === 'other') {
+      continue;
+    }
+
+    const axis: 'x' | 'y' = wallAxisOrientation === 'horizontal' ? 'x' : 'y';
+    const wallInterval = segmentIntervalOnAxis({ a: v0, b: v1 }, axis);
+
+    let bestPerpWorld = Number.POSITIVE_INFINITY;
+    let sawOverlappingParallelEdge = false;
+
+    for (const seg of polygonSegs) {
+      const segAxisOrientation = wallOrientation(seg.a, seg.b, epsilon);
+      if (segAxisOrientation !== wallAxisOrientation) {
+        continue;
+      }
+
+      const segInterval = segmentIntervalOnAxis(seg, axis);
+      const overlap = overlapInterval(wallInterval, segInterval);
+      if (overlap === null) {
+        continue;
+      }
+
+      const overlapLen = overlap.max - overlap.min;
+      if (overlapLen <= epsilon) {
+        continue;
+      }
+
+      sawOverlappingParallelEdge = true;
+
+      const perpWorld = wallAxisOrientation === 'horizontal' ? Math.abs(seg.a.y - v0.y) : Math.abs(seg.a.x - v0.x);
+      if (perpWorld < bestPerpWorld) {
+        bestPerpWorld = perpWorld;
+      }
+    }
+
+    if (!sawOverlappingParallelEdge) {
+      continue;
+    }
+
+    const dPx = bestPerpWorld * safeScale;
+    if (dPx > args.thresholdPx) {
+      continue;
+    }
+
+    if (best === null || dPx < best.distancePx) {
+      best = { wallIndex: wall.index, distancePx: dPx };
+    }
+  }
+
+  return best;
+}
+
 export function computeRoomPlacementValidity(args: Readonly<{
   geometry: RoomMapGeometry;
   polygon: RoomPolygon;
@@ -566,10 +707,6 @@ export function computeRoomPlacementValidity(args: Readonly<{
     return { ok: false, kind: 'room-invalid', reason: 'invalid-size' };
   }
 
-  if (doesPolygonIntersectWalls({ geometry: args.geometry, polygon: args.polygon })) {
-    return { ok: false, kind: 'room-invalid', reason: 'intersects-walls' };
-  }
-
   const isEmptyMap = args.geometry.walls.length === 0 && args.geometry.sectorIds.length === 0;
   if (isEmptyMap) {
     return { ok: true, kind: 'room-valid/seed' };
@@ -577,11 +714,15 @@ export function computeRoomPlacementValidity(args: Readonly<{
 
   const enclosing = findEnclosingSectorIdForPolygon(args.geometry, args.polygon);
   if (enclosing !== null) {
+    // Nested placement: strict intersection check (touching counts as intersection).
+    if (doesPolygonIntersectWalls({ geometry: args.geometry, polygon: args.polygon })) {
+      return { ok: false, kind: 'room-invalid', reason: 'intersects-walls' };
+    }
     return { ok: true, kind: 'room-valid/nested', enclosingSectorId: enclosing };
   }
 
-  // Not nested: allow only if close enough to some wall (adjacent creation).
-  const nearest = findNearestWallToPolygonWithinThresholdPx({
+  // Not nested: allow only if close enough to some eligible wall (adjacent creation).
+  const nearest = findNearestEligibleWallToPolygonWithinThresholdPx({
     geometry: args.geometry,
     polygon: args.polygon,
     viewScale: args.viewScale,
@@ -592,6 +733,65 @@ export function computeRoomPlacementValidity(args: Readonly<{
     return { ok: false, kind: 'room-invalid', reason: 'no-snap-target' };
   }
 
+  // If the candidate polygon currently crosses the snap target wall line and there is no
+  // unique closest parallel edge to snap, reject as an ambiguous intersection.
+  {
+    const epsilon = DEFAULT_EPSILON;
+    const wall = args.geometry.walls[nearest.wallIndex];
+    if (wall) {
+      const w0 = args.geometry.vertices[wall.v0];
+      const w1 = args.geometry.vertices[wall.v1];
+      if (w0 && w1) {
+        const wallAxisOrientation = wallOrientation(w0, w1, epsilon);
+        if (wallAxisOrientation === 'horizontal' || wallAxisOrientation === 'vertical') {
+          const wallCoord = wallAxisOrientation === 'horizontal' ? w0.y : w0.x;
+          const signed = (p: Vec2): number => (wallAxisOrientation === 'horizontal' ? p.y - wallCoord : p.x - wallCoord);
+          const hasPositive = args.polygon.some((p) => signed(p) > epsilon);
+          const hasNegative = args.polygon.some((p) => signed(p) < -epsilon);
+          const crossesWallLine = hasPositive && hasNegative;
+
+          if (crossesWallLine) {
+            const axis: 'x' | 'y' = wallAxisOrientation === 'horizontal' ? 'x' : 'y';
+            const wallInterval = segmentIntervalOnAxis({ a: w0, b: w1 }, axis);
+            const polygonSegs = polygonEdges(args.polygon);
+
+            let bestAbsDist = Number.POSITIVE_INFINITY;
+            let bestCount = 0;
+            for (const seg of polygonSegs) {
+              const segAxisOrientation = wallOrientation(seg.a, seg.b, epsilon);
+              if (segAxisOrientation !== wallAxisOrientation) {
+                continue;
+              }
+
+              const segInterval = segmentIntervalOnAxis(seg, axis);
+              const overlap = overlapInterval(wallInterval, segInterval);
+              if (overlap === null) {
+                continue;
+              }
+              const overlapLen = overlap.max - overlap.min;
+              if (overlapLen <= epsilon) {
+                continue;
+              }
+
+              const segCoord = wallAxisOrientation === 'horizontal' ? seg.a.y : seg.a.x;
+              const absDist = Math.abs(segCoord - wallCoord);
+              if (absDist < bestAbsDist - epsilon) {
+                bestAbsDist = absDist;
+                bestCount = 1;
+              } else if (Math.abs(absDist - bestAbsDist) <= epsilon) {
+                bestCount += 1;
+              }
+            }
+
+            if (bestCount > 1) {
+              return { ok: false, kind: 'room-invalid', reason: 'intersects-walls' };
+            }
+          }
+        }
+      }
+    }
+  }
+
   const plan = computeAdjacentPortalPlan({ geometry: args.geometry, polygon: args.polygon, targetWallIndex: nearest.wallIndex });
   if (plan.kind === 'room-adjacent-portal-plan-error') {
     return {
@@ -599,6 +799,20 @@ export function computeRoomPlacementValidity(args: Readonly<{
       kind: 'room-invalid',
       reason: plan.reason === 'non-collinear' ? 'non-collinear' : 'ambiguous'
     };
+  }
+
+  // For adjacent placement, as long as there is a valid overlap interval and the snapped polygon does not intersect other walls, allow placement.
+  // Adjacent placement: run intersection checks on the snapped polygon, ignoring the target wall,
+  // and allowing pure endpoint-touch against other walls.
+  if (
+    doesPolygonIntersectWalls({
+      geometry: args.geometry,
+      polygon: plan.snappedPolygon,
+      ignoredWallIndices: new Set([nearest.wallIndex]),
+      allowEndpointTouch: true
+    })
+  ) {
+    return { ok: false, kind: 'room-invalid', reason: 'intersects-walls' };
   }
 
   return { ok: true, kind: 'room-valid/adjacent', targetWallIndex: nearest.wallIndex, snapDistancePx: nearest.distancePx };

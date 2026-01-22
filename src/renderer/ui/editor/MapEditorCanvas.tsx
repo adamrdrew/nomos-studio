@@ -875,6 +875,7 @@ export const MapEditorCanvas = React.forwardRef<
         ? { width: roomSize.width, height: roomSize.width }
         : { width: roomSize.width, height: roomSize.height };
 
+
     const polygon = computeRoomPolygon({
       template,
       center: roomCenter,
@@ -891,6 +892,7 @@ export const MapEditorCanvas = React.forwardRef<
       snapThresholdPx: ROOM_CREATION_DEFAULTS.snapThresholdPx,
       minSizeWorld: ROOM_CREATION_DEFAULTS.minSizeWorld
     });
+
 
     const textures = pickDefaultRoomTextures(assetIndex);
     if (textures === null) {

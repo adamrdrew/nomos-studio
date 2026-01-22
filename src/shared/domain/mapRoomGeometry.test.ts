@@ -106,6 +106,34 @@ describe('mapRoomGeometry', () => {
     }
   });
 
+  test('adjacent validity: full-wall portal is allowed (endpoint touches ignored)', () => {
+    const geometry = rectRoomGeometry({ width: 10, height: 10, sectorId: 1 });
+
+    // A room directly below the bottom wall (y=0) whose top edge spans the full wall x=0..10.
+    const polygon = computeRoomPolygon({
+      template: 'rectangle',
+      center: { x: 5, y: -1 },
+      size: { width: 10, height: 2 },
+      rotationQuarterTurns: 0
+    });
+
+    const validity = computeRoomPlacementValidity({
+      geometry,
+      polygon,
+      viewScale: 10,
+      snapThresholdPx: 12,
+      minSizeWorld: 1
+    });
+
+    if (!validity.ok) {
+      throw new Error(`Expected valid adjacent placement, got invalid: ${validity.reason}`);
+    }
+    expect(validity.kind).toBe('room-valid/adjacent');
+    if (validity.kind === 'room-valid/adjacent') {
+      expect(validity.targetWallIndex).toBe(0);
+    }
+  });
+
   test('adjacent validity: edge within snap threshold is enough even when center is far from wall', () => {
     const geometry = rectRoomGeometry({ width: 10, height: 10, sectorId: 1 });
 
@@ -114,7 +142,8 @@ describe('mapRoomGeometry', () => {
     const polygon = computeRoomPolygon({
       template: 'rectangle',
       center: { x: 5, y: -5.25 },
-      size: { width: 20, height: 10 },
+      // Keep the hall within the x-range of the target wall so it doesn't intersect corner walls when snapped.
+      size: { width: 8, height: 10 },
       rotationQuarterTurns: 0
     });
 
@@ -137,6 +166,90 @@ describe('mapRoomGeometry', () => {
     expect(validity.ok).toBe(true);
     if (validity.ok) {
       expect(validity.kind).toBe('room-valid/adjacent');
+    }
+  });
+
+  test('adjacent validity: ignores non-axis-aligned walls when selecting a snap target', () => {
+    const geometry: RoomMapGeometry = {
+      vertices: [
+        // Solid horizontal wall at y=0
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        // A diagonal wall very close to the candidate polygon (but not axis-aligned).
+        // Place it near the polygon bottom so snapping the top edge upward does not intersect it.
+        { x: 3, y: -2.06 },
+        { x: 3.1, y: -2.04 }
+      ],
+      sectorIds: [],
+      walls: [
+        { index: 0, v0: 0, v1: 1, frontSectorId: 1, backSectorId: -1 },
+        { index: 1, v0: 2, v1: 3, frontSectorId: 1, backSectorId: -1 }
+      ]
+    };
+
+    const polygon = computeRoomPolygon({
+      template: 'rectangle',
+      center: { x: 5, y: -1.1 },
+      size: { width: 4, height: 2 },
+      rotationQuarterTurns: 0
+    });
+
+    const validity = computeRoomPlacementValidity({
+      geometry,
+      polygon,
+      viewScale: 100,
+      snapThresholdPx: 12,
+      minSizeWorld: 1
+    });
+
+    if (!validity.ok) {
+      throw new Error(`Expected valid adjacent placement, got invalid: ${validity.reason}`);
+    }
+    expect(validity.kind).toBe('room-valid/adjacent');
+    if (validity.kind === 'room-valid/adjacent') {
+      expect(validity.targetWallIndex).toBe(0);
+    }
+  });
+
+  test('adjacent validity: ignores portal walls (backSectorId > -1) when selecting a snap target', () => {
+    const geometry: RoomMapGeometry = {
+      vertices: [
+        // Portal wall below the candidate polygon (closer than the solid wall),
+        // so the wall would otherwise be chosen as the snap target.
+        { x: 0, y: -2.1 },
+        { x: 10, y: -2.1 },
+        // Solid wall at y=0.1 (eligible snap target)
+        { x: 0, y: 0.1 },
+        { x: 10, y: 0.1 }
+      ],
+      sectorIds: [],
+      walls: [
+        { index: 0, v0: 0, v1: 1, frontSectorId: 1, backSectorId: 2 },
+        { index: 1, v0: 2, v1: 3, frontSectorId: 1, backSectorId: -1 }
+      ]
+    };
+
+    const polygon = computeRoomPolygon({
+      template: 'rectangle',
+      center: { x: 5, y: -1.05 },
+      size: { width: 4, height: 2 },
+      rotationQuarterTurns: 0
+    });
+
+    const validity = computeRoomPlacementValidity({
+      geometry,
+      polygon,
+      viewScale: 100,
+      snapThresholdPx: 20,
+      minSizeWorld: 1
+    });
+
+    if (!validity.ok) {
+      throw new Error(`Expected valid adjacent placement, got invalid: ${validity.reason}`);
+    }
+    expect(validity.kind).toBe('room-valid/adjacent');
+    if (validity.kind === 'room-valid/adjacent') {
+      expect(validity.targetWallIndex).toBe(1);
     }
   });
 
@@ -195,7 +308,8 @@ describe('mapRoomGeometry', () => {
 
     expect(validity.ok).toBe(false);
     if (!validity.ok) {
-      expect(validity.reason).toBe('non-collinear');
+      // Adjacent joins only consider axis-aligned walls as snap targets.
+      expect(validity.reason).toBe('no-snap-target');
     }
   });
 
@@ -250,4 +364,52 @@ describe('mapRoomGeometry', () => {
       expect(validity.kind).toBe('room-valid/seed');
     }
   });
+
+    test('adjacent validity: square can be attached to rectangle room', () => {
+      const geometry = rectRoomGeometry({ width: 10, height: 10, sectorId: 1 });
+
+      const polygon = computeRoomPolygon({
+        template: 'square',
+        center: { x: 5, y: -1.1 },
+        size: { width: 4, height: 4 },
+        rotationQuarterTurns: 0
+      });
+
+      const validity = computeRoomPlacementValidity({
+        geometry,
+        polygon,
+        viewScale: 10,
+        snapThresholdPx: 12,
+        minSizeWorld: 1
+      });
+
+      expect(validity.ok).toBe(true);
+      if (validity.ok) {
+        expect(validity.kind).toBe('room-valid/adjacent');
+      }
+    });
+
+    test('adjacent validity: triangle can be attached to rectangle room', () => {
+      const geometry = rectRoomGeometry({ width: 10, height: 10, sectorId: 1 });
+
+      const polygon = computeRoomPolygon({
+        template: 'triangle',
+        center: { x: 5, y: -1.1 },
+        size: { width: 4, height: 4 },
+        rotationQuarterTurns: 0
+      });
+
+      const validity = computeRoomPlacementValidity({
+        geometry,
+        polygon,
+        viewScale: 10,
+        snapThresholdPx: 12,
+        minSizeWorld: 1
+      });
+
+      expect(validity.ok).toBe(true);
+      if (validity.ok) {
+        expect(validity.kind).toBe('room-valid/adjacent');
+      }
+    });
 });

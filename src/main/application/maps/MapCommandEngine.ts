@@ -815,7 +815,14 @@ export class MapCommandEngine {
 
     const snappedPolygon = plan.snappedPolygon;
 
-    if (doesPolygonIntersectWalls({ geometry, polygon: snappedPolygon, ignoredWallIndices: new Set([targetWallIndexValue]) })) {
+    if (
+      doesPolygonIntersectWalls({
+        geometry,
+        polygon: snappedPolygon,
+        ignoredWallIndices: new Set([targetWallIndexValue]),
+        allowEndpointTouch: true
+      })
+    ) {
       return err('map-edit/create-room/intersects-walls', 'Requested adjacent room intersects existing walls');
     }
 
@@ -827,10 +834,6 @@ export class MapCommandEngine {
       ceil_tex: ceilTex,
       light
     });
-
-    // Add portal endpoints as shared vertices used by both the existing wall split and the new room portal wall.
-    const portalAIndex = addVertex(plan.portalA);
-    const portalBIndex = addVertex(plan.portalB);
 
     // Split existing wall at portal endpoints; keep the original wall index as the portal segment.
     const targetWallRecord = asRecord(nextWalls[targetWallIndexValue], `walls[${targetWallIndexValue}]`);
@@ -845,6 +848,18 @@ export class MapCommandEngine {
     if (!originalV0Point || !originalV1Point) {
       return err('map-edit/invalid-json', `walls[${targetWallIndex}] has invalid v0/v1`);
     }
+
+    const epsilon = 1e-6;
+    const isSamePoint = (a: Readonly<{ x: number; y: number }>, b: Readonly<{ x: number; y: number }>): boolean => {
+      return Math.abs(a.x - b.x) <= epsilon && Math.abs(a.y - b.y) <= epsilon;
+    };
+
+    // Add portal endpoints as shared vertices used by both the existing wall split and the new room portal wall.
+    // Reuse existing wall endpoints when the portal aligns exactly, to avoid degenerate segments.
+    const portalAIndex =
+      isSamePoint(plan.portalA, originalV0Point) ? originalV0 : isSamePoint(plan.portalA, originalV1Point) ? originalV1 : addVertex(plan.portalA);
+    const portalBIndex =
+      isSamePoint(plan.portalB, originalV0Point) ? originalV0 : isSamePoint(plan.portalB, originalV1Point) ? originalV1 : addVertex(plan.portalB);
 
     const axis: 'x' | 'y' = plan.orientation === 'horizontal' ? 'x' : 'y';
     const increasing = originalV0Point[axis] <= originalV1Point[axis];
@@ -872,8 +887,16 @@ export class MapCommandEngine {
     // Update the original wall in place to become the portal segment.
     nextWalls[targetWallIndexValue] = { ...baseWall, v0: portalStartIndex, v1: portalEndIndex, back_sector: newSectorId };
 
-    // Add new room vertices for corners.
-    const roomCornerVertexIndices = snappedPolygon.map((p) => addVertex(p));
+    // Add new room vertices for corners. If a corner coincides with a portal endpoint, reuse that vertex index.
+    const roomCornerVertexIndices = snappedPolygon.map((p) => {
+      if (isSamePoint(p, plan.portalA)) {
+        return portalAIndex;
+      }
+      if (isSamePoint(p, plan.portalB)) {
+        return portalBIndex;
+      }
+      return addVertex(p);
+    });
 
     // Add room walls; split the chosen edge to include the portal segment sharing endpoints.
     for (let edgeIndex = 0; edgeIndex < roomCornerVertexIndices.length; edgeIndex += 1) {

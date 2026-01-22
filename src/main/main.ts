@@ -513,16 +513,17 @@ app.on('ready', () => {
   };
 
   const saveAs = async (): Promise<void> => {
-    if (mainWindow === null) {
-      return;
-    }
-
     const document = store.getState().mapDocument;
     if (document === null) {
       return;
     }
 
-    const dialogResult = await dialog.showSaveDialog(mainWindow, {
+    const parentWindow = mainWindow;
+    if (parentWindow === null) {
+      return;
+    }
+
+    const dialogResult = await dialog.showSaveDialog(parentWindow, {
       defaultPath: document.filePath,
       filters: [{ name: 'JSON', extensions: ['json'] }]
     });
@@ -540,12 +541,13 @@ app.on('ready', () => {
   };
 
   const newMap = async (): Promise<void> => {
-    if (mainWindow === null) {
+    const parentWindow = mainWindow;
+    if (parentWindow === null) {
       return;
     }
 
     await unsavedChangesGuard.runGuarded(async () => {
-      const dialogResult = await dialog.showSaveDialog(mainWindow, {
+      const dialogResult = await dialog.showSaveDialog(parentWindow, {
         defaultPath: 'untitled.json',
         filters: [{ name: 'JSON', extensions: ['json'] }]
       });

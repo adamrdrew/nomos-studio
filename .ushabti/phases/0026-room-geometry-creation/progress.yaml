@@ -26,13 +26,23 @@ steps:
     title: Implement pure geometry helpers for preview + validation (domain)
     implemented: true
     reviewed: false
-    notes: "Added deterministic, pure geometry helpers in src/shared/domain/mapRoomGeometry.ts: template polygon generation (rectangle/square/triangle), 90° rotation, edge extraction, segment intersection, point-in-sector containment and enclosing-sector selection, nearest-wall snapping (px threshold), adjacent portal planning (axis-aligned collinearity + snap translation + overlap interval), and a structured validity result (nested vs adjacent vs invalid with reason). Added unit tests covering nested, intersection rejection, adjacent snap acceptance, portal planning, non-collinear rejection, and no-snap rejection in src/shared/domain/mapRoomGeometry.test.ts; full Jest suite passes."
+    notes: "Added deterministic, pure geometry helpers in src/shared/domain/mapRoomGeometry.ts: template polygon generation (rectangle/square/triangle), 90° rotation, edge extraction, segment intersection, point-in-sector containment and enclosing-sector selection, nearest-wall snapping (px threshold), adjacent portal planning (axis-aligned collinearity + snap translation + overlap interval), and a structured validity result (nested vs adjacent vs invalid with reason). Updated adjacent validity to evaluate intersection after snapping (on the snapped polygon, ignoring the target wall) so ineligible nearby walls (diagonals/portals) don’t incorrectly invalidate placements. Triangle template base is on +Y by default so triangles can attach to horizontal walls without requiring rotation. Unit tests updated/extended in src/shared/domain/mapRoomGeometry.test.ts; suite passes."
     touched:
       - src/shared/domain/mapRoomGeometry.ts
       - src/shared/domain/mapRoomGeometry.test.ts
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S004
+  - id: S005
+    title: Remove final restriction on adjacent placement for squares/triangles
+    implemented: true
+    reviewed: false
+    notes: "Fixed findNearestEligibleWallToPolygonWithinThresholdPx to use distanceSegmentToSegment for finding nearest eligible walls, filtering for solid axis-aligned walls. This resolves the restriction where adjacent placement failed for squares/triangles when their edge was longer than the target wall. Confirmed with passing tests in mapRoomGeometry.test.ts. No TypeScript errors."
+    touched:
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/steps.md
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
     title: Extend shared IPC types with map-edit/create-room
     implemented: true
     reviewed: false
@@ -47,7 +57,7 @@ steps:
     title: Implement map-edit/create-room in MapCommandEngine
     implemented: true
     reviewed: false
-    notes: "Implemented 'map-edit/create-room' in MapCommandEngine with strict request/json validation, nested vs adjacent placement handling, intersection rejection, deterministic sector id allocation (max+1), portal wiring via wall splitting without reordering existing walls, and selection set to the new sector. Verified via Jest coverage on create-room scenarios."
+    notes: "Implemented 'map-edit/create-room' in MapCommandEngine with strict request/json validation, nested vs adjacent placement handling, intersection rejection, deterministic sector id allocation (max+1), portal wiring via wall splitting without reordering existing walls, and selection set to the new sector. Updated adjacent validation to allow harmless endpoint-touch intersections and added vertex/endpoint reuse to prevent degenerate split segments. Verified via Jest coverage on create-room scenarios."
     touched:
       - src/main/application/maps/MapCommandEngine.ts
       - src/shared/domain/mapRoomCreation.ts
@@ -58,7 +68,7 @@ steps:
     title: Unit tests: MapCommandEngine create-room
     implemented: true
     reviewed: false
-    notes: "Added MapCommandEngine create-room unit tests covering nested + adjacent success paths and major failure modes (invalid JSON, invalid size, adjacent-too-far, intersects-walls, non-collinear). Confirmed full Jest suite passes."
+    notes: "Added MapCommandEngine create-room unit tests covering nested + adjacent success paths and major failure modes (invalid JSON, invalid size, adjacent-too-far, intersects-walls, non-collinear). Added regression coverage for continuing room creation after a full-wall portal join, and relaxed a brittle wall-count assertion to avoid depending on whether portal endpoints coincide with existing vertices. Confirmed MapCommandEngine.test.ts passes."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
@@ -112,12 +122,19 @@ steps:
       - docs/map-edit-command-system.md
       - docs/renderer-ui-system.md
 
-  - id: S012
     title: Quality gates + manual verification record
     implemented: true
     reviewed: false
     notes: "Quality gates (post-fix): npm test (35/35 suites, 378 tests passed), npm run typecheck (pass), npm run lint (pass; emits TypeScript version support warning from @typescript-eslint). Manual verification to re-check: adjacent placement becomes valid within 12px snap threshold (green preview) and creates a portal; Rectangle defaults to a long/thin hall distinct from Square; undo/redo works."
     touched:
+  - id: S013
+    title: Bugfix: adjacent placement for square and triangle rooms
+    implemented: true
+    reviewed: false
+    notes: "Generalized edge selection and collinearity logic in computeAdjacentPortalPlan to support adjacent placement for square and triangle rooms. Confirmed via unit tests in mapRoomGeometry.test.ts that all shapes (rectangle, square, triangle) can now be attached adjacently. No TypeScript errors; all tests pass."
+    touched:
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S013
@@ -172,4 +189,14 @@ steps:
     notes: "Updated File → New Map handling in main process to create a new empty, valid map document (empty vertices/walls/sectors plus empty optional arrays) after prompting for a destination path. This makes seed-room creation reachable in the UI while keeping Save/unsaved-changes behavior safe."
     touched:
       - src/main/main.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S018
+    title: Fix adjacent snap target selection in maps with portals/diagonals
+    implemented: true
+    reviewed: false
+    notes: "Updated shared adjacent placement validity to only consider eligible snap targets (solid walls with backSectorId=-1 and axis-aligned orientation), preventing portal/diagonal walls from blocking adjacency as maps grow. Added unit tests covering diagonal/portal snap-target interference and updated the diagonal-only case to report no-snap-target."
+    touched:
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
