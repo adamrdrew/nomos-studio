@@ -17,6 +17,7 @@ describe('AppStore', () => {
     expect(state.mapSectorSurface).toBe('floor');
     expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.3 });
     expect(state.mapHighlightPortals).toBe(false);
+    expect(state.mapHighlightToggleWalls).toBe(false);
     expect(state.mapDoorVisibility).toBe('visible');
   });
 
@@ -208,6 +209,26 @@ describe('AppStore', () => {
     expect(store.getState().mapHighlightPortals).toBe(true);
     store.toggleMapHighlightPortals();
     expect(store.getState().mapHighlightPortals).toBe(false);
+  });
+
+  it('setMapHighlightToggleWalls stores the flag', () => {
+    const store = new AppStore();
+
+    store.setMapHighlightToggleWalls(true);
+    expect(store.getState().mapHighlightToggleWalls).toBe(true);
+
+    store.setMapHighlightToggleWalls(false);
+    expect(store.getState().mapHighlightToggleWalls).toBe(false);
+  });
+
+  it('toggleMapHighlightToggleWalls flips the flag', () => {
+    const store = new AppStore();
+
+    expect(store.getState().mapHighlightToggleWalls).toBe(false);
+    store.toggleMapHighlightToggleWalls();
+    expect(store.getState().mapHighlightToggleWalls).toBe(true);
+    store.toggleMapHighlightToggleWalls();
+    expect(store.getState().mapHighlightToggleWalls).toBe(false);
   });
 
   it('setMapDoorVisibility stores the visibility', () => {

@@ -1,6 +1,7 @@
 import { MapCommandEngine } from './MapCommandEngine';
 
 import type { MapDocument } from '../../../shared/domain/models';
+import type { MapEditCommand } from '../../../shared/ipc/nomosIpc';
 
 function baseMapJson(): Record<string, unknown> {
   return {
@@ -314,6 +315,43 @@ describe('MapCommandEngine', () => {
 
     const entities = result.value.nextJson['entities'] as unknown[];
     expect(entities[0]).toEqual({ x: 7, y: 8, yaw_deg: 90, def: 'b' });
+  });
+
+  it('update-fields supports unsetting a key via {kind:"map-edit/unset"}', () => {
+    const engine = new MapCommandEngine();
+
+    const result = engine.apply(baseDocument(baseMapJson()), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'entity', index: 0 },
+      set: { def: { kind: 'map-edit/unset' } }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    const entities = result.value.nextJson['entities'] as unknown[];
+    expect(entities[0]).toEqual({ x: 5, y: 6, yaw_deg: 0 });
+  });
+
+  it('update-fields rejects object values other than {kind:"map-edit/unset"}', () => {
+    const engine = new MapCommandEngine();
+
+    // Cast to bypass compile-time checks; runtime validation should reject this.
+    const invalidCommand = {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'entity', index: 0 },
+      set: { def: { kind: 'not-a-real-kind' } }
+    } as unknown as MapEditCommand;
+
+    const result = engine.apply(baseDocument(baseMapJson()), invalidCommand);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.code).toBe('map-edit/invalid-json');
   });
 
   it('updates fields on a door by id', () => {

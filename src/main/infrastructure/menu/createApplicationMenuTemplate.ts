@@ -13,6 +13,7 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
+  mapHighlightToggleWalls: boolean;
   mapDoorVisibility: MapDoorVisibility;
   onOpenSettings: () => void;
   onNewMap: () => void;
@@ -26,6 +27,7 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   onSetMapRenderMode: (mode: MapRenderMode) => void;
   onSetMapSectorSurface: (surface: MapSectorSurface) => void;
   onToggleMapHighlightPortals: () => void;
+  onToggleMapHighlightToggleWalls: () => void;
   onToggleMapDoorVisibility: () => void;
   onToggleMapGrid: () => void;
   onIncreaseMapGridOpacity: () => void;
@@ -131,6 +133,12 @@ export function createApplicationMenuTemplate(
         type: 'checkbox',
         checked: options.mapHighlightPortals,
         click: () => options.onToggleMapHighlightPortals()
+      },
+      {
+        label: 'Highlight Toggle Walls',
+        type: 'checkbox',
+        checked: options.mapHighlightToggleWalls,
+        click: () => options.onToggleMapHighlightToggleWalls()
       },
       {
         label: 'Toggle Door Visibility',

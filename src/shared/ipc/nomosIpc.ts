@@ -48,6 +48,7 @@ export type AppStateSnapshot = Readonly<{
   mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
+  mapHighlightToggleWalls: boolean;
   mapDoorVisibility: MapDoorVisibility;
   mapHistory: MapEditHistoryInfo;
 }>;
@@ -93,13 +94,18 @@ export type MapEditTargetRef =
 
 export type MapEditPrimitiveValue = string | number | boolean | null;
 
+export const MAP_EDIT_UNSET = { kind: 'map-edit/unset' } as const;
+export type MapEditUnset = typeof MAP_EDIT_UNSET;
+
+export type MapEditFieldValue = MapEditPrimitiveValue | MapEditUnset;
+
 export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
   | Readonly<{
       kind: 'map-edit/update-fields';
       target: MapEditTargetRef;
-      set: Readonly<Record<string, MapEditPrimitiveValue>>;
+      set: Readonly<Record<string, MapEditFieldValue>>;
     }>
   | Readonly<{
       kind: 'map-edit/move-entity';

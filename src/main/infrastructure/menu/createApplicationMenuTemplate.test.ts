@@ -13,6 +13,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -26,6 +27,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -60,6 +62,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -73,6 +76,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -106,6 +110,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -119,6 +124,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -149,6 +155,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -162,6 +169,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -192,6 +200,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -205,6 +214,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -240,6 +250,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -253,6 +264,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -297,6 +309,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -310,6 +323,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -341,6 +355,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -354,6 +369,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -393,6 +409,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: false, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -406,6 +423,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -457,6 +475,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'ceiling',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -470,6 +489,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface,
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -523,6 +543,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -536,6 +557,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid,
       onIncreaseMapGridOpacity,
@@ -588,6 +610,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: true,
+      mapHighlightToggleWalls: true,
       mapDoorVisibility: 'hidden',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -601,6 +624,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
       onToggleMapDoorVisibility: () => {},
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -616,6 +640,14 @@ describe('createApplicationMenuTemplate', () => {
       (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Highlight Portals'
     ) as { checked?: boolean; type?: string } | undefined;
 
+    const highlightToggleWallsItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Highlight Toggle Walls'
+    ) as { checked?: boolean; type?: string } | undefined;
+
     const toggleDoorVisibilityItem = viewMenu.submenu.find(
       (item) =>
         typeof item === 'object' &&
@@ -626,12 +658,15 @@ describe('createApplicationMenuTemplate', () => {
 
     expect(highlightPortalsItem?.type).toBe('checkbox');
     expect(highlightPortalsItem?.checked).toBe(true);
+    expect(highlightToggleWallsItem?.type).toBe('checkbox');
+    expect(highlightToggleWallsItem?.checked).toBe(true);
     expect(toggleDoorVisibilityItem?.type).toBe('checkbox');
     expect(toggleDoorVisibilityItem?.checked).toBe(true);
   });
 
   it('wires View highlight item clicks to the provided callbacks', () => {
     const onToggleMapHighlightPortals = jest.fn();
+    const onToggleMapHighlightToggleWalls = jest.fn();
     const onToggleMapDoorVisibility = jest.fn();
 
     const template = createApplicationMenuTemplate({
@@ -645,6 +680,7 @@ describe('createApplicationMenuTemplate', () => {
       mapSectorSurface: 'floor',
       mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
       mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
       mapDoorVisibility: 'visible',
       onOpenSettings: () => {},
       onNewMap: () => {},
@@ -658,6 +694,7 @@ describe('createApplicationMenuTemplate', () => {
       onSetMapRenderMode: () => {},
       onSetMapSectorSurface: () => {},
       onToggleMapHighlightPortals,
+      onToggleMapHighlightToggleWalls,
       onToggleMapDoorVisibility,
       onToggleMapGrid: () => {},
       onIncreaseMapGridOpacity: () => {},
@@ -673,6 +710,14 @@ describe('createApplicationMenuTemplate', () => {
       (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Highlight Portals'
     ) as { click?: () => void } | undefined;
 
+    const highlightToggleWallsItem = viewMenu.submenu.find(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'label' in item &&
+        (item as { label?: string }).label === 'Highlight Toggle Walls'
+    ) as { click?: () => void } | undefined;
+
     const toggleDoorVisibilityItem = viewMenu.submenu.find(
       (item) =>
         typeof item === 'object' &&
@@ -682,9 +727,11 @@ describe('createApplicationMenuTemplate', () => {
     ) as { click?: () => void } | undefined;
 
     highlightPortalsItem?.click?.();
+    highlightToggleWallsItem?.click?.();
     toggleDoorVisibilityItem?.click?.();
 
     expect(onToggleMapHighlightPortals).toHaveBeenCalledTimes(1);
+    expect(onToggleMapHighlightToggleWalls).toHaveBeenCalledTimes(1);
     expect(onToggleMapDoorVisibility).toHaveBeenCalledTimes(1);
   });
 });

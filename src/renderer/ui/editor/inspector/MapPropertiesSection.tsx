@@ -3,7 +3,7 @@ import { Colors, FormGroup, HTMLSelect, InputGroup, Intent, Position, Toaster } 
 
 import { useNomosStore } from '../../../store/nomosStore';
 
-import type { MapEditPrimitiveValue, MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
+import type { MapEditFieldValue, MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
 
 const toaster = Toaster.create({ position: Position.TOP });
 
@@ -84,7 +84,7 @@ export function MapPropertiesSection(): JSX.Element {
   }, [assetIndex]);
 
   const commitUpdateFields = React.useCallback(
-    async (set: Readonly<Record<string, MapEditPrimitiveValue>>): Promise<void> => {
+    async (set: Readonly<Record<string, MapEditFieldValue>>): Promise<void> => {
       if (mapDocument === null) {
         return;
       }

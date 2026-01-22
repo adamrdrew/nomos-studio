@@ -20,6 +20,7 @@ export type NomosStoreState = {
   mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
+  mapHighlightToggleWalls: boolean;
   mapDoorVisibility: MapDoorVisibility;
   mapHistory: MapEditHistoryInfo;
   mapSelection: MapSelection | null;
@@ -91,6 +92,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   mapSectorSurface: 'floor',
   mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
   mapHighlightPortals: false,
+  mapHighlightToggleWalls: false,
   mapDoorVisibility: 'visible',
   mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 },
   mapSelection: null,
@@ -108,6 +110,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
       mapSectorSurface: snapshotResult.value.mapSectorSurface,
       mapGridSettings: snapshotResult.value.mapGridSettings,
       mapHighlightPortals: snapshotResult.value.mapHighlightPortals,
+      mapHighlightToggleWalls: snapshotResult.value.mapHighlightToggleWalls,
       mapDoorVisibility: snapshotResult.value.mapDoorVisibility,
       mapHistory: snapshotResult.value.mapHistory
     });

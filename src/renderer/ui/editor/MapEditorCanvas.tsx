@@ -278,6 +278,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const mapSectorSurface = useNomosStore((state) => state.mapSectorSurface);
   const mapGridSettings = useNomosStore((state) => state.mapGridSettings);
   const mapHighlightPortals = useNomosStore((state) => state.mapHighlightPortals);
+  const mapHighlightToggleWalls = useNomosStore((state) => state.mapHighlightToggleWalls);
   const mapDoorVisibility = useNomosStore((state) => state.mapDoorVisibility);
   const mapSelection = useNomosStore((state) => state.mapSelection);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
@@ -999,6 +1000,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
   const wallStroke = Colors.LIGHT_GRAY3;
   const portalWallStroke = Colors.BLUE4;
   const portalWallOverlayFill = hexToRgba(Colors.CERULEAN4, 0.35);
+  const toggleWallStroke = Colors.GREEN4;
+  const toggleWallOverlayFill = hexToRgba(Colors.GREEN4, 0.25);
   const wallStrokeWidth = 2;
   const selectionStroke = Colors.RED4;
   const selectionStrokeWidth = 3;
@@ -1383,6 +1386,11 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
         }
 
         const isPortalHighlighted = mapHighlightPortals && wall.backSector > -1;
+        const isToggleWallHighlighted = mapHighlightToggleWalls && wall.toggleSector;
+
+        const highlightStroke = isToggleWallHighlighted ? toggleWallStroke : isPortalHighlighted ? portalWallStroke : null;
+        const highlightOverlayFill =
+          isToggleWallHighlighted ? toggleWallOverlayFill : isPortalHighlighted ? portalWallOverlayFill : null;
 
         const v0 = map.vertices[wall.v0];
         const v1 = map.vertices[wall.v1];
@@ -1443,7 +1451,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
             <Line
               key={`wall-tex-fallback-${wall.index}`}
               points={[toRenderX(v0.x), toRenderY(v0.y), toRenderX(v1.x), toRenderY(v1.y)]}
-              stroke={isPortalHighlighted ? portalWallStroke : wallStroke}
+              stroke={highlightStroke ?? wallStroke}
               strokeWidth={wallStrokeWidth}
               strokeScaleEnabled={false}
               lineCap="round"
@@ -1480,8 +1488,8 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
               native.closePath();
               native.fill();
 
-              if (isPortalHighlighted) {
-                native.fillStyle = portalWallOverlayFill;
+              if (highlightOverlayFill !== null) {
+                native.fillStyle = highlightOverlayFill;
                 native.beginPath();
                 native.moveTo(localPoints[0] ?? 0, localPoints[1] ?? 0);
                 for (let index = 2; index < localPoints.length; index += 2) {
@@ -1492,7 +1500,7 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
               }
 
               // Keep the existing outline behavior.
-              native.strokeStyle = isPortalHighlighted ? portalWallStroke : Colors.BLACK;
+              native.strokeStyle = highlightStroke ?? Colors.BLACK;
               // The render layer is scaled by view.scale. Compensate so the outline stays ~1px on screen.
               const safeScale = Math.max(0.0001, view.scale);
               native.lineWidth = 1 / safeScale;
@@ -1551,7 +1559,12 @@ export const MapEditorCanvas = React.forwardRef<MapEditorViewportApi, { interact
           continue;
         }
 
-        const stroke = mapHighlightPortals && wall.backSector > -1 ? portalWallStroke : wallStroke;
+        const stroke =
+          mapHighlightToggleWalls && wall.toggleSector
+            ? toggleWallStroke
+            : mapHighlightPortals && wall.backSector > -1
+              ? portalWallStroke
+              : wallStroke;
 
         wallLines.push(
           <Line

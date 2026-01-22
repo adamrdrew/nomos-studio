@@ -47,6 +47,13 @@ function asInt(value: unknown, context: string): Result<number, MapDecodeError> 
   return num;
 }
 
+function asOptionalInt(value: unknown, context: string): Result<number | null, MapDecodeError> {
+  if (value === undefined || value === null) {
+    return { ok: true, value: null };
+  }
+  return asInt(value, context);
+}
+
 function asString(value: unknown, context: string): Result<string, MapDecodeError> {
   if (typeof value !== 'string') {
     return err(`${context} must be a string`);
@@ -156,6 +163,11 @@ function decodeSector(value: unknown, index: number): Result<MapSector, MapDecod
     return floorZ;
   }
 
+  const floorZToggledPos = asOptionalInt(value['floor_z_toggled_pos'], `sectors[${index}].floor_z_toggled_pos`);
+  if (!floorZToggledPos.ok) {
+    return floorZToggledPos;
+  }
+
   const ceilZ = asNumber(value['ceil_z'], `sectors[${index}].ceil_z`);
   if (!ceilZ.ok) {
     return ceilZ;
@@ -181,6 +193,7 @@ function decodeSector(value: unknown, index: number): Result<MapSector, MapDecod
     value: {
       id: id.value,
       floorZ: floorZ.value,
+      floorZToggledPos: floorZToggledPos.value,
       ceilZ: ceilZ.value,
       floorTex: floorTex.value,
       ceilTex: ceilTex.value,
@@ -224,6 +237,35 @@ function decodeWall(value: unknown, index: number): Result<MapWall, MapDecodeErr
     return endLevel;
   }
 
+  const toggleSector = asOptionalBoolean(value['toggle_sector'], false, `walls[${index}].toggle_sector`);
+  if (!toggleSector.ok) {
+    return toggleSector;
+  }
+
+  const toggleSectorId = asOptionalInt(value['toggle_sector_id'], `walls[${index}].toggle_sector_id`);
+  if (!toggleSectorId.ok) {
+    return toggleSectorId;
+  }
+
+  const toggleSectorOneshot = asOptionalBoolean(
+    value['toggle_sector_oneshot'],
+    false,
+    `walls[${index}].toggle_sector_oneshot`
+  );
+  if (!toggleSectorOneshot.ok) {
+    return toggleSectorOneshot;
+  }
+
+  const toggleSound = asOptionalString(value['toggle_sound'], `walls[${index}].toggle_sound`);
+  if (!toggleSound.ok) {
+    return toggleSound;
+  }
+
+  const toggleSoundFinish = asOptionalString(value['toggle_sound_finish'], `walls[${index}].toggle_sound_finish`);
+  if (!toggleSoundFinish.ok) {
+    return toggleSoundFinish;
+  }
+
   return {
     ok: true,
     value: {
@@ -233,7 +275,12 @@ function decodeWall(value: unknown, index: number): Result<MapWall, MapDecodeErr
       frontSector: frontSector.value,
       backSector: backSector.value,
       tex: tex.value,
-      endLevel: endLevel.value
+      endLevel: endLevel.value,
+      toggleSector: toggleSector.value,
+      toggleSectorId: toggleSectorId.value,
+      toggleSectorOneshot: toggleSectorOneshot.value,
+      toggleSound: toggleSound.value,
+      toggleSoundFinish: toggleSoundFinish.value
     }
   };
 }

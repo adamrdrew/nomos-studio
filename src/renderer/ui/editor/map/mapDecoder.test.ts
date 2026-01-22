@@ -175,12 +175,25 @@ describe('decodeMapViewModel', () => {
     expect(result.value.particles).toEqual([]);
     expect(result.value.entities).toEqual([]);
     expect(result.value.sky).toBeNull();
+
+    const sector0 = result.value.sectors[0];
+    expect(sector0).toBeDefined();
+    if (!sector0) {
+      return;
+    }
+    expect(sector0.floorZToggledPos).toBeNull();
+
     const wall0 = result.value.walls[0];
     expect(wall0).toBeDefined();
     if (!wall0) {
       return;
     }
     expect(wall0.endLevel).toBe(false);
+    expect(wall0.toggleSector).toBe(false);
+    expect(wall0.toggleSectorId).toBeNull();
+    expect(wall0.toggleSectorOneshot).toBe(false);
+    expect(wall0.toggleSound).toBeNull();
+    expect(wall0.toggleSoundFinish).toBeNull();
   });
 
   it('defaults optional door required-item fields to null when missing', () => {

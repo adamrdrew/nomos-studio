@@ -41,13 +41,24 @@ function isPrimitiveValue(value: unknown): value is string | number | boolean | 
   return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 }
 
+function isUnsetValue(value: unknown): value is Readonly<{ kind: 'map-edit/unset' }> {
+  return isRecord(value) && value['kind'] === 'map-edit/unset';
+}
+
+function isUpdateFieldsValue(value: unknown): value is string | number | boolean | null | Readonly<{ kind: 'map-edit/unset' }> {
+  return isPrimitiveValue(value) || isUnsetValue(value);
+}
+
 function validateUpdateFieldsSet(set: Readonly<Record<string, unknown>>): Result<null, MapEditError> {
   for (const [key, value] of Object.entries(set)) {
     if (key.trim().length === 0) {
       return err('map-edit/invalid-json', 'update-fields.set must not contain empty keys');
     }
-    if (!isPrimitiveValue(value)) {
-      return err('map-edit/invalid-json', `update-fields.set["${key}"] must be a JSON primitive`);
+    if (!isUpdateFieldsValue(value)) {
+      return err(
+        'map-edit/invalid-json',
+        `update-fields.set["${key}"] must be a JSON primitive (or {kind:'map-edit/unset'})`
+      );
     }
     if (typeof value === 'number' && !Number.isFinite(value)) {
       return err('map-edit/invalid-json', `update-fields.set["${key}"] must be a finite number`);
@@ -356,6 +367,10 @@ export class MapCommandEngine {
   ): Result<Record<string, unknown>, MapEditError> {
     const nextJson: Record<string, unknown> = { ...json };
     for (const [key, value] of Object.entries(set)) {
+      if (isUnsetValue(value)) {
+        delete nextJson[key];
+        continue;
+      }
       nextJson[key] = value;
     }
     return { ok: true, value: nextJson };
@@ -388,6 +403,10 @@ export class MapCommandEngine {
 
     const nextEntry: Record<string, unknown> = { ...sourceRecord.value };
     for (const [key, value] of Object.entries(set)) {
+      if (isUnsetValue(value)) {
+        delete nextEntry[key];
+        continue;
+      }
       nextEntry[key] = value;
     }
 
@@ -430,6 +449,10 @@ export class MapCommandEngine {
 
     const nextSector: Record<string, unknown> = { ...sourceRecord.value };
     for (const [key, value] of Object.entries(set)) {
+      if (isUnsetValue(value)) {
+        delete nextSector[key];
+        continue;
+      }
       nextSector[key] = value;
     }
 
@@ -468,6 +491,10 @@ export class MapCommandEngine {
 
     const nextDoor: Record<string, unknown> = { ...sourceRecord.value };
     for (const [key, value] of Object.entries(set)) {
+      if (isUnsetValue(value)) {
+        delete nextDoor[key];
+        continue;
+      }
       nextDoor[key] = value;
     }
 

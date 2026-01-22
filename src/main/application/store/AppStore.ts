@@ -18,6 +18,7 @@ export type AppState = Readonly<{
   mapSectorSurface: MapSectorSurface;
   mapGridSettings: MapGridSettings;
   mapHighlightPortals: boolean;
+  mapHighlightToggleWalls: boolean;
   mapDoorVisibility: MapDoorVisibility;
 }>;
 
@@ -59,6 +60,7 @@ export class AppStore {
     mapSectorSurface: 'floor',
     mapGridSettings: defaultMapGridSettings(),
     mapHighlightPortals: false,
+    mapHighlightToggleWalls: false,
     mapDoorVisibility: 'visible'
   };
 
@@ -135,6 +137,15 @@ export class AppStore {
 
   public toggleMapHighlightPortals(): void {
     this.setMapHighlightPortals(!this.state.mapHighlightPortals);
+  }
+
+  public setMapHighlightToggleWalls(isEnabled: boolean): void {
+    this.state = { ...this.state, mapHighlightToggleWalls: isEnabled };
+    this.emit();
+  }
+
+  public toggleMapHighlightToggleWalls(): void {
+    this.setMapHighlightToggleWalls(!this.state.mapHighlightToggleWalls);
   }
 
   public setMapDoorVisibility(visibility: MapDoorVisibility): void {

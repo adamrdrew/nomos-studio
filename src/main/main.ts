@@ -55,6 +55,7 @@ const setApplicationMenu = (
     onSetMapRenderMode: (mode: MapRenderMode) => void;
     onSetMapSectorSurface: (surface: MapSectorSurface) => void;
     onToggleMapHighlightPortals: () => void;
+    onToggleMapHighlightToggleWalls: () => void;
     onToggleMapDoorVisibility: () => void;
     onToggleMapGrid: () => void;
     onIncreaseMapGridOpacity: () => void;
@@ -68,6 +69,7 @@ const setApplicationMenu = (
   const mapSectorSurface = options.store.getState().mapSectorSurface;
   const mapGridSettings = options.store.getState().mapGridSettings;
   const mapHighlightPortals = options.store.getState().mapHighlightPortals;
+  const mapHighlightToggleWalls = options.store.getState().mapHighlightToggleWalls;
   const mapDoorVisibility = options.store.getState().mapDoorVisibility;
 
   const template = createApplicationMenuTemplate({
@@ -81,6 +83,7 @@ const setApplicationMenu = (
     mapSectorSurface,
     mapGridSettings,
     mapHighlightPortals,
+    mapHighlightToggleWalls,
     mapDoorVisibility,
     onOpenSettings: options.onOpenSettings,
     onNewMap: () => void options.onNewMap(),
@@ -94,6 +97,7 @@ const setApplicationMenu = (
     onSetMapRenderMode: (mode) => options.onSetMapRenderMode(mode),
     onSetMapSectorSurface: (surface) => options.onSetMapSectorSurface(surface),
     onToggleMapHighlightPortals: () => options.onToggleMapHighlightPortals(),
+    onToggleMapHighlightToggleWalls: () => options.onToggleMapHighlightToggleWalls(),
     onToggleMapDoorVisibility: () => options.onToggleMapDoorVisibility(),
     onToggleMapGrid: () => options.onToggleMapGrid(),
     onIncreaseMapGridOpacity: () => options.onIncreaseMapGridOpacity(),
@@ -379,6 +383,7 @@ app.on('ready', () => {
           mapSectorSurface: store.getState().mapSectorSurface,
           mapGridSettings: store.getState().mapGridSettings,
           mapHighlightPortals: store.getState().mapHighlightPortals,
+          mapHighlightToggleWalls: store.getState().mapHighlightToggleWalls,
           mapDoorVisibility: store.getState().mapDoorVisibility,
           mapHistory: mapEditHistory.getInfo()
         }
@@ -444,6 +449,7 @@ app.on('ready', () => {
       onSetMapRenderMode: (mode) => store.setMapRenderMode(mode),
       onSetMapSectorSurface: (surface) => store.setMapSectorSurface(surface),
       onToggleMapHighlightPortals: () => store.toggleMapHighlightPortals(),
+      onToggleMapHighlightToggleWalls: () => store.toggleMapHighlightToggleWalls(),
       onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
       onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
       onIncreaseMapGridOpacity: () =>

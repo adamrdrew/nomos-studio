@@ -429,6 +429,55 @@ describe('MapEditService', () => {
     expect(afterRedo?.json).toEqual({ ...baseMapJson(), entities: [{ x: 10, y: 20, yaw_deg: 90, def: null }] });
   });
 
+  it('update-fields supports unsetting a field and round-trips through undo/redo', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const initialJson = { ...baseMapJson(), entities: [{ x: 5, y: 6, yaw_deg: 0, def: 'a' }] };
+
+    const { store, getDocument } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: initialJson,
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    const service = createService(store);
+
+    const edited = service.edit({
+      baseRevision: 1,
+      command: {
+        kind: 'map-edit/update-fields',
+        target: { kind: 'entity', index: 0 },
+        set: { def: { kind: 'map-edit/unset' } }
+      }
+    });
+
+    expect(edited.ok).toBe(true);
+
+    const afterEdit = getDocument();
+    expect(afterEdit?.revision).toBe(2);
+    expect(afterEdit?.dirty).toBe(true);
+    expect(afterEdit?.lastValidation).toBeNull();
+    expect(afterEdit?.json).toEqual({ ...baseMapJson(), entities: [{ x: 5, y: 6, yaw_deg: 0 }] });
+
+    const undo = service.undo({ baseRevision: 2 });
+    expect(undo.ok).toBe(true);
+
+    const afterUndo = getDocument();
+    expect(afterUndo?.dirty).toBe(false);
+    expect(afterUndo?.lastValidation).toEqual(lastValidation);
+    expect(afterUndo?.json).toEqual(initialJson);
+
+    const redo = service.redo({ baseRevision: afterUndo!.revision });
+    expect(redo.ok).toBe(true);
+
+    const afterRedo = getDocument();
+    expect(afterRedo?.dirty).toBe(true);
+    expect(afterRedo?.lastValidation).toBeNull();
+    expect(afterRedo?.json).toEqual({ ...baseMapJson(), entities: [{ x: 5, y: 6, yaw_deg: 0 }] });
+  });
+
   it('update-fields on the map root supports undo/redo and preserves document metadata semantics', () => {
     const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
 

@@ -5,6 +5,7 @@ export type MapVertex = Readonly<{ x: number; y: number }>;
 export type MapSector = Readonly<{
   id: number;
   floorZ: number;
+  floorZToggledPos: number | null;
   ceilZ: number;
   floorTex: string;
   ceilTex: string;
@@ -19,6 +20,11 @@ export type MapWall = Readonly<{
   backSector: number;
   tex: string;
   endLevel: boolean;
+  toggleSector: boolean;
+  toggleSectorId: number | null;
+  toggleSectorOneshot: boolean;
+  toggleSound: string | null;
+  toggleSoundFinish: string | null;
 }>;
 
 export type MapDoor = Readonly<{

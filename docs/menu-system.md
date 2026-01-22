@@ -10,6 +10,7 @@ Current responsibilities:
 - Enable/disable Undo/Redo based on main-owned edit history state.
 - Provide a View menu to switch map render mode and control map grid display.
 - Provide View menu toggles that control Map Editor overlays (portal highlighting, textured door visibility).
+- Provide a View menu toggle that highlights toggle walls (green).
 - Provide a View menu control to choose which sector surface is displayed in textured mode (floor vs ceiling).
 
 ## Architecture
@@ -51,6 +52,7 @@ Current responsibilities:
 	- Floor Textures
 	- Ceiling Textures
 	- Highlight Portals
+	- Highlight Toggle Walls
 	- Toggle Door Visibility
 	- Toggle Grid
 	- Increase Grid Opacity
@@ -74,6 +76,7 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	mapRenderMode: MapRenderMode;
 	mapGridSettings: MapGridSettings;
 	mapHighlightPortals: boolean;
+	mapHighlightToggleWalls: boolean;
 	mapDoorVisibility: MapDoorVisibility;
 	onOpenSettings: () => void;
 	onNewMap: () => void;
@@ -86,6 +89,7 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	onRefreshAssetsIndex: () => void;
 	onSetMapRenderMode: (mode: MapRenderMode) => void;
 	onToggleMapHighlightPortals: () => void;
+	onToggleMapHighlightToggleWalls: () => void;
 	onToggleMapDoorVisibility: () => void;
 	onToggleMapGrid: () => void;
 	onIncreaseMapGridOpacity: () => void;
@@ -115,6 +119,7 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 
 ### Overlay menu items reflect store state
 - The View menu includes a Highlight Portals checkbox whose checked state reflects `mapHighlightPortals`.
+- The View menu includes a Highlight Toggle Walls checkbox whose checked state reflects `mapHighlightToggleWalls`.
 - The View menu includes a Toggle Door Visibility checkbox whose checked state reflects whether `mapDoorVisibility === 'hidden'`.
 
 ### Sector surface menu items reflect store state

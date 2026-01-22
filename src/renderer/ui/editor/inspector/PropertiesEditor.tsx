@@ -1,12 +1,19 @@
 import React from 'react';
-import { Colors, FormGroup, HTMLSelect, InputGroup, Intent, Position, Switch, TextArea, Toaster } from '@blueprintjs/core';
+import { Button, Colors, FormGroup, HTMLSelect, InputGroup, Intent, Position, Switch, TextArea, Toaster } from '@blueprintjs/core';
+import { IconNames } from '@blueprintjs/icons';
 
 import type { AssetIndex, MapDocument } from '../../../../shared/domain/models';
-import type { MapEditPrimitiveValue, MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
+import { MAP_EDIT_UNSET, type MapEditFieldValue, type MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
 
 import { useNomosStore } from '../../../store/nomosStore';
 
 import type { MapDoor, MapEntityPlacement, MapLight, MapParticleEmitter, MapSector, MapWall } from '../map/mapViewModel';
+
+import {
+  cancelToggleSectorIdPicker,
+  reduceToggleSectorIdPicker,
+  type ToggleSectorIdPicker
+} from './toggleSectorIdPicker';
 
 const toaster = Toaster.create({ position: Position.TOP });
 
@@ -140,6 +147,30 @@ function getTextureFileNames(assetIndex: AssetIndex | null): readonly string[] {
   return matches;
 }
 
+function getEffectsSoundFileNames(assetIndex: AssetIndex | null): readonly string[] {
+  if (assetIndex === null) {
+    return [];
+  }
+
+  const prefixes = ['Sounds/Effects/', 'Assets/Sounds/Effects/'] as const;
+
+  let matches: string[] = [];
+  for (const prefix of prefixes) {
+    const candidate = assetIndex.entries
+      .filter((entry) => entry.startsWith(prefix))
+      .map((entry) => entry.slice(prefix.length))
+      .filter((fileName) => fileName.trim().length > 0);
+
+    if (candidate.length > 0) {
+      matches = candidate;
+      break;
+    }
+  }
+
+  matches.sort((a, b) => a.localeCompare(b));
+  return matches;
+}
+
 function ReadOnlyField(props: { label: string; value: string }): JSX.Element {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
@@ -150,10 +181,10 @@ function ReadOnlyField(props: { label: string; value: string }): JSX.Element {
 }
 
 function useEditCommitter(mapDocument: MapDocument | null): {
-  commitUpdateFields: (target: MapEditTargetRef, set: Readonly<Record<string, MapEditPrimitiveValue>>) => Promise<void>;
+  commitUpdateFields: (target: MapEditTargetRef, set: Readonly<Record<string, MapEditFieldValue>>) => Promise<void>;
 } {
   const commitUpdateFields = React.useCallback(
-    async (target: MapEditTargetRef, set: Readonly<Record<string, MapEditPrimitiveValue>>): Promise<void> => {
+    async (target: MapEditTargetRef, set: Readonly<Record<string, MapEditFieldValue>>): Promise<void> => {
       if (mapDocument === null) {
         return;
       }
@@ -182,6 +213,25 @@ function useEditCommitter(mapDocument: MapDocument | null): {
   );
 
   return { commitUpdateFields };
+}
+
+function buildSectorIdSelectOptions(
+  availableSectorIds: readonly number[],
+  currentId: number | null
+): readonly { value: string; label: string; disabled?: boolean }[] {
+  const options: { value: string; label: string; disabled?: boolean }[] = [{ value: '', label: '(none)' }];
+
+  const availableSet = new Set<number>(availableSectorIds);
+  if (currentId !== null && !availableSet.has(currentId)) {
+    options.push({ value: String(currentId), label: `${currentId} (missing)`, disabled: true });
+  }
+
+  const sorted = [...availableSectorIds].sort((a, b) => a - b);
+  for (const sectorId of sorted) {
+    options.push({ value: String(sectorId), label: String(sectorId) });
+  }
+
+  return options;
 }
 
 function EditorTextInput(props: {
@@ -557,10 +607,14 @@ function WallEditor(props: {
   assetIndex: AssetIndex | null;
   wall: MapWall;
   target: MapEditTargetRef;
+  availableSectorIds: readonly number[];
+  isPickingToggleSectorId: boolean;
+  onTogglePickToggleSectorId: () => void;
 }): JSX.Element {
   const { commitUpdateFields } = useEditCommitter(props.mapDocument);
 
   const textureOptions = React.useMemo(() => getTextureFileNames(props.assetIndex), [props.assetIndex]);
+  const effectsSoundOptions = React.useMemo(() => getEffectsSoundFileNames(props.assetIndex), [props.assetIndex]);
 
   const selectionKey = `wall:${props.wall.index}`;
 
@@ -571,6 +625,12 @@ function WallEditor(props: {
   const [tex, setTex] = React.useState<string>(props.wall.tex);
   const [endLevel, setEndLevel] = React.useState<boolean>(props.wall.endLevel);
 
+  const [toggleSector, setToggleSector] = React.useState<boolean>(props.wall.toggleSector);
+  const [toggleSectorId, setToggleSectorId] = React.useState<number | null>(props.wall.toggleSectorId);
+  const [toggleSectorOneshot, setToggleSectorOneshot] = React.useState<boolean>(props.wall.toggleSectorOneshot);
+  const [toggleSound, setToggleSound] = React.useState<string>(props.wall.toggleSound ?? '');
+  const [toggleSoundFinish, setToggleSoundFinish] = React.useState<string>(props.wall.toggleSoundFinish ?? '');
+
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -580,6 +640,13 @@ function WallEditor(props: {
     setBackSectorText(String(props.wall.backSector));
     setTex(props.wall.tex);
     setEndLevel(props.wall.endLevel);
+
+    setToggleSector(props.wall.toggleSector);
+    setToggleSectorId(props.wall.toggleSectorId);
+    setToggleSectorOneshot(props.wall.toggleSectorOneshot);
+    setToggleSound(props.wall.toggleSound ?? '');
+    setToggleSoundFinish(props.wall.toggleSoundFinish ?? '');
+
     setError(null);
   }, [selectionKey, props.wall]);
 
@@ -681,6 +748,189 @@ function WallEditor(props: {
           style={{ color: Colors.LIGHT_GRAY5 }}
         />
       </FormGroup>
+
+      <div style={{ height: 1, backgroundColor: Colors.DARK_GRAY1, margin: '14px 0' }} />
+
+      <FormGroup label="toggleSector" style={{ marginBottom: 10 }}>
+        <Switch
+          checked={toggleSector}
+          onChange={(event) => {
+            const next = (event.currentTarget as HTMLInputElement).checked;
+            setToggleSector(next);
+
+            if (next) {
+              if (!props.wall.toggleSector) {
+                void commitUpdateFields(props.target, { toggle_sector: true });
+              }
+              return;
+            }
+
+            setToggleSectorId(null);
+            setToggleSectorOneshot(false);
+            setToggleSound('');
+            setToggleSoundFinish('');
+
+            void commitUpdateFields(props.target, {
+              toggle_sector: MAP_EDIT_UNSET,
+              toggle_sector_id: MAP_EDIT_UNSET,
+              toggle_sector_oneshot: MAP_EDIT_UNSET,
+              toggle_sound: MAP_EDIT_UNSET,
+              toggle_sound_finish: MAP_EDIT_UNSET
+            });
+          }}
+          style={{ color: Colors.LIGHT_GRAY5 }}
+        />
+      </FormGroup>
+
+      {toggleSector ? (
+        <>
+          <FormGroup
+            label="toggleSectorId"
+            helperText={
+              props.isPickingToggleSectorId ? 'Pick mode: click a sector to set this ID (Esc to cancel).' : undefined
+            }
+            style={{ marginBottom: 10 }}
+          >
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <HTMLSelect
+                fill={true}
+                value={toggleSectorId !== null ? String(toggleSectorId) : ''}
+                onChange={(event) => {
+                  const raw = event.currentTarget.value;
+                  const parsed = raw.trim().length === 0 ? null : Number.parseInt(raw, 10);
+                  if (parsed === null) {
+                    setToggleSectorId(null);
+                    if (props.wall.toggleSectorId !== null) {
+                      void commitUpdateFields(props.target, { toggle_sector_id: MAP_EDIT_UNSET });
+                    }
+                    return;
+                  }
+                  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+                    return;
+                  }
+                  if (!props.availableSectorIds.includes(parsed)) {
+                    return;
+                  }
+
+                  setToggleSectorId(parsed);
+                  if (parsed !== props.wall.toggleSectorId) {
+                    void commitUpdateFields(props.target, { toggle_sector_id: parsed });
+                  }
+                }}
+                style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
+              >
+                {buildSectorIdSelectOptions(props.availableSectorIds, toggleSectorId).map((option) => (
+                  <option key={option.label} value={option.value} disabled={option.disabled}>
+                    {option.label}
+                  </option>
+                ))}
+              </HTMLSelect>
+
+              <Button
+                small={true}
+                minimal={true}
+                icon={props.isPickingToggleSectorId ? IconNames.DISABLE : IconNames.TARGET}
+                intent={props.isPickingToggleSectorId ? Intent.SUCCESS : Intent.NONE}
+                onClick={props.onTogglePickToggleSectorId}
+                title={props.isPickingToggleSectorId ? 'Cancel sector pick (Esc)' : 'Pick sector from map'}
+              />
+            </div>
+          </FormGroup>
+
+          <FormGroup label="toggleSectorOneshot" style={{ marginBottom: 10 }}>
+            <Switch
+              checked={toggleSectorOneshot}
+              onChange={(event) => {
+                const next = (event.currentTarget as HTMLInputElement).checked;
+                setToggleSectorOneshot(next);
+                if (next) {
+                  if (!props.wall.toggleSectorOneshot) {
+                    void commitUpdateFields(props.target, { toggle_sector_oneshot: true });
+                  }
+                  return;
+                }
+
+                if (props.wall.toggleSectorOneshot) {
+                  void commitUpdateFields(props.target, { toggle_sector_oneshot: MAP_EDIT_UNSET });
+                }
+              }}
+              style={{ color: Colors.LIGHT_GRAY5 }}
+            />
+          </FormGroup>
+
+          <FormGroup label="toggleSound" style={{ marginBottom: 10 }}>
+            <HTMLSelect
+              fill={true}
+              value={toggleSound}
+              onChange={(event) => {
+                const next = event.currentTarget.value;
+                setToggleSound(next);
+                const trimmed = next.trim();
+                if (trimmed.length === 0) {
+                  if (props.wall.toggleSound !== null) {
+                    void commitUpdateFields(props.target, { toggle_sound: MAP_EDIT_UNSET });
+                  }
+                  return;
+                }
+                if (trimmed !== props.wall.toggleSound) {
+                  void commitUpdateFields(props.target, { toggle_sound: trimmed });
+                }
+              }}
+              style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
+            >
+              <option value="">(none)</option>
+              {effectsSoundOptions.map((fileName) => (
+                <option key={fileName} value={fileName}>
+                  {fileName}
+                </option>
+              ))}
+
+              {toggleSound.trim().length > 0 && !effectsSoundOptions.includes(toggleSound.trim()) ? (
+                <option value={toggleSound.trim()}>{toggleSound.trim()} (missing)</option>
+              ) : null}
+            </HTMLSelect>
+          </FormGroup>
+
+          <FormGroup label="toggleSoundFinish" style={{ marginBottom: 0 }}>
+            <HTMLSelect
+              fill={true}
+              value={toggleSoundFinish}
+              onChange={(event) => {
+                const next = event.currentTarget.value;
+                setToggleSoundFinish(next);
+                const trimmed = next.trim();
+                if (trimmed.length === 0) {
+                  if (props.wall.toggleSoundFinish !== null) {
+                    void commitUpdateFields(props.target, { toggle_sound_finish: MAP_EDIT_UNSET });
+                  }
+                  return;
+                }
+                if (trimmed !== props.wall.toggleSoundFinish) {
+                  void commitUpdateFields(props.target, { toggle_sound_finish: trimmed });
+                }
+              }}
+              style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
+            >
+              <option value="">(none)</option>
+              {effectsSoundOptions.map((fileName) => (
+                <option key={fileName} value={fileName}>
+                  {fileName}
+                </option>
+              ))}
+
+              {toggleSoundFinish.trim().length > 0 && !effectsSoundOptions.includes(toggleSoundFinish.trim()) ? (
+                <option value={toggleSoundFinish.trim()}>{toggleSoundFinish.trim()} (missing)</option>
+              ) : null}
+            </HTMLSelect>
+          </FormGroup>
+
+          {effectsSoundOptions.length === 0 ? (
+            <div style={{ marginTop: 8, opacity: 0.7, fontSize: 12 }}>
+              No sounds indexed under Sounds/Effects/.
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -701,6 +951,7 @@ function SectorEditor(props: {
   const [lightText, setLightText] = React.useState<string>(String(props.sector.light));
   const [floorTex, setFloorTex] = React.useState<string>(props.sector.floorTex);
   const [ceilTex, setCeilTex] = React.useState<string>(props.sector.ceilTex);
+  const [floorZToggledPos, setFloorZToggledPos] = React.useState<number | null>(props.sector.floorZToggledPos);
 
   const [error, setError] = React.useState<string | null>(null);
 
@@ -710,6 +961,7 @@ function SectorEditor(props: {
     setLightText(String(props.sector.light));
     setFloorTex(props.sector.floorTex);
     setCeilTex(props.sector.ceilTex);
+    setFloorZToggledPos(props.sector.floorZToggledPos);
     setError(null);
   }, [selectionKey, props.sector]);
 
@@ -829,6 +1081,45 @@ function SectorEditor(props: {
           {textureOptions.map((fileName) => (
             <option key={fileName} value={fileName}>
               {fileName}
+            </option>
+          ))}
+        </HTMLSelect>
+      </FormGroup>
+
+      <FormGroup label="floorZToggledPos" style={{ marginBottom: 0 }}>
+        <HTMLSelect
+          fill={true}
+          value={floorZToggledPos !== null ? String(floorZToggledPos) : ''}
+          onChange={(event) => {
+            const raw = event.currentTarget.value;
+            const trimmed = raw.trim();
+            if (trimmed.length === 0) {
+              setFloorZToggledPos(null);
+              if (props.sector.floorZToggledPos !== null) {
+                void commitUpdateFields(props.target, { floor_z_toggled_pos: MAP_EDIT_UNSET });
+              }
+              return;
+            }
+
+            const parsed = Number.parseInt(trimmed, 10);
+            if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+              return;
+            }
+            if (parsed < -10 || parsed > 10) {
+              return;
+            }
+
+            setFloorZToggledPos(parsed);
+            if (parsed !== props.sector.floorZToggledPos) {
+              void commitUpdateFields(props.target, { floor_z_toggled_pos: parsed });
+            }
+          }}
+          style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
+        >
+          <option value="">(none)</option>
+          {Array.from({ length: 21 }, (_, idx) => idx - 10).map((value) => (
+            <option key={value} value={String(value)}>
+              {value}
             </option>
           ))}
         </HTMLSelect>
@@ -1021,12 +1312,63 @@ export function PropertiesEditor(props: {
   mapDocument: MapDocument | null;
   assetIndex: AssetIndex | null;
   selection: InspectorSelectionModel | null;
+  availableSectorIds: readonly number[];
 }): JSX.Element {
-  if (props.selection === null || props.mapDocument === null) {
-    return <div style={{ opacity: 0.7 }}>Nothing selected</div>;
-  }
+  const mapSelection = useNomosStore((state) => state.mapSelection);
+  const setMapSelection = useNomosStore((state) => state.setMapSelection);
+  const { commitUpdateFields } = useEditCommitter(props.mapDocument);
+
+  const [toggleSectorIdPicker, setToggleSectorIdPicker] = React.useState<ToggleSectorIdPicker | null>(null);
+
+  React.useEffect(() => {
+    if (toggleSectorIdPicker === null) {
+      return;
+    }
+
+    // If the user switches to a different wall while in pick mode, cancel.
+    if (mapSelection !== null && mapSelection.kind === 'wall' && mapSelection.index !== toggleSectorIdPicker.wallIndex) {
+      setToggleSectorIdPicker(null);
+      return;
+    }
+
+    const reduced = reduceToggleSectorIdPicker(toggleSectorIdPicker, mapSelection);
+    if (reduced.pickedSectorId === null) {
+      return;
+    }
+
+    void commitUpdateFields(toggleSectorIdPicker.wallTarget, { toggle_sector_id: reduced.pickedSectorId });
+    if (reduced.restoreSelection !== null) {
+      setMapSelection(reduced.restoreSelection);
+    }
+    setToggleSectorIdPicker(reduced.nextPicker);
+  }, [commitUpdateFields, mapSelection, setMapSelection, toggleSectorIdPicker]);
+
+  React.useEffect(() => {
+    if (toggleSectorIdPicker === null) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      const cancelled = cancelToggleSectorIdPicker(toggleSectorIdPicker);
+      if (cancelled.restoreSelection !== null) {
+        setMapSelection(cancelled.restoreSelection);
+      }
+      setToggleSectorIdPicker(cancelled.nextPicker);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [setMapSelection, toggleSectorIdPicker]);
 
   const selection = props.selection;
+
+  if (selection === null || props.mapDocument === null) {
+    return <div style={{ opacity: 0.7 }}>Nothing selected</div>;
+  }
 
   return (
     <div>
@@ -1070,6 +1412,23 @@ export function PropertiesEditor(props: {
           assetIndex={props.assetIndex}
           wall={selection.value}
           target={selection.target}
+          availableSectorIds={props.availableSectorIds}
+          isPickingToggleSectorId={
+            toggleSectorIdPicker !== null && toggleSectorIdPicker.wallIndex === selection.value.index
+          }
+          onTogglePickToggleSectorId={() => {
+            if (toggleSectorIdPicker !== null && toggleSectorIdPicker.wallIndex === selection.value.index) {
+              const cancelled = cancelToggleSectorIdPicker(toggleSectorIdPicker);
+              if (cancelled.restoreSelection !== null) {
+                setMapSelection(cancelled.restoreSelection);
+              }
+              setToggleSectorIdPicker(cancelled.nextPicker);
+              return;
+            }
+
+            const nextPicker: ToggleSectorIdPicker = { wallIndex: selection.value.index, wallTarget: selection.target };
+            setToggleSectorIdPicker(nextPicker);
+          }}
         />
       ) : selection.kind === 'sector' ? (
         <SectorEditor

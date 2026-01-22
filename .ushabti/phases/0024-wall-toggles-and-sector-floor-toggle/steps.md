@@ -31,6 +31,17 @@
   - Ensure undo/redo works through the existing system.
 - **Done when:** Manual verification in-app shows fields appear/disappear correctly and commit edits.
 
+## S003a — Preserve optional-field semantics when authoring/editing JSON
+- **Intent:** Ensure the editor does not force optional fields to exist in map JSON.
+- **Work:**
+  - Extend the map edit pipeline so a field can be explicitly **unset/removed** (not just set to `null`).
+  - Update the wall/sector property editors so that:
+    - turning `toggle_sector` off unsets related `toggle_*` fields
+    - selecting “none” for optional toggle sound fields unsets `toggle_sound*`
+    - sector `floor_z_toggled_pos` can be unset (if UI supports a none state)
+  - Add unit tests covering the new unset behavior and validation.
+- **Done when:** Applying edits can remove optional keys from JSON, and unit tests cover both “set” and “unset” paths.
+
 ## S004 — Implement the `toggle_sector_id` eye-dropper (pick sector mode)
 - **Intent:** Make selecting a target sector fast and reliable.
 - **Work:**

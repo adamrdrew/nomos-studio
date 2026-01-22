@@ -2,82 +2,135 @@ phase:
   id: 0024
   slug: wall-toggles-and-sector-floor-toggle
   title: Wall Toggles + Sector Floor Toggle Position
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Inspect current Object Properties editors for walls/sectors
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Object Properties UI is in src/renderer/ui/editor/inspector/PropertiesEditor.tsx (WallEditor/SectorEditor). Inspector wiring + selection model is in src/renderer/ui/editor/panels/InspectorDockPanel.tsx. Edits commit via useEditCommitter -> window.nomos.map.edit(kind: map-edit/update-fields). Sector identity uses numeric sector.id (selection target {kind:'sector', id})."
+    touched:
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S002
     title: Confirm canonical field names and asset prefixes
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Confirmed per user: sector field is floor_z_toggled_pos; effects sounds live under Assets/Sounds/Effects (asset index prefix Sounds/Effects/). Repo search found no existing authored maps using toggle_* fields, so sound values will be stored as basenames per the provided JSON example."
+    touched:
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/phase.md
 
   - id: S003
     title: Add wall toggle controls (conditional UI)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Manually verified in-app: WallEditor exposes toggle_sector (always) and, when enabled, toggle_sector_id, toggle_sector_oneshot, toggle_sound, and toggle_sound_finish; edits commit and are undoable/redoable."
+    touched:
+      - src/renderer/ui/editor/map/mapViewModel.ts
+      - src/renderer/ui/editor/map/mapDecoder.ts
+      - src/renderer/ui/editor/map/mapDecoder.test.ts
+      - src/renderer/ui/editor/map/mapPicking.test.ts
+      - src/renderer/ui/editor/map/wallStripGeometry.test.ts
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
+
+  - id: S003a
+    title: Preserve optional-field semantics when authoring/editing JSON
+    implemented: true
+    reviewed: false
+    notes: "Added explicit MAP_EDIT_UNSET sentinel for map-edit/update-fields so optional keys can be removed from JSON; main MapCommandEngine validates/applies unsets (deletes keys). Wall toggle editor now unsets toggle_* fields when disabling toggleSector and clears optional oneshot/sound fields via unset. Added unit tests and verified npm test + npm run typecheck." 
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - src/renderer/ui/editor/inspector/MapPropertiesSection.tsx
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/steps.md
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S004
     title: Implement the toggle_sector_id eye-dropper (pick sector mode)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added a pick-mode button next to the toggleSectorId dropdown. When active, the next sector selection sets the selected wall's toggle_sector_id and exits pick mode while restoring wall selection. Cancel supported via Escape or clicking the button again; implemented with renderer-local deterministic reducer + unit tests. Verified npm test + npm run typecheck."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - src/renderer/ui/editor/inspector/toggleSectorIdPicker.ts
+      - src/renderer/ui/editor/inspector/toggleSectorIdPicker.test.ts
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S005
     title: Populate sound dropdowns from Sounds/Effects/
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Populated wall toggle sound dropdowns from AssetIndex entries under Sounds/Effects/ (fallback Assets/Sounds/Effects/) and commit stored values as basenames. UI preserves missing current values and shows an empty-state message when no sounds are indexed."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S006
     title: Add sector floor_z_toggled_pos dropdown (-10..10)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added SectorEditor control for floor_z_toggled_pos as an integer dropdown (-10..10) with a (none) option that unsets the key via MAP_EDIT_UNSET; commits remain undoable via map-edit/update-fields."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S007
     title: Add main-owned view flag + View menu item (Highlight Toggle Walls)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added main-owned mapHighlightToggleWalls flag to AppStore + IPC snapshot and surfaced it as a View menu checkbox (Highlight Toggle Walls) wired through the menu template and main store toggle."
+    touched:
+      - src/main/application/store/AppStore.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
+      - src/main/main.ts
+      - src/renderer/store/nomosStore.ts
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S008
     title: Render toggle-wall overlay in Map Editor canvas
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented green overlay rendering for walls with toggle_sector === true when mapHighlightToggleWalls is enabled; mirrors portal highlighting behavior and does not affect hit-testing."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S009
     title: Unit tests for menu template + store flag (L04)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added/updated unit tests to cover mapHighlightToggleWalls default + set/toggle behavior in AppStore and to verify View menu checkbox checked state + click wiring for Highlight Toggle Walls. Updated IPC handler test stub snapshot to include the new field. Verified npm test + npm run typecheck."
+    touched:
+      - src/main/application/store/AppStore.test.ts
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S010
     title: Docs update (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated renderer UI and menu subsystem docs to cover wall toggle inspector fields, sector floor_z_toggled_pos dropdown, and the View → Highlight Toggle Walls overlay flag."
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/menu-system.md
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml
 
   - id: S011
     title: Quality gates + manual verification record
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Quality gates pass (npm test/typecheck/lint). Manual verification completed in-app; authored maps validate and behave correctly in engine. See review.md for checklist."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/review.md
+      - .ushabti/phases/0024-wall-toggles-and-sector-floor-toggle/progress.yaml

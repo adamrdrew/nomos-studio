@@ -44,6 +44,7 @@ Current responsibilities:
 		- In textured mode, wall picking considers the rendered wall strip polygon so clicking inside the strip selects the wall (even when far from the centerline).
 	- View overlays:
 		- portal walls can be highlighted with a blue/cyan overlay (walls with `backSector > -1`)
+		- toggle walls can be highlighted with a green overlay (walls with `toggle_sector === true`)
 		- the active selection is outlined in red (wall/sector/door/entity/light/particle)
 		- when the Select tool is active, the hovered object (what would be selected on click) is outlined in yellow
 		- door markers can be hidden in textured mode via `mapDoorVisibility`
@@ -76,6 +77,7 @@ Renderer state is intentionally small:
 	- Includes snapshot fields used by UI enablement and rendering:
 		- `mapGridSettings`
 		- `mapHighlightPortals`
+		- `mapHighlightToggleWalls`
 		- `mapDoorVisibility`
 		- `mapSectorSurface`
 		- `mapHistory`
@@ -137,6 +139,10 @@ The editor UI is organized like a traditional creative tool:
 			- Door fields include `tex`, `starts_closed`, `required_item`, and `required_item_missing_message`.
 			- Sector fields include `light`.
 				- The UI communicates `light` as a 0..1 scalar and clamps out-of-range inputs to `[0, 1]` on commit.
+			- Wall fields include toggle authoring:
+				- `toggle_sector` (checkbox)
+				- When enabled, the UI exposes `toggle_sector_id` (dropdown + eye-dropper pick mode), `toggle_sector_oneshot`, `toggle_sound`, and `toggle_sound_finish`.
+			- Sector fields include `floor_z_toggled_pos` (dropdown -10..10, optional).
 	- On initial app open, Inspector starts at approximately 20% of the window width.
 
 - **Map Properties** section (within Inspector): edits map-level fields on the map JSON root.
@@ -176,6 +182,7 @@ Settings UI uses two strings (nullable in persisted settings):
 - `mapRenderMode: MapRenderMode`
 - `mapGridSettings: MapGridSettings`
 - `mapHighlightPortals: boolean`
+- `mapHighlightToggleWalls: boolean`
 - `mapDoorVisibility: MapDoorVisibility`
 - `mapSectorSurface: 'floor' | 'ceiling'`
 - `mapHistory: MapEditHistoryInfo`

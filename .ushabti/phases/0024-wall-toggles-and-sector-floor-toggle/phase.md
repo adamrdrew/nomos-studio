@@ -96,6 +96,5 @@ When enabled, any wall with `toggle_sector === true` is shaded/overlaid in **gre
 - `docs/renderer-ui-system.md` and `docs/menu-system.md` reflect the new View toggle and property editor capabilities.
 
 ## Risks / notes
-- **Field name drift:** sector toggled Z field name appears in two variants in the request; confirm by inspecting existing map samples and/or validator expectations.
-- **Asset folder naming drift:** confirm actual sounds folder prefix (`Sounds/Effects/` vs `Sounds/Effects` vs `Sounds/SFX/`). Prefer matching `AssetIndex.entries` prefixes.
+- **Existing authored-map coverage:** the repo may not yet contain maps using these toggle fields; if so, we will follow the provided JSON example (sound values stored as basenames) and keep the UI tolerant of missing fields.
 - **UX safety:** Eye-dropper mode must be visibly active and must exit reliably after setting the ID (or on Escape) to avoid confusing selection behavior.

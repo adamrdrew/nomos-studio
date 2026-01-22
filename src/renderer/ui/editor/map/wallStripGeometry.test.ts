@@ -3,6 +3,18 @@ import type { MapViewModel } from './mapViewModel';
 
 type Point = Readonly<{ x: number; y: number }>;
 
+const wallDefaults = {
+  toggleSector: false,
+  toggleSectorId: null,
+  toggleSectorOneshot: false,
+  toggleSound: null,
+  toggleSoundFinish: null
+} as const;
+
+const sectorDefaults = {
+  floorZToggledPos: null
+} as const;
+
 function expectPointClose(actual: Point, expected: Point, epsilon = 1e-6): void {
   expect(Math.abs(actual.x - expected.x)).toBeLessThanOrEqual(epsilon);
   expect(Math.abs(actual.y - expected.y)).toBeLessThanOrEqual(epsilon);
@@ -28,12 +40,12 @@ describe('computeTexturedWallStripPolygons', () => {
         { x: 10, y: 10 },
         { x: 10, y: 0 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -68,12 +80,12 @@ describe('computeTexturedWallStripPolygons', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -123,14 +135,14 @@ describe('computeTexturedWallStripPolygons', () => {
         { x: 6, y: 2 },
         { x: 0, y: 2 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 4, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 4, v0: 4, v1: 5, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 5, v0: 5, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 4, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 4, v0: 4, v1: 5, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 5, v0: 5, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -174,13 +186,13 @@ describe('computeTexturedWallStripPolygons', () => {
         { x: 20, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 4, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 4, v0: 4, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 4, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 4, v0: 4, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -221,14 +233,14 @@ describe('computeTexturedWallStripPolygons', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
         // Degenerate (v2 -> v2) not part of sector loop.
-        { index: 99, v0: 2, v1: 2, frontSector: 999, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 99, v0: 2, v1: 2, frontSector: 999, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -251,13 +263,13 @@ describe('computeTexturedWallStripPolygons', () => {
         { x: 20, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 4, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 4, v0: 4, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 4, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 4, v0: 4, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -307,7 +319,7 @@ describe('computeTexturedWallStripPolygons', () => {
       sky: null,
       vertices: [{ x: 0, y: 0 }, { x: 10, y: 0 }],
       sectors: [],
-      walls: [{ index: 0, v0: 0, v1: 1, frontSector: 123, backSector: -1, tex: 'W.PNG', endLevel: false }],
+      walls: [{ ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 123, backSector: -1, tex: 'W.PNG', endLevel: false }],
       doors: [],
       lights: [],
       particles: [],
@@ -341,21 +353,21 @@ describe('computeTexturedWallStripPolygons', () => {
         { x: 20, y: 10 }
       ],
       sectors: [
-        { id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 },
-        { id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }
+        { ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 },
+        { ...sectorDefaults, id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }
       ],
       walls: [
         // Sector 1 boundary.
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }, // shared (up)
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }, // shared (up)
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
 
         // Sector 2 boundary.
-        { index: 4, v0: 1, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 5, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 6, v0: 5, v1: 2, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 7, v0: 2, v1: 1, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false } // shared (down)
+        { ...wallDefaults, index: 4, v0: 1, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 5, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 6, v0: 5, v1: 2, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 7, v0: 2, v1: 1, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false } // shared (down)
       ],
       doors: [],
       lights: [],

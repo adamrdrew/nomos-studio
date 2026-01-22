@@ -77,6 +77,7 @@ describe('registerNomosIpcHandlers', () => {
             mapSectorSurface: 'floor',
             mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
             mapHighlightPortals: false,
+            mapHighlightToggleWalls: false,
             mapDoorVisibility: 'visible',
             mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }
           }

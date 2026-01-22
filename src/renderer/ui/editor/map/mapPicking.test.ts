@@ -2,6 +2,18 @@ import { pickMapSelection } from './mapPicking';
 import type { MapViewModel } from './mapViewModel';
 import type { WallStripPolygon } from './wallStripGeometry';
 
+const wallDefaults = {
+  toggleSector: false,
+  toggleSectorId: null,
+  toggleSectorOneshot: false,
+  toggleSound: null,
+  toggleSoundFinish: null
+} as const;
+
+const sectorDefaults = {
+  floorZToggledPos: null
+} as const;
+
 describe('pickMapSelection', () => {
   test('marker hit beats door/wall/sector', () => {
     const map: MapViewModel = {
@@ -12,12 +24,12 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [
         {
@@ -53,12 +65,12 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [
         {
@@ -94,12 +106,12 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -126,12 +138,12 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -165,20 +177,20 @@ describe('pickMapSelection', () => {
         { x: 3, y: 7 }
       ],
       sectors: [
-        { id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F1.PNG', ceilTex: 'C1.PNG', light: 1 },
-        { id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F2.PNG', ceilTex: 'C2.PNG', light: 1 }
+        { ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F1.PNG', ceilTex: 'C1.PNG', light: 1 },
+        { ...sectorDefaults, id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F2.PNG', ceilTex: 'C2.PNG', light: 1 }
       ],
       walls: [
         // Outer loop (sector 1)
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
         // Inner loop (sector 2)
-        { index: 4, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 5, v0: 5, v1: 6, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 6, v0: 6, v1: 7, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 7, v0: 7, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 4, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 5, v0: 5, v1: 6, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 6, v0: 6, v1: 7, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 7, v0: 7, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -212,20 +224,20 @@ describe('pickMapSelection', () => {
         { x: 3, y: 7 }
       ],
       sectors: [
-        { id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F1.PNG', ceilTex: 'C1.PNG', light: 1 },
-        { id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F2.PNG', ceilTex: 'C2.PNG', light: 1 }
+        { ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F1.PNG', ceilTex: 'C1.PNG', light: 1 },
+        { ...sectorDefaults, id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F2.PNG', ceilTex: 'C2.PNG', light: 1 }
       ],
       walls: [
         // Outer loop (sector 1)
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
         // Inner loop (sector 2)
-        { index: 4, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 5, v0: 5, v1: 6, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 6, v0: 6, v1: 7, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 7, v0: 7, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 4, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 5, v0: 5, v1: 6, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 6, v0: 6, v1: 7, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 7, v0: 7, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -253,19 +265,19 @@ describe('pickMapSelection', () => {
         { x: 0, y: 10 }
       ],
       sectors: [
-        { id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F1.PNG', ceilTex: 'C1.PNG', light: 1 },
-        { id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F2.PNG', ceilTex: 'C2.PNG', light: 1 }
+        { ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F1.PNG', ceilTex: 'C1.PNG', light: 1 },
+        { ...sectorDefaults, id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F2.PNG', ceilTex: 'C2.PNG', light: 1 }
       ],
       walls: [
         // Identical geometry duplicated across two sector ids.
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 4, v0: 0, v1: 1, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 5, v0: 1, v1: 2, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 6, v0: 2, v1: 3, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 7, v0: 3, v1: 0, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 4, v0: 0, v1: 1, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 5, v0: 1, v1: 2, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 6, v0: 2, v1: 3, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 7, v0: 3, v1: 0, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -299,20 +311,20 @@ describe('pickMapSelection', () => {
         { x: 3, y: 7 }
       ],
       sectors: [
-        { id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F1.PNG', ceilTex: 'C1.PNG', light: 1 },
-        { id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F2.PNG', ceilTex: 'C2.PNG', light: 1 }
+        { ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F1.PNG', ceilTex: 'C1.PNG', light: 1 },
+        { ...sectorDefaults, id: 2, floorZ: 0, ceilZ: 4, floorTex: 'F2.PNG', ceilTex: 'C2.PNG', light: 1 }
       ],
       walls: [
         // Outer loop (sector 1)
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
         // Inner loop (sector 2)
-        { index: 4, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 5, v0: 5, v1: 6, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 6, v0: 6, v1: 7, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 7, v0: 7, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 4, v0: 4, v1: 5, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 5, v0: 5, v1: 6, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 6, v0: 6, v1: 7, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 7, v0: 7, v1: 4, frontSector: 2, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -341,13 +353,13 @@ describe('pickMapSelection', () => {
         { x: 0, y: 1 },
         { x: 10, y: 1 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 4, v0: 4, v1: 5, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 4, v0: 4, v1: 5, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -374,12 +386,12 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -465,12 +477,12 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],
@@ -497,12 +509,12 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [
         {
@@ -538,13 +550,13 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 4, v0: 999, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 4, v0: 999, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [
         {
@@ -580,12 +592,12 @@ describe('pickMapSelection', () => {
         { x: 10, y: 10 },
         { x: 0, y: 10 }
       ],
-      sectors: [{ id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
       walls: [
-        { index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
-        { index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
       ],
       doors: [],
       lights: [],

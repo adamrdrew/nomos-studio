@@ -191,7 +191,12 @@ export function InspectorDockPanel(): JSX.Element {
         headerStyle={{ backgroundColor: Colors.DARK_GRAY2, color: Colors.WHITE }}
         bodyStyle={{ backgroundColor: Colors.DARK_GRAY3, color: Colors.LIGHT_GRAY5 }}
       >
-        <PropertiesEditor mapDocument={mapDocument} assetIndex={assetIndex} selection={selectionModel} />
+        <PropertiesEditor
+          mapDocument={mapDocument}
+          assetIndex={assetIndex}
+          selection={selectionModel}
+          availableSectorIds={decodedMap && decodedMap.ok ? decodedMap.value.sectors.map((sector) => sector.id) : []}
+        />
       </CollapsibleSection>
 
       <CollapsibleSection
