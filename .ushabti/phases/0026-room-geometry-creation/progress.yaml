@@ -1,0 +1,90 @@
+phase:
+  id: 0026
+  slug: room-geometry-creation
+  title: Room Geometry Creation
+  status: planned
+
+steps:
+  - id: S001
+    title: Record current map geometry invariants (repo truth)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define the room placement contract + defaults
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Implement pure geometry helpers for preview + validation (domain)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Extend shared IPC types with map-edit/create-room
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Implement map-edit/create-room in MapCommandEngine
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Unit tests: MapCommandEngine create-room
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Unit tests: MapEditService integration
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Add Room tool to renderer tool registry + toolbox button
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Implement Room tool preview rendering + click behavior
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Implement modifier key behavior for rotate/scale
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Docs update (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S012
+    title: Quality gates + manual verification record
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
