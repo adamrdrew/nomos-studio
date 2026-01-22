@@ -130,6 +130,35 @@ function stableStringTiebreaker(value: string): number {
   return hash >>> 0;
 }
 
+function computeSectorAbsArea2(map: MapViewModel, sectorId: number): number | null {
+  // Compute 2x polygon area using directed wall edges.
+  // This relies on a convention that a sector's boundary walls are consistently oriented.
+  // If the sector boundary is malformed, return null so callers can fall back to stable ids.
+  let sum = 0;
+  let sawEdge = false;
+
+  for (const wall of map.walls) {
+    if (wall.frontSector !== sectorId) {
+      continue;
+    }
+
+    const v0 = map.vertices[wall.v0];
+    const v1 = map.vertices[wall.v1];
+    if (!v0 || !v1) {
+      continue;
+    }
+
+    sawEdge = true;
+    sum += v0.x * v1.y - v1.x * v0.y;
+  }
+
+  if (!sawEdge) {
+    return null;
+  }
+
+  return Math.abs(sum);
+}
+
 export function pickMapSelection(args: Readonly<{
   worldPoint: Point;
   viewScale: number;
@@ -266,10 +295,45 @@ export function pickMapSelection(args: Readonly<{
   }
 
   // Sectors.
+  //
+  // Nested sectors: it is valid for multiple sectors to contain the same point (pits/pillars/platforms).
+  // When this happens, Select-mode should pick the most specific (innermost) sector under the cursor.
+  //
+  // Tie-breaker policy for multiple containing sectors:
+  // - Choose the sector with the smallest absolute polygon area (derived from its directed wall edges).
+  // - If areas tie within epsilon (or are unavailable), choose the lowest sector id.
+  let bestSectorId: number | null = null;
+  let bestSectorArea2: number = Number.POSITIVE_INFINITY;
+  const areaEps = 0.0001;
+
   for (const sector of args.map.sectors) {
-    if (pointInSector(args.worldPoint, args.map, sector.id)) {
-      return { kind: 'sector', id: sector.id };
+    if (!pointInSector(args.worldPoint, args.map, sector.id)) {
+      continue;
     }
+
+    const area2 = computeSectorAbsArea2(args.map, sector.id);
+    const safeArea2 = area2 ?? Number.POSITIVE_INFINITY;
+
+    if (bestSectorId === null) {
+      bestSectorId = sector.id;
+      bestSectorArea2 = safeArea2;
+      continue;
+    }
+
+    if (safeArea2 < bestSectorArea2 - areaEps) {
+      bestSectorId = sector.id;
+      bestSectorArea2 = safeArea2;
+      continue;
+    }
+
+    if (Math.abs(safeArea2 - bestSectorArea2) <= areaEps && sector.id < bestSectorId) {
+      bestSectorId = sector.id;
+      bestSectorArea2 = safeArea2;
+    }
+  }
+
+  if (bestSectorId !== null) {
+    return { kind: 'sector', id: bestSectorId };
   }
 
   return null;

@@ -40,6 +40,7 @@ Current responsibilities:
 		- door/entity/light/particle markers
 	- Implements Select-mode hit-testing and updates the selection state.
 		- Picking is designed to follow the principle of least surprise: walls win over sectors when the pointer is visually on/near a wall.
+		- If multiple sectors contain the pointer (nested sectors), the innermost/most-specific sector under the cursor is selected.
 		- In textured mode, wall picking considers the rendered wall strip polygon so clicking inside the strip selects the wall (even when far from the centerline).
 	- View overlays:
 		- portal walls can be highlighted with a blue/cyan overlay (walls with `backSector > -1`)
