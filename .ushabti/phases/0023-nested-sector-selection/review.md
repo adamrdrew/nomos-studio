@@ -12,7 +12,7 @@
 	- `npm test -- --coverage=false` (pass)
 	- `npm run typecheck` (pass)
 	- `npm run lint` (pass; TypeScript version warning only)
-- Manual UI verification: pending (requires running the app and hovering/clicking a nested-sector map).
+- Manual UI verification: pass (user verified in-app: hover highlights inner sector; click selects inner sector; outer-only region selects outer sector).
 
 ## Issues
 
@@ -20,13 +20,9 @@
 
 ## Required follow-ups
 
-- Manual verification in-app:
-	- Open a map containing nested sectors (pit/pillar/platform).
-	- With Select tool active, hover inside inner sector: yellow hover outline should be on the inner sector.
-	- Click inside inner sector: selection (red outline) should be inner sector.
-	- Hover/click in outer-only region: selection should be outer sector.
+- None.
 
 ## Decision
 
-- Ready for review once manual verification is completed.
+- Phase is green. The work has been weighed and found complete.
 

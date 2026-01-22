@@ -2,20 +2,20 @@ phase:
   id: 0023
   slug: nested-sector-selection
   title: Nested Sector Selection (Deepest Sector Hit-Test)
-  status: in_progress
+  status: complete
 
 steps:
   - id: S001
     title: Locate current sector picking + reproduce nested-sector failure
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Located sector picking in src/renderer/ui/editor/map/mapPicking.ts: after marker/door/wall candidates, it iterates map.sectors in array order and returns the first sector whose pointInSector(...) is true. Repro: nested sectors with map.sectors ordered [outer, inner] and worldPoint inside inner currently returns outer."
     touched: []
 
   - id: S002
     title: Decide and document the nested-sector tie-breaker
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Chose deterministic tie-breaker: when multiple sectors contain the cursor point, select the sector with smallest absolute polygon area; tie by lowest sector id. Documented this policy in src/renderer/ui/editor/map/mapPicking.ts sector-picking comment."
     touched:
       - src/renderer/ui/editor/map/mapPicking.ts
@@ -23,7 +23,7 @@ steps:
   - id: S003
     title: Implement deepest-sector selection in the pure picking module
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated pickMapSelection sector fallback to evaluate all containing sectors and pick the smallest-area (abs area2) sector, breaking ties by lowest sector id. Added computeSectorAbsArea2 helper; behavior unchanged when exactly one sector contains point."
     touched:
       - src/renderer/ui/editor/map/mapPicking.ts
@@ -31,7 +31,7 @@ steps:
   - id: S004
     title: Add unit tests for nested-sector picking
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added regression-focused unit tests covering nested sectors: inside inner picks inner; outer-only area picks outer; equal-area tie resolves to lowest sector id."
     touched:
       - src/renderer/ui/editor/map/mapPicking.test.ts
@@ -39,7 +39,7 @@ steps:
   - id: S005
     title: Verify interaction with wall/door/marker priority (non-regression)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added non-regression unit test ensuring marker priority band still wins even when the point lies inside nested sectors, confirming nested-sector tie-breaker is only applied in the sector fallback."
     touched:
       - src/renderer/ui/editor/map/mapPicking.test.ts
@@ -47,15 +47,15 @@ steps:
   - id: S006
     title: Documentation update (if needed)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated renderer UI documentation to explicitly describe nested-sector behavior: when multiple sectors contain pointer, innermost/most-specific sector is selected."
     touched:
       - docs/renderer-ui-system.md
 
   - id: S007
     title: Quality gates + manual verification record
-    implemented: false
-    reviewed: false
-    notes: "Automated gates pass (npm test/typecheck/lint). Manual in-app verification still required; verification checklist recorded in review.md."
+    implemented: true
+    reviewed: true
+    notes: "Automated gates pass (npm test/typecheck/lint). Manual in-app verification completed and recorded in review.md (nested sector hover/click selects inner; outer-only area selects outer)."
     touched:
       - .ushabti/phases/0023-nested-sector-selection/review.md
