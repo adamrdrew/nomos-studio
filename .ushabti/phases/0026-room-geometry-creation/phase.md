@@ -77,6 +77,14 @@ While the room preview is visible:
 - Unit tests must cover all conditional paths introduced in new/changed **public** methods (L04).
 - Update `docs/map-edit-command-system.md` and `docs/renderer-ui-system.md` to reflect the new Room tool and command (L09).
 
+#### I) Player start editing (engine verification blocker)
+- Add support for an optional map-root `player_start` object:
+  - `{ x: number, y: number, angle_deg: number }`
+- Expose this in the Inspector **Map Properties** section with a “target” pick button to set `(x,y)` by clicking in the map.
+- Render a player-start marker (circle + vision cone) on the map canvas.
+
+This is included in this Phase to enable out-of-band engine verification before closing Phase 0026.
+
 ### Out of scope
 - Editing existing rooms as higher-level objects (move/resize/rotate after placement).
 - Arbitrary polygon rooms beyond the 3 templates.
@@ -84,6 +92,8 @@ While the room preview is visible:
 - Joining to non-parallel / non-collinear boundaries (only collinear edge joins are supported).
 - Automatic texture/theme selection UI; defaults are used.
 - Adding map schema-level “rooms” as a persistent, first-class on-disk abstraction.
+
+Note: player-start editing is in-scope as described above.
 
 ## Constraints
 - **L01 (Cross-platform parity):** input handling must work on macOS/Windows/Linux.

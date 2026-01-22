@@ -310,6 +310,29 @@ export class MapCommandEngine {
           }
         };
       }
+      case 'map-edit/set-player-start': {
+        const x = command.playerStart.x;
+        const y = command.playerStart.y;
+        const angleDeg = command.playerStart.angleDeg;
+        if (!isFiniteNumber(x) || !isFiniteNumber(y) || !isFiniteNumber(angleDeg)) {
+          return err('map-edit/invalid-json', 'set-player-start.playerStart must have finite number x/y/angleDeg');
+        }
+
+        json['player_start'] = {
+          x,
+          y,
+          angle_deg: angleDeg
+        };
+
+        return {
+          ok: true,
+          value: {
+            nextJson: json,
+            selection: { kind: 'map-edit/selection/keep' },
+            nextSelection: currentSelection ?? null
+          }
+        };
+      }
       case 'map-edit/update-fields': {
         const validateSet = validateUpdateFieldsSet(command.set as unknown as Record<string, unknown>);
         if (!validateSet.ok) {

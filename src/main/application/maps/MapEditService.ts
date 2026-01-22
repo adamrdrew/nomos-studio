@@ -118,6 +118,7 @@ export class MapEditService {
       command.kind !== 'map-edit/clone' &&
       command.kind !== 'map-edit/create-door' &&
       command.kind !== 'map-edit/create-room' &&
+      command.kind !== 'map-edit/set-player-start' &&
       command.kind !== 'map-edit/update-fields' &&
       command.kind !== 'map-edit/move-entity' &&
       command.kind !== 'map-edit/move-light'
@@ -162,6 +163,7 @@ export class MapEditService {
         break;
       case 'map-edit/create-door':
       case 'map-edit/create-room':
+      case 'map-edit/set-player-start':
       case 'map-edit/update-fields':
       case 'map-edit/move-entity':
       case 'map-edit/move-light':
@@ -216,6 +218,7 @@ export class MapEditService {
         return { ok: true, value: { kind: 'map-edit/deleted' } };
       case 'map-edit/create-door':
       case 'map-edit/create-room':
+      case 'map-edit/set-player-start':
       case 'map-edit/update-fields':
       case 'map-edit/move-entity':
       case 'map-edit/move-light':

@@ -106,6 +106,10 @@ export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/create-door'; atWallIndex: number }>
   | Readonly<{ kind: 'map-edit/create-room'; request: CreateRoomRequest }>
   | Readonly<{
+      kind: 'map-edit/set-player-start';
+      playerStart: Readonly<{ x: number; y: number; angleDeg: number }>;
+    }>
+  | Readonly<{
       kind: 'map-edit/update-fields';
       target: MapEditTargetRef;
       set: Readonly<Record<string, MapEditFieldValue>>;

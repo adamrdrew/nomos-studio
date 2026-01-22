@@ -2,7 +2,7 @@ import { useNomosStore } from './nomosStore';
 
 describe('useNomosStore selection', () => {
   afterEach(() => {
-    useNomosStore.setState({ mapSelection: null });
+    useNomosStore.setState({ mapSelection: null, isPickingPlayerStart: false });
   });
 
   it("defaults mapSectorSurface to 'floor'", () => {
@@ -11,6 +11,16 @@ describe('useNomosStore selection', () => {
 
   it('defaults mapSelection to null', () => {
     expect(useNomosStore.getState().mapSelection).toBeNull();
+  });
+
+  it('defaults isPickingPlayerStart to false and can be toggled', () => {
+    expect(useNomosStore.getState().isPickingPlayerStart).toBe(false);
+
+    useNomosStore.getState().setIsPickingPlayerStart(true);
+    expect(useNomosStore.getState().isPickingPlayerStart).toBe(true);
+
+    useNomosStore.getState().setIsPickingPlayerStart(false);
+    expect(useNomosStore.getState().isPickingPlayerStart).toBe(false);
   });
 
   it('setMapSelection updates selection', () => {

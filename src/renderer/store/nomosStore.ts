@@ -24,9 +24,11 @@ export type NomosStoreState = {
   mapDoorVisibility: MapDoorVisibility;
   mapHistory: MapEditHistoryInfo;
   mapSelection: MapSelection | null;
+  isPickingPlayerStart: boolean;
   refreshFromMain: () => Promise<void>;
   setMapSelection: (selection: MapSelection | null) => void;
   applyMapSelectionEffect: (effect: MapEditSelectionEffect) => void;
+  setIsPickingPlayerStart: (value: boolean) => void;
 };
 
 function toMapSelection(ref: MapEditTargetRef): MapSelection {
@@ -96,6 +98,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   mapDoorVisibility: 'visible',
   mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 },
   mapSelection: null,
+  isPickingPlayerStart: false,
   refreshFromMain: async () => {
     const snapshotResult = await window.nomos.state.getSnapshot();
     if (!snapshotResult.ok) {
@@ -139,5 +142,8 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
         }
       }
     });
+  },
+  setIsPickingPlayerStart: (value) => {
+    set({ isPickingPlayerStart: value });
   }
 }));

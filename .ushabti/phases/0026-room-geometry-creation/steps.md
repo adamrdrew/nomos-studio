@@ -204,3 +204,46 @@
   - Update domain intersection handling used by adjacent placement validity so it allows **T-junction endpoint touches** where an endpoint of an existing wall lies on the interior of a candidate room edge (after snapping), while still rejecting true crossings.
   - Add a regression unit test in `src/shared/domain/mapRoomGeometry.test.ts` that models a narrow hall end wall and a larger square attaching to it.
 - **Done when:** The new regression test passes and the full Jest suite remains green.
+
+## S020 — Define player_start schema and shared command shape
+- **Intent:** Add a deterministic, typed way to edit map-root `player_start` without weakening update-fields validation.
+- **Work:**
+  - Define map-root schema for `player_start`: `{ x: number, y: number, angle_deg: number }`.
+  - Extend shared IPC `MapEditAtomicCommand` with `map-edit/set-player-start` carrying `{ x, y, angleDeg }` (or equivalent) and document JSON mapping to `angle_deg`.
+- **Done when:** TypeScript compiles and the new command is available to renderer/main.
+
+## S021 — Implement map-edit/set-player-start in MapCommandEngine
+- **Intent:** Ensure player start edits are main-owned, validated, undoable, and safe.
+- **Work:**
+  - Validate payload numbers are finite.
+  - Apply `player_start` onto the map root JSON object as `{ x, y, angle_deg }`.
+  - Keep selection effect as `map-edit/selection/keep`.
+- **Done when:** Unit tests pass for success + failure cases.
+
+## S024 — Tests: MapCommandEngine set-player-start
+- **Intent:** Satisfy L04 for the new public command behavior.
+- **Work:**
+  - Add tests for success (writes `player_start` object to root).
+  - Add tests for invalid payload (non-finite numbers / wrong shapes) rejects.
+- **Done when:** Jest passes and new branches are covered.
+
+## S022 — Add Player Start controls to Map Properties section
+- **Intent:** Allow authors to view/edit player start from the right-side Map Properties panel.
+- **Work:**
+  - Show X, Y, Angle (deg) values (with reasonable defaults when missing).
+  - Add a target button that enters a temporary “pick player start” mode.
+  - Clicking the button again cancels pick mode.
+- **Done when:** UI shows the fields and can commit edits via IPC.
+
+## S023 — Implement player start pick mode + canvas marker rendering
+- **Intent:** Make the player start easy to place visually and ensure it is visible in the editor.
+- **Work:**
+  - In MapEditorCanvas, when in pick mode, interpret next click as player start (x,y) and commit via `map-edit/set-player-start`.
+  - Render the player start marker as a circle plus a small vision cone indicating `angle_deg`.
+- **Done when:** Clicking in the map updates player start and the marker renders in the correct place with correct orientation.
+
+## S025 — Docs update (player start)
+- **Intent:** Keep subsystem docs accurate (L09).
+- **Work:**
+  - Update `docs/map-edit-command-system.md` and `docs/renderer-ui-system.md` to include `player_start` and `map-edit/set-player-start`.
+- **Done when:** Docs match implemented behavior.

@@ -203,7 +203,71 @@ steps:
 
   - id: S019
     title: Allow adjacent placement when a target wall endpoint touches the interior of the new room edge
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Fixed adjacent placement validity for the hall-end case by allowing T-junction endpoint touches (an endpoint of an existing wall lying on the interior of a candidate room edge) when allowEndpointTouch is enabled. Added a regression test modeling a narrow hall end wall with a larger square attaching successfully. User confirmed this repro now works in the editor; Jest remains green."
+    touched:
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/steps.md
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S020
+    title: Define player_start schema and shared command shape
+    implemented: true
+    reviewed: false
+    notes: "Extended shared IPC MapEditAtomicCommand with map-edit/set-player-start carrying playerStart { x, y, angleDeg }. This supports editing map-root player_start as an object ({x,y,angle_deg}) while keeping update-fields primitive-only." 
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S021
+    title: Implement map-edit/set-player-start in MapCommandEngine
+    implemented: true
+    reviewed: false
+    notes: "Implemented map-edit/set-player-start in MapCommandEngine (validates finite x/y/angleDeg and writes map-root player_start {x,y,angle_deg}) and added support in MapEditService. Marked implemented now that S024 unit tests are in place and Jest is green."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/main/application/maps/MapEditService.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S022
+    title: Add Player Start controls to Map Properties section
+    implemented: true
+    reviewed: false
+    notes: "Added Player Start inspector controls (X/Y/Angle inputs) that commit via map-edit/set-player-start, plus a Pick/Cancel toggle. Introduced a shared renderer store flag (isPickingPlayerStart) with unit tests so the canvas can react to pick-mode. Follow-up fix: angle (and other fields) no longer silently fall back to 0 on invalid non-empty input; invalid values show a toaster error instead, so legitimate angle edits persist."
+    touched:
+      - src/renderer/ui/editor/inspector/MapPropertiesSection.tsx
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/store/nomosStore.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S023
+    title: Implement player start pick mode + canvas marker rendering
+    implemented: true
+    reviewed: false
+    notes: "Implemented Player Start pick mode in MapEditorCanvas (next click sets player_start x/y via IPC and exits pick mode) and rendered a player start marker (circle + vision cone) based on map-root player_start {x,y,angle_deg}. Also fixed lint-blocking issues encountered while integrating UI state (hook deps + unused helper)."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/shared/domain/mapRoomGeometry.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S024
+    title: Tests: MapCommandEngine set-player-start
+    implemented: true
+    reviewed: false
+    notes: "Added MapCommandEngine unit tests covering set-player-start success (writes player_start onto root JSON) and failure (rejects non-finite payload numbers)."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - src/main/application/maps/MapEditService.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S025
+    title: Docs update (player start)
+    implemented: true
+    reviewed: false
+    notes: "Updated command-system and renderer UI docs to include map-root player_start, map-edit/set-player-start, inspector controls, pick mode, and canvas marker rendering." 
+    touched:
+      - docs/map-edit-command-system.md
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml

@@ -38,6 +38,7 @@ Current responsibilities:
 		- textured floors + walls (best-effort)
 		- textured ceilings (best-effort) when the View surface mode is set to ceiling
 		- door/entity/light/particle markers
+		- player start marker (circle + vision cone) when `player_start` is set
 	- Implements Select-mode hit-testing and updates the selection state.
 		- Picking is designed to follow the principle of least surprise: walls win over sectors when the pointer is visually on/near a wall.
 		- If multiple sectors contain the pointer (nested sectors), the innermost/most-specific sector under the cursor is selected.
@@ -74,6 +75,7 @@ Renderer state is intentionally small:
 	- Populated by calling `refreshFromMain()` which invokes `window.nomos.state.getSnapshot()`.
 	- Also stores renderer-local UI state:
 		- `mapSelection` (selected map object identity)
+		- `isPickingPlayerStart` (temporary “pick player start” interaction mode)
 	- Includes snapshot fields used by UI enablement and rendering:
 		- `mapGridSettings`
 		- `mapHighlightPortals`
@@ -175,7 +177,12 @@ The editor UI is organized like a traditional creative tool:
 		- `soundfont` (dropdown from `Sounds/SoundFonts/`, stored as basename)
 		- `sky` (dropdown from `Images/Sky/`, stored as basename)
 		- `name` (text input)
+		- `player_start` (X/Y/Angle inputs plus a Pick/Cancel button)
 	- Edits commit via `window.nomos.map.edit(...)` using `map-edit/update-fields` with `target: { kind: 'map' }`.
+	- `player_start` commits via `map-edit/set-player-start` (because update-fields rejects objects).
+		- Pick mode sets `(x,y)` by interpreting the next click on the map canvas.
+		- Angle is edited in degrees and stored as `angle_deg`.
+		- The X/Y/Angle inputs accept numeric values only; invalid non-empty input shows an error and does not commit.
 
 ### Non-closable core panels
 - The Map Editor and Inspector DockView panels are treated as “core” panels and are not closeable via the DockView tab UI.

@@ -375,10 +375,6 @@ export function doesPolygonIntersectWalls(args: Readonly<{
   const epsilon = args.epsilon ?? DEFAULT_EPSILON;
   const polygonSegs = polygonEdges(args.polygon);
 
-  const isSamePoint = (a: Vec2, b: Vec2): boolean => {
-    return Math.abs(a.x - b.x) <= epsilon && Math.abs(a.y - b.y) <= epsilon;
-  };
-
   const isCollinear = (a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): boolean => {
     const a = sub(a1, a0);
     return Math.abs(cross(a, sub(b0, a0))) <= epsilon && Math.abs(cross(a, sub(b1, a0))) <= epsilon;

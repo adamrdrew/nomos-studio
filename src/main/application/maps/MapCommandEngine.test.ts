@@ -190,6 +190,40 @@ describe('MapCommandEngine', () => {
     expect(result.error.code).toBe('map-edit/not-found');
   });
 
+  describe('set-player-start', () => {
+    it('writes player_start onto the map root JSON and keeps selection', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/set-player-start',
+        playerStart: { x: 12.5, y: -3.25, angleDeg: 90 }
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+      expect(result.value.nextJson['player_start']).toEqual({ x: 12.5, y: -3.25, angle_deg: 90 });
+    });
+
+    it('rejects non-finite payload numbers', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/set-player-start',
+        playerStart: { x: 1, y: 2, angleDeg: Number.POSITIVE_INFINITY }
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+  });
+
   describe('create-room', () => {
     it('still allows creating additional rooms after an adjacent join that uses the full target wall as the portal', () => {
       const engine = new MapCommandEngine();

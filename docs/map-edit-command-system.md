@@ -44,6 +44,7 @@ Atomic commands are the building blocks for edits.
 - `map-edit/clone`
 - `map-edit/create-door`
 - `map-edit/create-room`
+- `map-edit/set-player-start`
 - `map-edit/update-fields`
 - `map-edit/move-entity`
 - `map-edit/move-light`
@@ -178,6 +179,22 @@ Adjacent portal wiring:
   - Preserves wall index stability: existing `walls[]` entries are never reordered; split segments are appended.
   - Reuses shared portal endpoint vertex indices on both sides.
 - Selection effect is `map-edit/selection/set` to the newly created `{ kind: 'sector', id }`.
+
+`map-edit/set-player-start` sets the optional map-root `player_start` object:
+```ts
+{
+  kind: 'map-edit/set-player-start';
+  playerStart: { x: number; y: number; angleDeg: number };
+}
+```
+
+Set-player-start validation rules:
+- `playerStart.x/y/angleDeg` must be finite numbers.
+
+Set-player-start semantics:
+- Writes `player_start` onto the map root JSON object as `{ x, y, angle_deg }`.
+- Selection effect is `map-edit/selection/keep`.
+- This is a dedicated command because `map-edit/update-fields` only allows JSON primitives (objects/arrays are rejected).
 
 ### Transaction command
 A transaction bundles multiple atomic commands into a single atomic operation.

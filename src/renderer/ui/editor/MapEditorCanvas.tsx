@@ -33,6 +33,8 @@ type Point = Readonly<{ x: number; y: number }>;
 
 type Bounds = Readonly<{ minX: number; minY: number; maxX: number; maxY: number }>;
 
+type PlayerStart = Readonly<{ x: number; y: number; angleDeg: number }>;
+
 const MIN_VIEW_SCALE = 0.1;
 const MAX_VIEW_SCALE = 64;
 
@@ -91,6 +93,18 @@ function pickDefaultRoomTextures(assetIndex: Readonly<{ entries: readonly string
   }
 
   return { wallTex, floorTex, ceilTex };
+}
+
+function getDefaultRoomSizeForTemplate(template: RoomTemplate): Readonly<{ width: number; height: number }> {
+  if (template === 'square') {
+    return { width: 6, height: 6 };
+  }
+  if (template === 'rectangle') {
+    // Default hall: long and thin.
+    return { width: 16, height: 4 };
+  }
+  // triangle
+  return { width: 8, height: 6 };
 }
 
 function canPlaceDoorAtWallIndex(map: MapViewModel, wallIndex: number): boolean {
@@ -216,6 +230,34 @@ function hexToRgba(hexColor: string, alpha: number): string {
   }
 
   return `rgba(${r}, ${g}, ${b}, ${clamp01(alpha)})`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readPlayerStartFromJson(json: unknown): PlayerStart | null {
+  if (!isRecord(json)) {
+    return null;
+  }
+
+  const playerStart = json['player_start'];
+  if (!isRecord(playerStart)) {
+    return null;
+  }
+
+  const x = playerStart['x'];
+  const y = playerStart['y'];
+  const angleDeg = playerStart['angle_deg'];
+
+  if (typeof x !== 'number' || typeof y !== 'number' || typeof angleDeg !== 'number') {
+    return null;
+  }
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(angleDeg)) {
+    return null;
+  }
+
+  return { x, y, angleDeg };
 }
 
 function buildSectorLoop(map: MapViewModel, sectorId: number): readonly number[] | null {
@@ -351,7 +393,9 @@ export const MapEditorCanvas = React.forwardRef<
   const mapHighlightToggleWalls = useNomosStore((state) => state.mapHighlightToggleWalls);
   const mapDoorVisibility = useNomosStore((state) => state.mapDoorVisibility);
   const mapSelection = useNomosStore((state) => state.mapSelection);
-    const assetIndex = useNomosStore((state) => state.assetIndex);
+  const assetIndex = useNomosStore((state) => state.assetIndex);
+  const isPickingPlayerStart = useNomosStore((state) => state.isPickingPlayerStart);
+  const setIsPickingPlayerStart = useNomosStore((state) => state.setIsPickingPlayerStart);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
   const applyMapSelectionEffect = useNomosStore((state) => state.applyMapSelectionEffect);
 
@@ -741,22 +785,17 @@ export const MapEditorCanvas = React.forwardRef<
     }
   }, [isRoomEnabled]);
 
-  const getDefaultRoomSizeForTemplate = (template: RoomTemplate): Readonly<{ width: number; height: number }> => {
-    if (template === 'square') {
-      return { width: 6, height: 6 };
-    }
-    if (template === 'rectangle') {
-      // Default hall: long and thin.
-      return { width: 16, height: 4 };
-    }
-    // triangle
-    return { width: 8, height: 6 };
-  };
-
   const [roomSize, setRoomSize] = React.useState<Readonly<{ width: number; height: number }>>({ width: 6, height: 6 });
   const [roomRotationQuarterTurns, setRoomRotationQuarterTurns] = React.useState<0 | 1 | 2 | 3>(0);
 
   React.useEffect(() => {
+    if (isPickingPlayerStart) {
+      if (containerRef.current !== null) {
+        containerRef.current.style.cursor = 'crosshair';
+      }
+      return;
+    }
+
     if (!isRoomEnabled) {
       return;
     }
@@ -768,7 +807,7 @@ export const MapEditorCanvas = React.forwardRef<
 
     setRoomSize(getDefaultRoomSizeForTemplate(template));
     setRoomRotationQuarterTurns(0);
-  }, [isRoomEnabled, props.roomTemplate]);
+  }, [isPickingPlayerStart, isRoomEnabled, props.roomTemplate]);
 
   React.useEffect(() => {
     if (!isRoomEnabled) {
@@ -942,7 +981,7 @@ export const MapEditorCanvas = React.forwardRef<
     if (containerRef.current !== null) {
       containerRef.current.style.cursor = canCreate ? 'crosshair' : 'not-allowed';
     }
-  }, [isRoomEnabled, roomPreview]);
+  }, [isPickingPlayerStart, isRoomEnabled, roomPreview]);
 
   const isDraggingRef = React.useRef<boolean>(false);
   const lastPointerRef = React.useRef<Readonly<{ x: number; y: number }> | null>(null);
@@ -987,42 +1026,86 @@ export const MapEditorCanvas = React.forwardRef<
   }, [mapDocument?.revision, mapFilePath]);
 
   const onMouseDown = (event: KonvaEventObject<MouseEvent>): void => {
-        if (isRoomEnabled) {
-          if (mapDocument === null) {
+    if (isPickingPlayerStart) {
+      if (mapDocument === null) {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+
+      const currentAngleDeg = readPlayerStartFromJson(mapDocument.json)?.angleDeg ?? 0;
+
+      // Exit pick mode immediately after a click to avoid accidental double-sets.
+      setIsPickingPlayerStart(false);
+
+      void (async () => {
+        const result = await window.nomos.map.edit({
+          baseRevision: mapDocument.revision,
+          command: {
+            kind: 'map-edit/set-player-start',
+            playerStart: { x: authoredWorldPoint.x, y: authoredWorldPoint.y, angleDeg: currentAngleDeg }
+          }
+        });
+
+        if (!result.ok) {
+          if (result.error.code === 'map-edit/stale-revision') {
+            await useNomosStore.getState().refreshFromMain();
             return;
           }
-          if (roomPreview === null || !roomPreview.validity.ok || roomPreview.request === null) {
+          // eslint-disable-next-line no-console
+          console.error('[nomos] map set-player-start failed', result.error);
+        }
+      })();
+
+      return;
+    }
+
+    if (isRoomEnabled) {
+      if (mapDocument === null) {
+        return;
+      }
+      if (roomPreview === null || !roomPreview.validity.ok || roomPreview.request === null) {
+        return;
+      }
+
+      const request = roomPreview.request;
+
+      void (async () => {
+        const result = await window.nomos.map.edit({
+          baseRevision: mapDocument.revision,
+          command: {
+            kind: 'map-edit/create-room',
+            request
+          }
+        });
+
+        if (!result.ok) {
+          if (result.error.code === 'map-edit/stale-revision') {
+            await useNomosStore.getState().refreshFromMain();
             return;
           }
-
-          const request = roomPreview.request;
-
-          void (async () => {
-            const result = await window.nomos.map.edit({
-              baseRevision: mapDocument.revision,
-              command: {
-                kind: 'map-edit/create-room',
-                request
-              }
-            });
-
-            if (!result.ok) {
-              if (result.error.code === 'map-edit/stale-revision') {
-                await useNomosStore.getState().refreshFromMain();
-                return;
-              }
-              // eslint-disable-next-line no-console
-              console.error('[nomos] map create-room failed', result.error);
-              return;
-            }
-
-            if (result.value.kind === 'map-edit/applied') {
-              applyMapSelectionEffect(result.value.selection);
-            }
-          })();
-
+          // eslint-disable-next-line no-console
+          console.error('[nomos] map create-room failed', result.error);
           return;
         }
+
+        if (result.value.kind === 'map-edit/applied') {
+          applyMapSelectionEffect(result.value.selection);
+        }
+      })();
+
+      return;
+    }
     if (isDoorEnabled) {
       if (mapDocument === null) {
         return;
@@ -1504,7 +1587,7 @@ export const MapEditorCanvas = React.forwardRef<
   }
 
   const wallLines: JSX.Element[] = [];
-    const roomPreviewOverlays: JSX.Element[] = [];
+  const roomPreviewOverlays: JSX.Element[] = [];
   const doorMarkers: JSX.Element[] = [];
   const texturedFloors: JSX.Element[] = [];
   const texturedWalls: JSX.Element[] = [];
@@ -1514,6 +1597,7 @@ export const MapEditorCanvas = React.forwardRef<
   const lightMarkers: JSX.Element[] = [];
   const particleMarkers: JSX.Element[] = [];
   const entityMarkers: JSX.Element[] = [];
+  const playerStartOverlays: JSX.Element[] = [];
 
   if (decodedMap?.ok) {
     const map = decodedMap.value;
@@ -1550,6 +1634,64 @@ export const MapEditorCanvas = React.forwardRef<
     const lightMarkerRadiusWorld = lightMarkerRadiusPx / safeScale;
     const particleMarkerSizeWorld = particleMarkerSizePx / safeScale;
     const entityMarkerSizeWorld = entityMarkerSizePx / safeScale;
+
+    const playerStart = readPlayerStartFromJson(mapDocument?.json ?? null);
+    if (playerStart !== null) {
+      const radiusWorld = 8 / safeScale;
+      const coneLengthWorld = 40 / safeScale;
+      const halfAngleRad = (30 * Math.PI) / 180;
+      const angleRad = (playerStart.angleDeg * Math.PI) / 180;
+
+      const originX = toRenderX(playerStart.x);
+      const originY = toRenderY(playerStart.y);
+
+      const leftRad = angleRad - halfAngleRad;
+      const rightRad = angleRad + halfAngleRad;
+      const leftX = originX + Math.cos(leftRad) * coneLengthWorld;
+      const leftY = originY + Math.sin(leftRad) * coneLengthWorld;
+      const rightX = originX + Math.cos(rightRad) * coneLengthWorld;
+      const rightY = originY + Math.sin(rightRad) * coneLengthWorld;
+
+      const forwardX = originX + Math.cos(angleRad) * coneLengthWorld;
+      const forwardY = originY + Math.sin(angleRad) * coneLengthWorld;
+
+      playerStartOverlays.push(
+        <Line
+          key="player-start-cone"
+          points={[originX, originY, leftX, leftY, rightX, rightY]}
+          closed={true}
+          fill={hexToRgba(Colors.GOLD5, 0.15)}
+          stroke={hexToRgba(Colors.GOLD5, 0.4)}
+          strokeWidth={1}
+          strokeScaleEnabled={false}
+          lineJoin="round"
+        />
+      );
+
+      playerStartOverlays.push(
+        <Line
+          key="player-start-direction"
+          points={[originX, originY, forwardX, forwardY]}
+          stroke={hexToRgba(Colors.GOLD5, 0.8)}
+          strokeWidth={2}
+          strokeScaleEnabled={false}
+          lineCap="round"
+        />
+      );
+
+      playerStartOverlays.push(
+        <Circle
+          key="player-start-circle"
+          x={originX}
+          y={originY}
+          radius={radiusWorld}
+          fill={Colors.GOLD5}
+          stroke={markerStroke}
+          strokeWidth={markerStrokeWidthPx}
+          strokeScaleEnabled={false}
+        />
+      );
+    }
 
     const appendSelectionOutline = (
       selection: MapSelection,
@@ -2225,6 +2367,7 @@ export const MapEditorCanvas = React.forwardRef<
           {lightMarkers}
           {particleMarkers}
           {entityMarkers}
+          {playerStartOverlays}
           {roomPreviewOverlays}
           {hoverOverlays}
           {selectionOverlays}
