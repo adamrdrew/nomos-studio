@@ -412,4 +412,49 @@ describe('mapRoomGeometry', () => {
         expect(validity.kind).toBe('room-valid/adjacent');
       }
     });
+
+    test('adjacent validity: larger square can attach to a narrow hall end wall (T-junction corner touches allowed)', () => {
+      // A narrow hall: width 4 (x=0..4), height 2 (y=0..2). We will attach a square
+      // to the hall end wall at x=4 where the square is taller than the wall.
+      const geometry: RoomMapGeometry = {
+        vertices: [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+          { x: 4, y: 2 },
+          { x: 0, y: 2 }
+        ],
+        sectorIds: [],
+        walls: [
+          { index: 0, v0: 0, v1: 1, frontSectorId: 1, backSectorId: -1 },
+          { index: 1, v0: 1, v1: 2, frontSectorId: 1, backSectorId: -1 },
+          { index: 2, v0: 2, v1: 3, frontSectorId: 1, backSectorId: -1 },
+          { index: 3, v0: 3, v1: 0, frontSectorId: 1, backSectorId: -1 }
+        ]
+      };
+
+      // Square to the right of the hall end wall. Left edge is within snap threshold (0.1 world units).
+      // Height 4 > wall height 2, so hall corner vertices touch the interior of the square's left edge.
+      const polygon = computeRoomPolygon({
+        template: 'square',
+        center: { x: 6.1, y: 1 },
+        size: { width: 4, height: 4 },
+        rotationQuarterTurns: 0
+      });
+
+      const validity = computeRoomPlacementValidity({
+        geometry,
+        polygon,
+        viewScale: 10,
+        snapThresholdPx: 12,
+        minSizeWorld: 1
+      });
+
+      expect(validity.ok).toBe(true);
+      if (validity.ok) {
+        expect(validity.kind).toBe('room-valid/adjacent');
+        if (validity.kind === 'room-valid/adjacent') {
+          expect(validity.targetWallIndex).toBe(1);
+        }
+      }
+    });
 });

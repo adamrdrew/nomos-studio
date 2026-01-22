@@ -197,3 +197,10 @@
     - ignore non-axis-aligned walls, since adjacent joins only support collinear axis-aligned boundaries
   - Add unit tests demonstrating the bug (nearest wall is diagonal/portal, causing adjacent placement to be rejected) and the fix (eligibility filtering restores valid adjacent placement).
 - **Done when:** After creating multiple rooms (including triangles/portals), adjacent placement can still become valid (green preview) near an eligible outer wall, and tests cover the conditional paths.
+
+## S019 — Allow adjacent placement when a target wall endpoint touches the interior of the new room edge
+- **Intent:** Fix the remaining editor repro: attaching a larger room (e.g., square) to a shorter target wall (e.g., narrow hall end) must be valid without requiring the room to be scaled down.
+- **Work:**
+  - Update domain intersection handling used by adjacent placement validity so it allows **T-junction endpoint touches** where an endpoint of an existing wall lies on the interior of a candidate room edge (after snapping), while still rejecting true crossings.
+  - Add a regression unit test in `src/shared/domain/mapRoomGeometry.test.ts` that models a narrow hall end wall and a larger square attaching to it.
+- **Done when:** The new regression test passes and the full Jest suite remains green.

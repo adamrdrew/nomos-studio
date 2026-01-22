@@ -200,3 +200,10 @@ steps:
       - src/shared/domain/mapRoomGeometry.ts
       - src/shared/domain/mapRoomGeometry.test.ts
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S019
+    title: Allow adjacent placement when a target wall endpoint touches the interior of the new room edge
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []

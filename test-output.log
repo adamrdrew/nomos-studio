@@ -1,42 +1,42 @@
-PASS src/main/application/maps/MapEditHistory.test.ts
-PASS src/renderer/ui/editor/map/mapPicking.test.ts
-PASS src/renderer/ui/editor/map/mapDecoder.test.ts
-PASS src/main/ipc/registerNomosIpcHandlers.test.ts
-PASS src/renderer/store/nomosStore.test.ts
-PASS src/main/infrastructure/process/NodeProcessRunner.test.ts
-PASS src/main/application/assets/AssetIndexService.test.ts
-PASS src/shared/domain/mapRoomGeometry.test.ts
-PASS src/main/application/maps/SaveMapService.test.ts
 PASS src/main/application/assets/ReadAssetFileBytesService.test.ts
-PASS src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
-PASS src/main/infrastructure/maps/JsonFileRecentMapsRepository.test.ts
-PASS src/shared/domain/asyncSignal.test.ts
-PASS src/main/infrastructure/settings/JsonFileSettingsRepository.test.ts
-PASS src/renderer/ui/editor/inspector/toggleSectorIdPicker.test.ts
-PASS src/main/infrastructure/settings/nodeFileSystem.test.ts
-PASS src/main/application/maps/MapValidationService.test.ts
-PASS src/main/application/maps/OpenMapFromAssetsService.test.ts
-PASS src/main/application/settings/SettingsService.test.ts
+PASS src/main/application/maps/SaveMapService.test.ts
+PASS src/renderer/ui/editor/map/mapPicking.test.ts
 PASS src/renderer/ui/editor/map/wallStripGeometry.test.ts
-PASS src/main/application/maps/OpenMapService.test.ts
-PASS src/main/application/maps/UnsavedChangesGuard.test.ts
-PASS src/main/application/assets/OpenAssetService.test.ts
-PASS src/main/infrastructure/assets/AssetIndexer.test.ts
-PASS src/main/infrastructure/settings/settingsCodec.test.ts
+PASS src/renderer/ui/editor/map/mapDecoder.test.ts
 PASS src/main/infrastructure/assets/nodeDirectoryReader.test.ts
-PASS src/main/windows/createMainWindowWebPreferences.test.ts
-PASS src/renderer/ui/editor/inspector/assetActionRouter.test.ts
-PASS src/main/application/maps/RecentMapsService.test.ts
-PASS src/main/windows/createMainWindow.test.ts
-PASS src/main/windows/createSettingsWindow.test.ts
+PASS src/main/application/maps/MapValidationService.test.ts
+PASS src/main/application/assets/AssetIndexService.test.ts
+PASS src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
+PASS src/main/infrastructure/settings/JsonFileSettingsRepository.test.ts
+PASS src/main/application/maps/OpenMapService.test.ts
+PASS src/main/application/maps/MapEditHistory.test.ts
+PASS src/shared/domain/asyncSignal.test.ts
+PASS src/main/infrastructure/maps/JsonFileRecentMapsRepository.test.ts
+PASS src/main/infrastructure/settings/settingsCodec.test.ts
 PASS src/main/application/store/AppStore.test.ts
+PASS src/main/windows/createMainWindow.test.ts
+PASS src/main/infrastructure/settings/nodeFileSystem.test.ts
+PASS src/main/windows/createMainWindowWebPreferences.test.ts
+PASS src/main/application/maps/UnsavedChangesGuard.test.ts
+PASS src/main/application/maps/RecentMapsService.test.ts
+PASS src/main/infrastructure/process/NodeProcessRunner.test.ts
+PASS src/main/windows/createSettingsWindow.test.ts
+PASS src/main/infrastructure/assets/AssetIndexer.test.ts
+PASS src/main/application/maps/OpenMapFromAssetsService.test.ts
+PASS src/main/application/assets/OpenAssetService.test.ts
 PASS src/renderer/ui/editor/tools/mapEditorTools.test.ts
+PASS src/renderer/ui/editor/inspector/toggleSectorIdPicker.test.ts
+PASS src/renderer/ui/editor/inspector/assetActionRouter.test.ts
+PASS src/main/application/settings/SettingsService.test.ts
+PASS src/renderer/store/nomosStore.test.ts
+PASS src/main/ipc/registerNomosIpcHandlers.test.ts
+PASS src/shared/domain/mapRoomGeometry.test.ts
 PASS src/main/application/maps/MapCommandEngine.test.ts
 PASS src/main/application/maps/MapEditService.test.ts
 ------------------------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 File                                | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                                                                                                                                                                                                                                                    
 ------------------------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-All files                           |    43.9 |    35.48 |   36.06 |   44.18 |                                                                                                                                                                                                                                                                                      
+All files                           |   43.96 |    35.73 |   35.93 |   44.19 |                                                                                                                                                                                                                                                                                      
  main                               |       0 |        0 |       0 |       0 |                                                                                                                                                                                                                                                                                      
   main.ts                           |       0 |        0 |       0 |       0 | 1-651                                                                                                                                                                                                                                                                                
  main/application/assets            |     100 |    96.77 |     100 |     100 |                                                                                                                                                                                                                                                                                      
@@ -106,16 +106,16 @@ All files                           |    43.9 |    35.48 |   36.06 |   44.18 |
   MapPropertiesDockPanel.tsx        |       0 |      100 |       0 |       0 | 2-7                                                                                                                                                                                                                                                                                  
  renderer/ui/editor/tools           |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                                                                                      
   mapEditorTools.ts                 |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                                                                                      
- shared/domain                      |   84.14 |    67.16 |    92.1 |   84.89 |                                                                                                                                                                                                                                                                                      
+ shared/domain                      |   84.33 |       70 |   89.47 |   84.92 |                                                                                                                                                                                                                                                                                      
   asyncSignal.ts                    |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                                                                                      
   mapRoomCreation.ts                |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                                                                                      
-  mapRoomGeometry.ts                |   83.61 |    66.83 |   91.17 |   84.36 | 62-70,115,122,192,198,213,220,253,258,273,281,308-309,321,359,362,383-384,393-405,416,443,453,476,484,523-546,551,571,580,616,630,707,719,769,773,797,815                                                                                                                            
+  mapRoomGeometry.ts                |    83.8 |    69.69 |   88.23 |    84.4 | 62-70,115,122,192,198,213,220,253,258,273,281,308-309,359,362,379,383-384,395-407,418,445,455,478,486,525-548,553,573,582,618,632,709,721,771,775,799,817                                                                                                                            
  shared/ipc                         |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                                                                                      
   nomosIpc.ts                       |     100 |      100 |     100 |     100 |                                                                                                                                                                                                                                                                                      
 ------------------------------------|---------|----------|---------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Test Suites: 35 passed, 35 total
-Tests:       387 passed, 387 total
+Tests:       388 passed, 388 total
 Snapshots:   0 total
-Time:        7.418 s
+Time:        8.353 s
 Ran all test suites.

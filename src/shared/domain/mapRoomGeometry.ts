@@ -385,11 +385,13 @@ export function doesPolygonIntersectWalls(args: Readonly<{
   };
 
   const isEndpointTouchOrCollinearCoincident = (a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): boolean => {
-    // Allow if endpoints coincide OR if segments are collinear and intervals overlap (full-edge join)
-    const endpointsCoincide = isSamePoint(a0, b0) || isSamePoint(a0, b1) || isSamePoint(a1, b0) || isSamePoint(a1, b1);
-    if (endpointsCoincide) {
-      return true;
-    }
+    // Allow if any endpoint lies on the other segment (including T-junction touches),
+    // or if segments are collinear and their intervals overlap.
+    if (isPointOnSegment(a0, b0, b1, epsilon)) return true;
+    if (isPointOnSegment(a1, b0, b1, epsilon)) return true;
+    if (isPointOnSegment(b0, a0, a1, epsilon)) return true;
+    if (isPointOnSegment(b1, a0, a1, epsilon)) return true;
+
     if (isCollinear(a0, a1, b0, b1)) {
       const axis: 'x' | 'y' = Math.abs(a1.x - a0.x) >= Math.abs(a1.y - a0.y) ? 'x' : 'y';
       const aMin = Math.min(a0[axis], a1[axis]);
@@ -399,9 +401,9 @@ export function doesPolygonIntersectWalls(args: Readonly<{
       const overlapMin = Math.max(aMin, bMin);
       const overlapMax = Math.min(aMax, bMax);
       const overlapLen = overlapMax - overlapMin;
-      // Allow any non-negative overlap (full-edge join or endpoint touch)
       return overlapLen >= -epsilon;
     }
+
     return false;
   };
 
