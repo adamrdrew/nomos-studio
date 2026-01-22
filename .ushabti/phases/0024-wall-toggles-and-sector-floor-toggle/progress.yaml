@@ -1,0 +1,83 @@
+phase:
+  id: 0024
+  slug: wall-toggles-and-sector-floor-toggle
+  title: Wall Toggles + Sector Floor Toggle Position
+  status: planned
+
+steps:
+  - id: S001
+    title: Inspect current Object Properties editors for walls/sectors
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Confirm canonical field names and asset prefixes
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Add wall toggle controls (conditional UI)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Implement the toggle_sector_id eye-dropper (pick sector mode)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Populate sound dropdowns from Sounds/Effects/
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Add sector floor_z_toggled_pos dropdown (-10..10)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Add main-owned view flag + View menu item (Highlight Toggle Walls)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Render toggle-wall overlay in Map Editor canvas
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Unit tests for menu template + store flag (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Docs update (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Quality gates + manual verification record
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
