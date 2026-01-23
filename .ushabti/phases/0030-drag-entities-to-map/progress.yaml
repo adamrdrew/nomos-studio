@@ -126,7 +126,7 @@ steps:
     title: Manual smoke + verification gates
     implemented: false
     reviewed: false
-    notes: "Automated gates run and green: jest, typecheck, lint. Manual smoke (Entities list load, drag to sector, blocked drop outside sector, undo/redo, asset refresh) still required before marking complete."
+    notes: "Re-ran automated gates and they are green (jest, typecheck, lint). Manual smoke (Entities list load, drag to sector, blocked drop outside sector, undo/redo, asset refresh) still required before marking complete."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
 
@@ -143,11 +143,12 @@ steps:
     title: Fix sector-only drop validity (no “valid everywhere”)
     implemented: true
     reviewed: false
-    notes: "Replaced drag/drop sector hit-testing with loop-based polygon containment (buildSectorLoop + point-in-polygon) and added unit tests for inside/outside and missing-loop behavior."
+    notes: "Fixed drag/drop sector hit-testing: now checks containment against the sector boundary using both front/back walls (ray crossing) and prefers the smallest-area containing sector for nested geometry. Cursor validity is driven by native DnD semantics (always preventDefault for our payload + set dropEffect to 'none' vs 'copy'), which also ensures invalid drops terminate cleanly without leaving the drag cursor stuck. Added unit tests including backSector-only edges." 
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
       - src/renderer/ui/editor/map/sectorContainment.ts
       - src/renderer/ui/editor/isWorldPointInsideSectorLoop.test.ts
+      - src/renderer/ui/editor/map/mapPicking.ts
 
   - id: S017
     title: Fix entity thumbnails and drag ghost preview
@@ -163,6 +164,7 @@ steps:
     title: Ensure Entities tab is not active by default
     implemented: true
     reviewed: false
-    notes: "After ensuring core panels (including Entities within Inspector group), explicitly activates the Inspector panel so Entities is not selected by default."
+    notes: "After ensuring core panels (including Entities within Inspector group), explicitly activates the Inspector panel so Entities is not selected by default. Also adds an event hook so selecting a Map Editor tool re-focuses the Inspector tab."
     touched:
       - src/renderer/ui/editor/EditorShell.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx

@@ -1,6 +1,8 @@
 import {
+  ENTITY_PLACEMENT_DRAG_MIME,
   encodeEntityPlacementDragPayload,
   tryDecodeEntityPlacementDragPayload,
+  hasEntityPlacementDragPayload,
   type EntityPlacementDragPayload
 } from './entityPlacementDragPayload';
 
@@ -40,5 +42,17 @@ describe('entityPlacementDragPayload', () => {
     it('returns payload when valid', () => {
       expect(tryDecodeEntityPlacementDragPayload('{"defName":"Imp"}')).toEqual({ defName: 'Imp' });
     });
+  });
+});
+
+describe('hasEntityPlacementDragPayload', () => {
+  it('returns true when the MIME type is present in dataTransfer.types', () => {
+    expect(hasEntityPlacementDragPayload({ types: [ENTITY_PLACEMENT_DRAG_MIME] })).toBe(true);
+    expect(hasEntityPlacementDragPayload({ types: ['text/plain', ENTITY_PLACEMENT_DRAG_MIME] })).toBe(true);
+  });
+
+  it('returns false when the MIME type is not present', () => {
+    expect(hasEntityPlacementDragPayload({ types: [] })).toBe(false);
+    expect(hasEntityPlacementDragPayload({ types: ['text/plain'] })).toBe(false);
   });
 });

@@ -4,6 +4,8 @@ type Point = Readonly<{ x: number; y: number }>;
 
 type SectorLoop = readonly number[];
 
+type Edge = Readonly<{ a: number; b: number }>;
+
 export function buildSectorLoop(map: MapViewModel, sectorId: number): SectorLoop | null {
   const edges = map.walls
     .filter((wall) => wall.frontSector === sectorId)
@@ -112,4 +114,110 @@ export function isWorldPointInsideSectorLoop(worldPoint: Point, map: MapViewMode
   }
 
   return pointInPolygon(worldPoint, polygon);
+}
+
+function buildSectorEdges(map: MapViewModel, sectorId: number): readonly Edge[] {
+  const edges: Edge[] = [];
+  for (const wall of map.walls) {
+    if (wall.frontSector === sectorId) {
+      edges.push({ a: wall.v0, b: wall.v1 });
+      continue;
+    }
+    if (wall.backSector === sectorId) {
+      // Flip orientation so both sides follow the sector boundary consistently.
+      edges.push({ a: wall.v1, b: wall.v0 });
+    }
+  }
+  return edges;
+}
+
+export function isWorldPointInSector(worldPoint: Point, map: MapViewModel, sectorId: number): boolean {
+  // Ray crossing over the sector's full boundary (including edges where the sector is the back side).
+  const edges = buildSectorEdges(map, sectorId);
+  if (edges.length === 0) {
+    return false;
+  }
+
+  let crossings = 0;
+  for (const edge of edges) {
+    const v0 = map.vertices[edge.a];
+    const v1 = map.vertices[edge.b];
+    if (!v0 || !v1) {
+      continue;
+    }
+
+    const straddles = (v0.y > worldPoint.y) !== (v1.y > worldPoint.y);
+    if (!straddles) {
+      continue;
+    }
+
+    const xAtY = v0.x + ((worldPoint.y - v0.y) * (v1.x - v0.x)) / (v1.y - v0.y);
+    if (xAtY === worldPoint.x) {
+      return true;
+    }
+
+    if (xAtY > worldPoint.x) {
+      crossings += 1;
+    }
+  }
+
+  return crossings % 2 === 1;
+}
+
+function computeSectorAbsArea2(map: MapViewModel, sectorId: number): number | null {
+  // 2x polygon area using the sector's directed edges.
+  let sum = 0;
+  let sawEdge = false;
+
+  for (const edge of buildSectorEdges(map, sectorId)) {
+    const v0 = map.vertices[edge.a];
+    const v1 = map.vertices[edge.b];
+    if (!v0 || !v1) {
+      continue;
+    }
+
+    sawEdge = true;
+    sum += v0.x * v1.y - v1.x * v0.y;
+  }
+
+  if (!sawEdge) {
+    return null;
+  }
+
+  return Math.abs(sum);
+}
+
+export function pickSectorIdAtWorldPoint(worldPoint: Point, map: MapViewModel): number | null {
+  // Nested sectors: prefer the smallest area sector containing the point.
+  let bestSectorId: number | null = null;
+  let bestSectorArea2 = Number.POSITIVE_INFINITY;
+  const areaEps = 0.0001;
+
+  for (const sector of map.sectors) {
+    if (!isWorldPointInSector(worldPoint, map, sector.id)) {
+      continue;
+    }
+
+    const area2 = computeSectorAbsArea2(map, sector.id);
+    const safeArea2 = area2 ?? Number.POSITIVE_INFINITY;
+
+    if (bestSectorId === null) {
+      bestSectorId = sector.id;
+      bestSectorArea2 = safeArea2;
+      continue;
+    }
+
+    if (safeArea2 < bestSectorArea2 - areaEps) {
+      bestSectorId = sector.id;
+      bestSectorArea2 = safeArea2;
+      continue;
+    }
+
+    if (Math.abs(safeArea2 - bestSectorArea2) <= areaEps && sector.id < bestSectorId) {
+      bestSectorId = sector.id;
+      bestSectorArea2 = safeArea2;
+    }
+  }
+
+  return bestSectorId;
 }

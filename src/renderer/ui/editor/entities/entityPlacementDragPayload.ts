@@ -48,6 +48,14 @@ export function writeEntityPlacementDragPayload(
   dataTransfer.setData(ENTITY_PLACEMENT_DRAG_MIME, encodeEntityPlacementDragPayload(payload));
 }
 
+export function hasEntityPlacementDragPayload(
+  dataTransfer: Readonly<Pick<DataTransfer, 'types'>>
+): boolean {
+  // In some Chromium/Electron contexts, getData() may return an empty string during dragover.
+  // types is still populated, so use it to detect our payload while dragging.
+  return dataTransfer.types.includes(ENTITY_PLACEMENT_DRAG_MIME);
+}
+
 export function tryReadEntityPlacementDragPayload(
   dataTransfer: Readonly<Pick<DataTransfer, 'getData'>>
 ): EntityPlacementDragPayload | null {

@@ -296,7 +296,10 @@ export function MapEditorDockPanel(): JSX.Element {
                 fill={true}
                 active={toolId === toolDefinition.id}
                 style={{ height: toolButtonHeightPx, width: '100%', justifyContent: 'center', color: Colors.WHITE }}
-                onClick={() => setToolId(toolDefinition.id)}
+                onClick={() => {
+                  setToolId(toolDefinition.id);
+                  window.dispatchEvent(new Event('nomos:focus-inspector'));
+                }}
               />
             </Tooltip>
           ))}

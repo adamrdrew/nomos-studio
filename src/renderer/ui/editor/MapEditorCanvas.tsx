@@ -7,7 +7,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import { useNomosStore } from '../../store/nomosStore';
 import { decodeMapViewModel } from './map/mapDecoder';
 import { pickMapSelection } from './map/mapPicking';
-import { buildSectorLoop, isWorldPointInsideSectorLoop } from './map/sectorContainment';
+import { buildSectorLoop, pickSectorIdAtWorldPoint } from './map/sectorContainment';
 import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
@@ -16,7 +16,7 @@ import { ROOM_CREATION_DEFAULTS } from '../../../shared/domain/mapRoomCreation';
 import type { CreateRoomRequest, RoomTemplate } from '../../../shared/domain/mapRoomCreation';
 import { computeRoomPlacementValidity, computeRoomPolygon } from '../../../shared/domain/mapRoomGeometry';
 import type { RoomMapGeometry, RoomPlacementValidity, Vec2 } from '../../../shared/domain/mapRoomGeometry';
-import { tryReadEntityPlacementDragPayload } from './entities/entityPlacementDragPayload';
+import { hasEntityPlacementDragPayload, tryReadEntityPlacementDragPayload } from './entities/entityPlacementDragPayload';
 
 export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom';
 
@@ -333,17 +333,7 @@ export const MapEditorCanvas = React.forwardRef<
     Readonly<{ getPointerPosition: () => Readonly<{ x: number; y: number }> | null }> | null
   >(null);
 
-  type EntityDropCursorState = 'none' | 'valid' | 'invalid';
-  const [entityDropCursorState, setEntityDropCursorState] = React.useState<EntityDropCursorState>('none');
-  const entityDropCursorStateRef = React.useRef<EntityDropCursorState>('none');
-
-  const setEntityDropCursorStateIfChanged = React.useCallback((next: EntityDropCursorState) => {
-    if (entityDropCursorStateRef.current === next) {
-      return;
-    }
-    entityDropCursorStateRef.current = next;
-    setEntityDropCursorState(next);
-  }, []);
+  // Drag/drop cursor behavior is driven by onDragOver calling preventDefault + setting dropEffect.
 
   const [size, setSize] = React.useState<Size>({ width: 1, height: 1 });
 
@@ -407,12 +397,7 @@ export const MapEditorCanvas = React.forwardRef<
   }, [decodedMap]);
 
   const findSectorIdAtWorldPoint = React.useCallback((worldPoint: Point, map: MapViewModel): number | null => {
-    for (const sector of map.sectors) {
-      if (isWorldPointInsideSectorLoop(worldPoint, map, sector.id)) {
-        return sector.id;
-      }
-    }
-    return null;
+    return pickSectorIdAtWorldPoint(worldPoint, map);
   }, []);
 
   const maxCachedTextures = 64;
@@ -2320,71 +2305,74 @@ export const MapEditorCanvas = React.forwardRef<
   }
 
   const onDragEnter = (event: React.DragEvent<HTMLDivElement>): void => {
-    const payload = tryReadEntityPlacementDragPayload(event.dataTransfer);
-    if (payload === null) {
+    if (!hasEntityPlacementDragPayload(event.dataTransfer)) {
       return;
     }
-    setEntityDropCursorStateIfChanged('invalid');
+    // Nothing else to do; validity is computed on dragover.
   };
 
   const onDragLeave = (event: React.DragEvent<HTMLDivElement>): void => {
+    const related = event.relatedTarget;
+    if (related instanceof Node && event.currentTarget.contains(related)) {
+      return;
+    }
     void event;
-    setEntityDropCursorStateIfChanged('none');
   };
 
   const onDragOver = (event: React.DragEvent<HTMLDivElement>): void => {
-    const payload = tryReadEntityPlacementDragPayload(event.dataTransfer);
-    if (payload === null) {
+    if (!hasEntityPlacementDragPayload(event.dataTransfer)) {
       return;
     }
 
+    // Default to invalid unless proven otherwise.
+    event.dataTransfer.dropEffect = 'none';
+
     if (mapDocument === null || decodedMap === null || !decodedMap.ok) {
-      setEntityDropCursorStateIfChanged('invalid');
       return;
     }
 
     const authoredWorldPoint = tryComputeAuthoredWorldPointFromClient({ x: event.clientX, y: event.clientY });
     if (authoredWorldPoint === null) {
-      setEntityDropCursorStateIfChanged('invalid');
       return;
     }
 
     const sectorId = findSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
     if (sectorId === null) {
-      setEntityDropCursorStateIfChanged('invalid');
       return;
     }
 
-    setEntityDropCursorStateIfChanged('valid');
+    // Only allow drop when over a valid sector.
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
   };
 
   const onDrop = (event: React.DragEvent<HTMLDivElement>): void => {
+    if (!hasEntityPlacementDragPayload(event.dataTransfer)) {
+      return;
+    }
+
+    // Always prevent default for our payload so the drag operation terminates cleanly
+    // even when the drop is invalid (we just no-op in that case).
+    event.preventDefault();
+
     const payload = tryReadEntityPlacementDragPayload(event.dataTransfer);
     if (payload === null) {
       return;
     }
 
     if (mapDocument === null || decodedMap === null || !decodedMap.ok) {
-      setEntityDropCursorStateIfChanged('none');
       return;
     }
 
     const authoredWorldPoint = tryComputeAuthoredWorldPointFromClient({ x: event.clientX, y: event.clientY });
     if (authoredWorldPoint === null) {
-      setEntityDropCursorStateIfChanged('none');
       return;
     }
 
     const sectorId = findSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
     if (sectorId === null) {
-      setEntityDropCursorStateIfChanged('none');
       return;
     }
-
-    event.preventDefault();
-    setEntityDropCursorStateIfChanged('none');
 
     void (async () => {
       const result = await window.nomos.map.edit({
@@ -2412,8 +2400,6 @@ export const MapEditorCanvas = React.forwardRef<
     })();
   };
 
-  const cursor = entityDropCursorState === 'valid' ? 'copy' : entityDropCursorState === 'invalid' ? 'not-allowed' : 'auto';
-
   return (
     <div
       ref={containerRef}
@@ -2421,7 +2407,7 @@ export const MapEditorCanvas = React.forwardRef<
       onDragLeave={onDragLeave}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      style={{ height: '100%', width: '100%', cursor }}
+      style={{ height: '100%', width: '100%' }}
     >
       <Stage
         ref={(stage) => {

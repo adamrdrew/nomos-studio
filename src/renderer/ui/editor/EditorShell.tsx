@@ -8,6 +8,8 @@ import { InspectorDockPanel } from './panels/InspectorDockPanel';
 import { EntitiesDockPanel } from './panels/EntitiesDockPanel';
 import { MapEditorDockPanel } from './panels/MapEditorDockPanel';
 
+const FOCUS_INSPECTOR_EVENT = 'nomos:focus-inspector';
+
 const toaster = Toaster.create({ position: Position.TOP });
 
 const NonClosableTab = (props: IDockviewDefaultTabProps): JSX.Element => {
@@ -60,6 +62,7 @@ function ensureCorePanelsPresent(event: DockviewReadyEvent): void {
 
 export function EditorShell(): JSX.Element {
   const dockDisposablesRef = React.useRef<readonly { dispose(): void }[]>([]);
+  const dockApiRef = React.useRef<DockviewReadyEvent['api'] | null>(null);
 
   React.useEffect(() => {
     void useNomosStore.getState().refreshFromMain();
@@ -73,6 +76,17 @@ export function EditorShell(): JSX.Element {
 
     return () => {
       unsubscribe();
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const handler = (): void => {
+      dockApiRef.current?.getPanel('inspector')?.api.setActive();
+    };
+
+    window.addEventListener(FOCUS_INSPECTOR_EVENT, handler);
+    return () => {
+      window.removeEventListener(FOCUS_INSPECTOR_EVENT, handler);
     };
   }, []);
 
@@ -137,6 +151,7 @@ export function EditorShell(): JSX.Element {
   }, []);
 
   const onDockReady = (event: DockviewReadyEvent): void => {
+    dockApiRef.current = event.api;
     ensureCorePanelsPresent(event);
 
     const onDidRemovePanelDisposable = event.api.onDidRemovePanel(() => {
