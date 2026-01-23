@@ -12,6 +12,7 @@ describe('AppStore', () => {
     expect(state.settings).toEqual({ assetsDirPath: null, gameExecutablePath: null });
     expect(state.assetIndex).toBeNull();
     expect(state.assetIndexError).toBeNull();
+    expect(state.recentMapPaths).toEqual([]);
     expect(state.mapDocument).toBeNull();
     expect(state.mapRenderMode).toBe('textured');
     expect(state.mapSectorSurface).toBe('floor');
@@ -112,6 +113,14 @@ describe('AppStore', () => {
 
     store.setMapDocument(null);
     expect(store.getState().mapDocument).toBeNull();
+  });
+
+  it('setRecentMapPaths stores recent map paths', () => {
+    const store = new AppStore();
+
+    store.setRecentMapPaths(['/a', '/b']);
+
+    expect(store.getState().recentMapPaths).toEqual(['/a', '/b']);
   });
 
   it('setMapRenderMode stores the mode', () => {

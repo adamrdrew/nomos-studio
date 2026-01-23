@@ -44,6 +44,7 @@ The renderer must only use the preload API:
 - `window.nomos.assets.refreshIndex()`
 - `window.nomos.assets.open({ relativePath })`
 - `window.nomos.assets.readFileBytes({ relativePath })`
+- `window.nomos.map.new()`
 - `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()`
 - `window.nomos.map.openFromAssets({ relativePath })`
 - `window.nomos.map.edit({ baseRevision, command })`
@@ -62,6 +63,7 @@ Channels (canonical):
 - `nomos:assets:open`
 - `nomos:assets:read-file-bytes`
 - `nomos:map:validate`
+- `nomos:map:new`
 - `nomos:map:open`
 - `nomos:map:open-from-assets`
 - `nomos:map:save`
@@ -105,6 +107,7 @@ Read file bytes:
 ### Maps
 - `ValidateMapRequest = Readonly<{ mapPath: string }>`
 - `ValidateMapResponse = Result<null, MapValidationError>`
+- `NewMapResponse = Result<MapDocument | null, { message: string }>`
 - `OpenMapRequest = Readonly<{ mapPath: string }>`
 - `OpenMapResponse = Result<MapDocument, MapIoError | MapValidationError>`
 - `OpenMapFromAssetsRequest = Readonly<{ relativePath: string }>`
@@ -144,7 +147,7 @@ Stale edit protection:
 - On stale errors, the renderer should refresh its snapshot via `window.nomos.state.getSnapshot()` (or store helper) and let the user retry.
 
 ### State snapshot
-- `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; mapDocument: MapDocument | null; mapRenderMode: MapRenderMode; mapGridSettings: MapGridSettings; mapHistory: MapEditHistoryInfo }>`
+- `AppStateSnapshot = Readonly<{ settings: EditorSettings; assetIndex: AssetIndex | null; recentMapPaths: readonly string[]; mapDocument: MapDocument | null; mapRenderMode: MapRenderMode; mapSectorSurface: MapSectorSurface; mapGridSettings: MapGridSettings; mapHighlightPortals: boolean; mapHighlightToggleWalls: boolean; mapDoorVisibility: MapDoorVisibility; mapHistory: MapEditHistoryInfo }>`
 - `StateGetResponse = Result<AppStateSnapshot, { message: string }>`
 
 ### State changed event

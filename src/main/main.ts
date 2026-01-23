@@ -28,6 +28,7 @@ import { MapEditService } from './application/maps/MapEditService';
 import { MapCommandEngine } from './application/maps/MapCommandEngine';
 import { MapEditHistory } from './application/maps/MapEditHistory';
 import { UnsavedChangesGuard } from './application/maps/UnsavedChangesGuard';
+import { CreateNewMapService } from './application/maps/CreateNewMapService';
 import type { UserPrompter } from './application/ui/UserPrompter';
 import type { NomosIpcHandlers } from './ipc/registerNomosIpcHandlers';
 import { createApplicationMenuTemplate } from './infrastructure/menu/createApplicationMenuTemplate';
@@ -162,7 +163,6 @@ app.on('ready', () => {
   let isQuitInProgress = false;
 
   const RECENT_MAPS_MAX = 5;
-  let recentMapPaths: readonly string[] = [];
 
   const GRID_OPACITY_STEP = 0.1;
   const roundToTenth = (value: number): number => Math.round(value * 10) / 10;
@@ -259,6 +259,33 @@ app.on('ready', () => {
 
   const unsavedChangesGuard = new UnsavedChangesGuard(store, prompter, saveMapService);
 
+  const newMapDialog = {
+    promptForNewMapPath: async () => {
+      const parentWindow = mainWindow;
+      if (parentWindow === null) {
+        return { ok: true as const, value: null };
+      }
+
+      try {
+        const dialogResult = await dialog.showSaveDialog(parentWindow, {
+          defaultPath: 'untitled.json',
+          filters: [{ name: 'JSON', extensions: ['json'] }]
+        });
+
+        if (dialogResult.canceled) {
+          return { ok: true as const, value: null };
+        }
+
+        const destinationPath = dialogResult.filePath ?? null;
+        return { ok: true as const, value: destinationPath };
+      } catch (_error: unknown) {
+        return { ok: false as const, error: { message: 'Failed to open Save dialog' } };
+      }
+    }
+  } as const;
+
+  const createNewMapService = new CreateNewMapService(store, newMapDialog, mapEditHistory, recentMapsService, unsavedChangesGuard);
+
   const sendSelectionEffect = (selectionEffect: StateChangedPayload['selectionEffect']): void => {
     if (mainWindow === null) {
       return;
@@ -346,11 +373,23 @@ app.on('ready', () => {
       }
       return { ok: false as const, error: result.error };
     },
+    newMap: async () => {
+      const result = await createNewMapService.createNewMap();
+      if (!result.ok) {
+        await notifier.showError('New Map Failed', result.error.message);
+        return result;
+      }
+
+      if (result.value !== null) {
+        sendSelectionEffect({ kind: 'map-edit/selection/clear', reason: 'invalidated' });
+      }
+
+      return result;
+    },
     openMap: async (request) => {
       const result = await openMapService.openMap(request.mapPath);
       if (result.ok) {
-        recentMapPaths = await recentMapsService.bump(result.value.filePath);
-        installMenu();
+        store.setRecentMapPaths(await recentMapsService.bump(result.value.filePath));
       }
       return result;
     },
@@ -371,8 +410,7 @@ app.on('ready', () => {
       );
 
       if (openResult.ok) {
-        recentMapPaths = await recentMapsService.bump(openResult.value.filePath);
-        installMenu();
+        store.setRecentMapPaths(await recentMapsService.bump(openResult.value.filePath));
       }
 
       return openResult;
@@ -388,6 +426,7 @@ app.on('ready', () => {
         value: {
           settings: store.getState().settings,
           assetIndex: store.getState().assetIndex,
+          recentMapPaths: store.getState().recentMapPaths,
           mapDocument: store.getState().mapDocument,
           mapRenderMode: store.getState().mapRenderMode,
           mapSectorSurface: store.getState().mapSectorSurface,
@@ -434,7 +473,7 @@ app.on('ready', () => {
   const installMenu = (): void => {
     setApplicationMenu({
       store,
-      recentMapPaths,
+      recentMapPaths: store.getState().recentMapPaths,
       onOpenSettings: openSettings,
       onNewMap: newMap,
       onOpenMap: openMap,
@@ -556,45 +595,15 @@ app.on('ready', () => {
   };
 
   const newMap = async (): Promise<void> => {
-    const parentWindow = mainWindow;
-    if (parentWindow === null) {
+    const result = await createNewMapService.createNewMap();
+    if (!result.ok) {
+      await notifier.showError('New Map Failed', result.error.message);
       return;
     }
 
-    await unsavedChangesGuard.runGuarded(async () => {
-      const dialogResult = await dialog.showSaveDialog(parentWindow, {
-        defaultPath: 'untitled.json',
-        filters: [{ name: 'JSON', extensions: ['json'] }]
-      });
-
-      if (dialogResult.canceled) {
-        return;
-      }
-
-      const destinationPath = dialogResult.filePath;
-      if (destinationPath === undefined) {
-        return;
-      }
-
-      mapEditHistory.clear();
-      store.setMapDocument({
-        filePath: destinationPath,
-        json: {
-          vertices: [],
-          sectors: [],
-          walls: [],
-          doors: [],
-          lights: [],
-          particles: [],
-          entities: []
-        },
-        dirty: true,
-        lastValidation: null,
-        revision: 1
-      });
-
+    if (result.value !== null) {
       sendSelectionEffect({ kind: 'map-edit/selection/clear', reason: 'invalidated' });
-    });
+    }
   };
 
   const refreshAssetsIndex = async (): Promise<void> => {
@@ -618,8 +627,7 @@ app.on('ready', () => {
   };
 
   void (async () => {
-    recentMapPaths = await recentMapsService.load();
-    installMenu();
+    store.setRecentMapPaths(await recentMapsService.load());
   })();
 
   store.subscribe(() => {

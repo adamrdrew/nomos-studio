@@ -7,6 +7,7 @@ import type {
   MapRedoResponse,
   MapUndoRequest,
   MapUndoResponse,
+  NewMapResponse,
   OpenAssetRequest,
   OpenAssetResponse,
   ReadAssetFileBytesRequest,
@@ -48,6 +49,7 @@ declare global {
       };
       map: {
         validate: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
+        new: () => Promise<NewMapResponse>;
         open: (request: { mapPath: string }) => Promise<OpenMapResponse>;
         openFromAssets: (request: OpenMapFromAssetsRequest) => Promise<OpenMapFromAssetsResponse>;
         save: () => Promise<SaveMapResponse>;

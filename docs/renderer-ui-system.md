@@ -20,8 +20,11 @@ Current responsibilities:
 
 - `src/renderer/renderer.tsx`
 	- React entrypoint.
-	- Implements settings-mode routing via URL query.
-	- Contains the Settings UI (`SettingsPanel`) and renders the editor shell in normal mode.
+	- Implements top-level routing:
+		- **Settings mode** via URL query (`nomosSettings=1|true`) renders Settings UI only.
+		- **Fresh Launch** (normal mode + no open map) renders the Fresh Launch view.
+		- **Editor mode** renders the editor shell when a map is open.
+	- Centralizes the main→renderer snapshot subscription and refresh logic.
 
 - `src/renderer/ui/editor/EditorShell.tsx`
 	- DockView-based editor shell.
@@ -29,9 +32,16 @@ Current responsibilities:
 		- Map Editor (center)
 		- Inspector (right)
 		- Entities (right, tabbed with Inspector)
-	- Refreshes the renderer snapshot on mount.
-	- Subscribes to main→renderer state changes and refreshes automatically.
+	- Focuses editor-only behaviors (DockView lifecycle, keyboard undo/redo, etc).
 	- Core panels are non-closable and are re-created if removed.
+
+- `src/renderer/ui/launch/FreshLaunchView.tsx`
+	- Dedicated first-run / no-document UI surface.
+	- Renders:
+		- “Nomos Studio” brand in the upper-left.
+		- Create New and Open Existing tiles.
+		- Recent maps list.
+	- Displays a red configuration warning when settings are missing.
 
 - `src/renderer/ui/editor/panels/EntitiesDockPanel.tsx`
 	- Entity browser panel.
@@ -104,6 +114,17 @@ Renderer code calls the typed preload surface `window.nomos.*` for privileged op
 	- The listener may receive an optional payload (currently `selectionEffect?: MapEditSelectionEffect`) for deterministic selection reconciliation.
 
 ## Editor UI (normal mode)
+
+### Fresh Launch (no map open)
+When not in settings mode, the renderer checks the latest main snapshot.
+If `mapDocument === null`, the app shows a Fresh Launch view instead of the editor shell.
+
+Fresh Launch actions:
+- **Create New** invokes the main-process new-map workflow (Save dialog + create a path-backed document).
+- **Open Existing** uses the Open Map dialog and opens the selected file.
+- **Recent Maps** opens the selected recent map.
+
+When a map becomes loaded/created (main snapshot `mapDocument !== null`), the UI transitions to the existing editor shell automatically.
 
 The editor UI is organized like a traditional creative tool:
 - **Map Editor** panel (center): a React Konva surface (`Stage`/`Layer`) that renders a graph-paper grid and supports pan/zoom.

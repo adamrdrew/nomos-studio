@@ -52,3 +52,111 @@ body {
 .nomos-dockview .dv-tab.dv-inactive-tab {
   border-color: var(--dv-tab-divider-color);
 }
+
+.nomos-fresh-launch {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #111418;
+  color: #f5f8fa;
+  box-sizing: border-box;
+}
+
+.nomos-fresh-launch__top {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nomos-fresh-launch__brand {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* Blueprint heading styles default to dark text; force high contrast in Fresh Launch. */
+.nomos-fresh-launch h1,
+.nomos-fresh-launch h2,
+.nomos-fresh-launch h3,
+.nomos-fresh-launch h4,
+.nomos-fresh-launch h5,
+.nomos-fresh-launch h6 {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.nomos-fresh-launch .bp4-heading,
+.nomos-fresh-launch .bp5-heading,
+.nomos-fresh-launch .bp6-heading {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.nomos-fresh-launch__center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.nomos-fresh-launch__content {
+  width: 980px;
+  max-width: 100%;
+}
+
+.nomos-fresh-launch__warning {
+  color: #ff7373;
+  margin-bottom: 14px;
+}
+
+.nomos-fresh-launch__tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.nomos-fresh-launch__tile {
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nomos-fresh-launch__tileSubtitle {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.nomos-fresh-launch__recent {
+  margin-top: 22px;
+}
+
+.nomos-fresh-launch__recentEmpty {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.nomos-fresh-launch__recentList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nomos-fresh-launch__recentItem {
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  font: inherit;
+}
+
+.nomos-fresh-launch__recentItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (max-width: 760px) {
+  .nomos-fresh-launch__tiles {
+    grid-template-columns: 1fr;
+  }
+}

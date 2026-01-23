@@ -65,21 +65,6 @@ export function EditorShell(): JSX.Element {
   const dockApiRef = React.useRef<DockviewReadyEvent['api'] | null>(null);
 
   React.useEffect(() => {
-    void useNomosStore.getState().refreshFromMain();
-
-    const unsubscribe = window.nomos.state.onChanged((payload) => {
-      if (payload?.selectionEffect !== undefined) {
-        useNomosStore.getState().applyMapSelectionEffect(payload.selectionEffect);
-      }
-      void useNomosStore.getState().refreshFromMain();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  React.useEffect(() => {
     const handler = (): void => {
       dockApiRef.current?.getPanel('inspector')?.api.setActive();
     };

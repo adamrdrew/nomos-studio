@@ -45,6 +45,10 @@ describe('registerNomosIpcHandlers', () => {
           ok: false,
           error: { kind: 'map-validation-error', code: 'map-validation/runner-failed', message: 'nope' }
         }),
+        newMap: async () => ({
+          ok: true,
+          value: null
+        }),
         openMap: async () => ({ ok: false, error: { kind: 'map-io-error', code: 'map-io/read-failed', message: 'nope' } }),
         openMapFromAssets: async () => ({
           ok: false,
@@ -72,6 +76,7 @@ describe('registerNomosIpcHandlers', () => {
           value: {
             settings: { assetsDirPath: null, gameExecutablePath: null },
             assetIndex: null,
+            recentMapPaths: [],
             mapDocument: null,
             mapRenderMode: 'textured',
             mapSectorSurface: 'floor',
@@ -95,6 +100,7 @@ describe('registerNomosIpcHandlers', () => {
       channels.assetsOpen,
       channels.assetsReadFileBytes,
       channels.mapValidate,
+      channels.mapNew,
       channels.mapOpen,
       channels.mapOpenFromAssets,
       channels.mapSave,

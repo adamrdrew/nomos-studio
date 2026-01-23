@@ -27,6 +27,7 @@ Current responsibilities:
 - `src/main/main.ts`
 	- Computes `canSave` from `store.getState().mapDocument !== null`.
 	- Computes `canUndo` / `canRedo` from `MapEditHistory.getInfo()`.
+	- Reads `recentMapPaths` from `store.getState().recentMapPaths`.
 	- Calls `Menu.setApplicationMenu(Menu.buildFromTemplate(template))`.
 	- Subscribes to `AppStore` changes to re-install the menu when relevant state changes.
 

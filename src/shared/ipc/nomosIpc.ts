@@ -31,6 +31,7 @@ export const NOMOS_IPC_CHANNELS = {
   assetsOpen: 'nomos:assets:open',
   assetsReadFileBytes: 'nomos:assets:read-file-bytes',
   mapValidate: 'nomos:map:validate',
+  mapNew: 'nomos:map:new',
   mapOpen: 'nomos:map:open',
   mapOpenFromAssets: 'nomos:map:open-from-assets',
   mapSave: 'nomos:map:save',
@@ -44,6 +45,7 @@ export const NOMOS_IPC_CHANNELS = {
 export type AppStateSnapshot = Readonly<{
   settings: EditorSettings;
   assetIndex: AssetIndex | null;
+  recentMapPaths: readonly string[];
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
   mapSectorSurface: MapSectorSurface;
@@ -72,6 +74,8 @@ export type ReadAssetFileBytesResponse = Result<Uint8Array, ReadAssetError>;
 
 export type ValidateMapRequest = Readonly<{ mapPath: string }>;
 export type ValidateMapResponse = Result<null, MapValidationError>;
+
+export type NewMapResponse = Result<MapDocument | null, { message: string }>;
 
 export type OpenMapRequest = Readonly<{ mapPath: string }>;
 export type OpenMapResponse = Result<MapDocument, MapIoError | MapValidationError>;

@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { Button, Callout, FormGroup, H1, InputGroup } from '@blueprintjs/core';
 
 import { EditorShell } from './ui/editor/EditorShell';
+import { useNomosStore } from './store/nomosStore';
+import { FreshLaunchView } from './ui/launch/FreshLaunchView';
 
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
@@ -150,12 +152,62 @@ function SettingsPanel(props: { onDone: () => void; onCancel: () => void }): JSX
 function App(): JSX.Element {
   const settingsMode = isSettingsMode();
 
+  const mapDocument = useNomosStore((state) => state.mapDocument);
+  const settings = useNomosStore((state) => state.settings);
+  const recentMapPaths = useNomosStore((state) => state.recentMapPaths);
+
+  React.useEffect(() => {
+    void useNomosStore.getState().refreshFromMain();
+
+    const unsubscribe = window.nomos.state.onChanged((payload) => {
+      if (payload?.selectionEffect !== undefined) {
+        useNomosStore.getState().applyMapSelectionEffect(payload.selectionEffect);
+      }
+      void useNomosStore.getState().refreshFromMain();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   if (settingsMode) {
     return (
       <div style={{ padding: 16, height: '100%', boxSizing: 'border-box', overflow: 'auto' }}>
         <H1>Settings</H1>
         <SettingsPanel onDone={() => window.close()} onCancel={() => window.close()} />
       </div>
+    );
+  }
+
+  if (mapDocument === null) {
+    return (
+      <FreshLaunchView
+        settings={settings}
+        recentMapPaths={recentMapPaths}
+        onCreateNew={() => {
+          void (async () => {
+            await window.nomos.map.new();
+          })();
+        }}
+        onOpenExisting={() => {
+          void (async () => {
+            const result = await window.nomos.dialogs.openMap();
+            if (!result.ok) {
+              return;
+            }
+            if (result.value === null) {
+              return;
+            }
+            await window.nomos.map.open({ mapPath: result.value });
+          })();
+        }}
+        onOpenRecentMap={(mapPath) => {
+          void (async () => {
+            await window.nomos.map.open({ mapPath });
+          })();
+        }}
+      />
     );
   }
 

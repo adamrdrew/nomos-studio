@@ -7,66 +7,103 @@ phase:
 steps:
   - id: S001
     title: Define routing rule for Fresh Launch
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Centralized main snapshot refresh + stateChanged subscription at renderer root (App) so all views (Fresh Launch / Editor) stay in sync; routing now depends on settings mode + store mapDocument presence."
+    touched:
+      - src/renderer/renderer.tsx
+      - src/renderer/ui/editor/EditorShell.tsx
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S002
     title: Build Fresh Launch renderer view
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added FreshLaunchView component and minimal CSS; renderer root now routes to it when mapDocument is null (normal mode)."
+    touched:
+      - src/renderer/ui/launch/FreshLaunchView.tsx
+      - src/renderer/renderer.tsx
+      - src/renderer/renderer.css
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S003
     title: Promote recent maps into main AppStore
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added recentMapPaths to AppStore and wired main startup/open/new flows to load/bump into store; menu now reads recentMapPaths from store (single source of truth in main)."
+    touched:
+      - src/main/application/store/AppStore.ts
+      - src/main/main.ts
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S004
     title: Extend state snapshot to include recent maps
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Extended AppStateSnapshot with recentMapPaths, populated from AppStore in main snapshot handler, and stored/exposed in renderer Zustand store; Fresh Launch now renders snapshot-backed recent maps."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/main.ts
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/renderer.tsx
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S005
     title: Add a minimal IPC entrypoint for Create New
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added CreateNewMapService (guarded save dialog + path-backed document creation) with unit tests; exposed over new typed IPC channel nomos:map:new via preload; refactored menu New Map to use the same service." 
+    touched:
+      - src/main/application/maps/CreateNewMapService.ts
+      - src/main/application/maps/CreateNewMapService.test.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/preload/preload.ts
+      - src/preload/nomos.d.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/main.ts
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S006
     title: Wire Fresh Launch actions
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Fresh Launch Create New calls window.nomos.map.new(); Open Existing uses open-map dialog then map.open; recent map items call map.open."
+    touched:
+      - src/renderer/renderer.tsx
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S007
     title: Missing configuration warning
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "FreshLaunchView now derives isConfigured from snapshot settings and displays a red Settings guidance line when assetsDirPath or gameExecutablePath is missing."
+    touched:
+      - src/renderer/ui/launch/FreshLaunchView.tsx
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S008
     title: Update/extend unit tests (L04)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added/updated unit tests for CreateNewMapService, AppStore recentMapPaths, and IPC registration; Jest runInBand passes."
+    touched:
+      - src/main/application/maps/CreateNewMapService.test.ts
+      - src/main/application/store/AppStore.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S009
     title: Update subsystem docs (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated subsystem docs to reflect Fresh Launch routing, AppStore recentMapPaths, and new IPC/preload surface for Create New."
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/app-store-system.md
+      - docs/menu-system.md
+      - docs/ipc-system.md
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
 
   - id: S010
     title: Verification pass

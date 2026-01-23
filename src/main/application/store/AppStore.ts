@@ -13,6 +13,7 @@ export type AppState = Readonly<{
   settings: EditorSettings;
   assetIndex: AssetIndex | null;
   assetIndexError: AssetIndexError | null;
+  recentMapPaths: readonly string[];
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
   mapSectorSurface: MapSectorSurface;
@@ -55,6 +56,7 @@ export class AppStore {
     settings: defaultSettings(),
     assetIndex: null,
     assetIndexError: null,
+    recentMapPaths: [],
     mapDocument: null,
     mapRenderMode: 'textured',
     mapSectorSurface: 'floor',
@@ -94,6 +96,11 @@ export class AppStore {
 
   public setMapDocument(mapDocument: MapDocument | null): void {
     this.state = { ...this.state, mapDocument };
+    this.emit();
+  }
+
+  public setRecentMapPaths(recentMapPaths: readonly string[]): void {
+    this.state = { ...this.state, recentMapPaths };
     this.emit();
   }
 

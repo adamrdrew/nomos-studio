@@ -15,6 +15,7 @@ import type { MapSelection } from '../ui/editor/map/mapSelection';
 export type NomosStoreState = {
   settings: EditorSettings;
   assetIndex: AssetIndex | null;
+  recentMapPaths: readonly string[];
   mapDocument: MapDocument | null;
   mapRenderMode: MapRenderMode;
   mapSectorSurface: MapSectorSurface;
@@ -89,6 +90,7 @@ const defaultSettings: EditorSettings = {
 export const useNomosStore = create<NomosStoreState>((set) => ({
   settings: defaultSettings,
   assetIndex: null,
+  recentMapPaths: [],
   mapDocument: null,
   mapRenderMode: 'textured',
   mapSectorSurface: 'floor',
@@ -108,6 +110,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
     set({
       settings: snapshotResult.value.settings,
       assetIndex: snapshotResult.value.assetIndex,
+      recentMapPaths: snapshotResult.value.recentMapPaths,
       mapDocument: snapshotResult.value.mapDocument,
       mapRenderMode: snapshotResult.value.mapRenderMode,
       mapSectorSurface: snapshotResult.value.mapSectorSurface,

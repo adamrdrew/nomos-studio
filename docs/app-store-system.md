@@ -92,6 +92,7 @@ type AppState = Readonly<{
 	settings: EditorSettings;
 	assetIndex: AssetIndex | null;
 	assetIndexError: AssetIndexError | null;
+	recentMapPaths: readonly string[];
 	mapDocument: MapDocument | null;
 	mapRenderMode: MapRenderMode;
 	mapGridSettings: MapGridSettings;
@@ -104,6 +105,7 @@ Defined in `src/shared/ipc/nomosIpc.ts`:
 type AppStateSnapshot = Readonly<{
 	settings: EditorSettings;
 	assetIndex: AssetIndex | null;
+	recentMapPaths: readonly string[];
 	mapDocument: MapDocument | null;
 	mapRenderMode: MapRenderMode;
 	mapGridSettings: MapGridSettings;
@@ -114,6 +116,10 @@ type StateGetResponse = Result<AppStateSnapshot, { message: string }>;
 ```
 
 Note: the IPC snapshot currently does **not** include `assetIndexError`. The renderer can only read the successful index state, not the last indexing error.
+
+Recent maps:
+- `recentMapPaths` is owned by main and persisted by `RecentMapsService`.
+- The File menu and the Fresh Launch view both use the same `recentMapPaths` value via the store + IPC snapshot.
 
 ### Renderer store state
 Defined in `src/renderer/store/nomosStore.ts`:
