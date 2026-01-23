@@ -113,7 +113,7 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	- Uses Preferences… as the idiomatic settings entrypoint.
 - Non-macOS:
 	- Preferences menu is not created.
-	- Settings… lives under an Edit menu.
+	- Settings… lives under a Settings menu.
 
 ### Save enablement depends on store state
 - `canSave` is derived from whether `AppStore` currently has a `mapDocument`.

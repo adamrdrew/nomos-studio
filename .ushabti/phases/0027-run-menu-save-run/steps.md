@@ -71,3 +71,17 @@
   - Run `npm run typecheck`.
   - Run `npm run lint`.
 - **Done when:** All tasks succeed.
+
+## S009 — Add missing orchestration branch tests
+- **Intent:** Satisfy acceptance-criteria-required coverage for Save & Run edge cases.
+- **Work:**
+  - Add a unit test asserting the **no open document** branch (e.g., `SaveMapService` returns `map-io/no-document`) does not call validation or run.
+  - Add a unit test asserting the **missing/blank gameExecutablePath** branch (e.g., validator returns `map-validation/missing-settings`) does not call run and shows an appropriate error.
+- **Done when:** `SaveAndRunMapService.test.ts` explicitly covers both branches and asserts integration-contract behavior (calls/notifier).
+
+## S010 — Fix Menu System doc invariant (non-macOS Settings entrypoint)
+- **Intent:** Ensure subsystem docs match implementation (L09).
+- **Work:**
+  - In `docs/menu-system.md`, correct the non-macOS note that currently claims Settings lives under the Edit menu.
+  - Update it to reflect the actual implementation: non-macOS has a **Settings** top-level menu containing **Settings…**.
+- **Done when:** `docs/menu-system.md` matches `createApplicationMenuTemplate.ts` behavior.

@@ -7,6 +7,49 @@ import type { ProcessRunner } from '../../infrastructure/process/ProcessRunner';
 import type { UserNotifier } from '../ui/UserNotifier';
 
 describe('SaveAndRunMapService', () => {
+  it('does nothing when there is no open document (no validation or run)', async () => {
+    const store: AppStore = {
+      getState: () => ({
+        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        assetIndex: null,
+        assetIndexError: null,
+        mapDocument: null
+      }),
+      subscribe: () => () => {},
+      setSettings: () => {},
+      setAssetIndex: () => {},
+      setAssetIndexError: () => {},
+      setMapDocument: () => {}
+    } as unknown as AppStore;
+
+    const saveMapService: SaveMapService = {
+      saveCurrentDocument: async () => ({
+        ok: false,
+        error: { kind: 'map-io-error', code: 'map-io/no-document', message: 'No open document' }
+      })
+    } as unknown as SaveMapService;
+
+    const validateMap = jest.fn(async () => ({ ok: true, value: { ok: true, validatedAtIso: '2026-01-23T00:00:00.000Z' } }));
+    const validator: MapValidationService = { validateMap } as unknown as MapValidationService;
+
+    const run = jest.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const runner: ProcessRunner = { run };
+
+    const showError = jest.fn(async () => {});
+    const notifier: UserNotifier = {
+      showError,
+      showInfo: async () => {}
+    };
+
+    const service = new SaveAndRunMapService(store, saveMapService, validator, runner, notifier);
+
+    await service.saveAndRunCurrentMap();
+
+    expect(validateMap).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+    expect(showError).not.toHaveBeenCalled();
+  });
+
   it('stops when save fails (no validation or run)', async () => {
     const store: AppStore = {
       getState: () => ({
@@ -267,6 +310,58 @@ describe('SaveAndRunMapService', () => {
 
     await service.saveAndRunCurrentMap();
 
+    expect(showError).toHaveBeenCalledWith(
+      'Settings Required',
+      'Game executable path is not set. Open Settings to configure it.'
+    );
+  });
+
+  it('shows Settings Required and does not run when game executable is blank after validation succeeds', async () => {
+    const store: AppStore = {
+      getState: () => ({
+        settings: { assetsDirPath: null, gameExecutablePath: '   ' },
+        assetIndex: null,
+        assetIndexError: null,
+        mapDocument: null
+      }),
+      subscribe: () => () => {},
+      setSettings: () => {},
+      setAssetIndex: () => {},
+      setAssetIndexError: () => {},
+      setMapDocument: () => {}
+    } as unknown as AppStore;
+
+    const saveMapService: SaveMapService = {
+      saveCurrentDocument: async () => ({
+        ok: true,
+        value: {
+          filePath: '/Users/test/Assets/Levels/big.json',
+          json: {},
+          dirty: false,
+          lastValidation: null,
+          revision: 1
+        }
+      })
+    } as unknown as SaveMapService;
+
+    const validator: MapValidationService = {
+      validateMap: async () => ({ ok: true, value: { ok: true, validatedAtIso: '2026-01-23T00:00:00.000Z' } })
+    } as unknown as MapValidationService;
+
+    const run = jest.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const runner: ProcessRunner = { run };
+
+    const showError = jest.fn(async () => {});
+    const notifier: UserNotifier = {
+      showError,
+      showInfo: async () => {}
+    };
+
+    const service = new SaveAndRunMapService(store, saveMapService, validator, runner, notifier);
+
+    await service.saveAndRunCurrentMap();
+
+    expect(run).not.toHaveBeenCalled();
     expect(showError).toHaveBeenCalledWith(
       'Settings Required',
       'Game executable path is not set. Open Settings to configure it.'

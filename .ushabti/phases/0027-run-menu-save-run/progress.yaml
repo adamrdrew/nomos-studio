@@ -2,20 +2,20 @@ phase:
   id: 0027
   slug: run-menu-save-run
   title: Run Menu (Save & Run)
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Confirm run invocation contract
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Confirmed contract: run uses args [<mapFileName.json>] (no MAP=), engine resolves under Assets/Levels internally, no cwd handling, and editor does not enforce Assets/Levels path correctness."
     touched: []
 
   - id: S002
     title: Extend menu template options and tests
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added top-level Run menu with Save & Run (F5) in menu template; added unit tests covering presence and enablement."
     touched:
       - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
@@ -24,7 +24,7 @@ steps:
   - id: S003
     title: Implement application-layer orchestration service
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added SaveAndRunMapService orchestrating save → validate → run with notifier parity for validation failures; added unit tests covering all branches."
     touched:
       - src/main/application/maps/SaveAndRunMapService.ts
@@ -33,7 +33,7 @@ steps:
   - id: S004
     title: Add main-process wiring for Save & Run
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Main menu wiring passes onSaveAndRun callback to menu template and delegates to SaveAndRunMapService (no inline orchestration in menu click)."
     touched:
       - src/main/main.ts
@@ -41,21 +41,21 @@ steps:
   - id: S005
     title: Process runner support (if required)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "No ProcessRunner changes needed: engine invocation uses explicit args [filename] and does not require cwd/env support."
     touched: []
 
   - id: S006
     title: Validation report UX parity
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "SaveAndRunMapService uses the same invalid-map title/message ('Map validation failed') and includes report.prettyText as detail; covered by unit tests."
     touched: []
 
   - id: S007
     title: Documentation updates
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated menu/process/maps subsystem docs to document Run → Save & Run (F5) behavior, wiring, and process invocation." 
     touched:
       - docs/menu-system.md
@@ -65,6 +65,22 @@ steps:
   - id: S008
     title: Full verification gates
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Ran jest (runInBand), typecheck, and lint; all passed (lint prints TypeScript-eslint version support warning only)."
     touched: []
+
+  - id: S009
+    title: Add missing orchestration branch tests
+    implemented: true
+    reviewed: true
+    notes: "Added unit tests for no open document (map-io/no-document) and blank gameExecutablePath branches; verified with jest (runInBand)."
+    touched:
+      - src/main/application/maps/SaveAndRunMapService.test.ts
+
+  - id: S010
+    title: Fix Menu System doc invariant (non-macOS Settings entrypoint)
+    implemented: true
+    reviewed: true
+    notes: "Updated docs/menu-system.md to state non-macOS Settings… lives under a Settings menu, matching createApplicationMenuTemplate.ts."
+    touched:
+      - docs/menu-system.md
