@@ -224,6 +224,176 @@ describe('MapCommandEngine', () => {
     });
   });
 
+  describe('set-sector-wall-tex', () => {
+    it('updates tex for all walls where front_sector matches sectorId and keeps selection', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(
+        baseDocument({
+          walls: [
+            { v0: 1, v1: 2, front_sector: 10, back_sector: -1, tex: 'a.png' },
+            { v0: 2, v1: 3, front_sector: 10, back_sector: 11, tex: 'a.png' },
+            { v0: 3, v1: 4, front_sector: 99, back_sector: -1, tex: 'keep.png' },
+            { v0: 4, v1: 5, front_sector: 10, back_sector: null, tex: 'a.png' }
+          ]
+        }),
+        {
+          kind: 'map-edit/set-sector-wall-tex',
+          sectorId: 10,
+          tex: '  b.png  '
+        }
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+      expect(result.value.nextJson['walls']).toEqual([
+        { v0: 1, v1: 2, front_sector: 10, back_sector: -1, tex: 'b.png' },
+        { v0: 2, v1: 3, front_sector: 10, back_sector: 11, tex: 'b.png' },
+        { v0: 3, v1: 4, front_sector: 99, back_sector: -1, tex: 'keep.png' },
+        { v0: 4, v1: 5, front_sector: 10, back_sector: null, tex: 'b.png' }
+      ]);
+    });
+
+    it('succeeds as a no-op when there are zero matching walls', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(
+        baseDocument({ walls: [{ v0: 1, v1: 2, front_sector: 1, back_sector: -1, tex: 'keep.png' }] }),
+        {
+          kind: 'map-edit/set-sector-wall-tex',
+          sectorId: 999,
+          tex: 'b.png'
+        }
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error('Expected success');
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+      expect(result.value.nextJson['walls']).toEqual([{ v0: 1, v1: 2, front_sector: 1, back_sector: -1, tex: 'keep.png' }]);
+    });
+
+    it('ignores malformed wall entries and still updates matching walls', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(
+        baseDocument({
+          walls: [
+            null,
+            123,
+            'not-a-wall',
+            { v0: 0, v1: 1, front_sector: 10, back_sector: -1, tex: 'a.png' },
+            { v0: 1, v1: 2, front_sector: '10', back_sector: -1, tex: 'keep.png' },
+            { v0: 2, v1: 3, front_sector: Number.NaN, back_sector: -1, tex: 'keep.png' },
+            { v0: 3, v1: 4, front_sector: 10.5, back_sector: -1, tex: 'keep.png' },
+            { v0: 4, v1: 5, front_sector: 99, back_sector: -1, tex: 'keep.png' },
+            { v0: 5, v1: 6, front_sector: 10, back_sector: -1, tex: 'a.png' }
+          ]
+        }),
+        {
+          kind: 'map-edit/set-sector-wall-tex',
+          sectorId: 10,
+          tex: 'b.png'
+        }
+      );
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error('Expected success');
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+      expect(result.value.nextJson['walls']).toEqual([
+        null,
+        123,
+        'not-a-wall',
+        { v0: 0, v1: 1, front_sector: 10, back_sector: -1, tex: 'b.png' },
+        { v0: 1, v1: 2, front_sector: '10', back_sector: -1, tex: 'keep.png' },
+        { v0: 2, v1: 3, front_sector: Number.NaN, back_sector: -1, tex: 'keep.png' },
+        { v0: 3, v1: 4, front_sector: 10.5, back_sector: -1, tex: 'keep.png' },
+        { v0: 4, v1: 5, front_sector: 99, back_sector: -1, tex: 'keep.png' },
+        { v0: 5, v1: 6, front_sector: 10, back_sector: -1, tex: 'b.png' }
+      ]);
+    });
+
+    it('returns invalid-json when walls is missing or not an array', () => {
+      const engine = new MapCommandEngine();
+
+      const missingWalls = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/set-sector-wall-tex',
+        sectorId: 10,
+        tex: 'b.png'
+      });
+
+      expect(missingWalls.ok).toBe(false);
+      if (missingWalls.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(missingWalls.error.code).toBe('map-edit/invalid-json');
+
+      const nonArrayWalls = engine.apply(
+        baseDocument({
+          walls: {}
+        }),
+        {
+          kind: 'map-edit/set-sector-wall-tex',
+          sectorId: 10,
+          tex: 'b.png'
+        }
+      );
+
+      expect(nonArrayWalls.ok).toBe(false);
+      if (nonArrayWalls.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(nonArrayWalls.error.code).toBe('map-edit/invalid-json');
+    });
+
+    it('returns invalid-json when sectorId is not a non-negative integer', () => {
+      const engine = new MapCommandEngine();
+
+      const invalidSectorIds = [Number.POSITIVE_INFINITY, -1, 1.5];
+      for (const sectorId of invalidSectorIds) {
+        const result = engine.apply(baseDocument({ walls: [] }), {
+          kind: 'map-edit/set-sector-wall-tex',
+          sectorId,
+          tex: 'b.png'
+        } as unknown as MapEditCommand);
+
+        expect(result.ok).toBe(false);
+        if (result.ok) {
+          throw new Error('Expected failure');
+        }
+        expect(result.error.code).toBe('map-edit/invalid-json');
+      }
+    });
+
+    it('returns invalid-json when tex is empty or whitespace-only', () => {
+      const engine = new MapCommandEngine();
+
+      const invalidTextures = ['', '   '];
+      for (const tex of invalidTextures) {
+        const result = engine.apply(baseDocument({ walls: [] }), {
+          kind: 'map-edit/set-sector-wall-tex',
+          sectorId: 10,
+          tex
+        } as unknown as MapEditCommand);
+
+        expect(result.ok).toBe(false);
+        if (result.ok) {
+          throw new Error('Expected failure');
+        }
+        expect(result.error.code).toBe('map-edit/invalid-json');
+      }
+    });
+  });
+
   describe('create-room', () => {
     it('still allows creating additional rooms after an adjacent join that uses the full target wall as the portal', () => {
       const engine = new MapCommandEngine();

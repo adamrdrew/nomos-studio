@@ -17,6 +17,8 @@ import {
 
 const toaster = Toaster.create({ position: Position.TOP });
 
+const SECTOR_WALL_TEX_MIXED_VALUE = '__nomos_mixed__';
+
 type EditableSelection =
   | Readonly<{ kind: 'light'; title: string; value: MapLight; target: MapEditTargetRef }>
   | Readonly<{ kind: 'particle'; title: string; value: MapParticleEmitter; target: MapEditTargetRef }>
@@ -180,8 +182,53 @@ function ReadOnlyField(props: { label: string; value: string }): JSX.Element {
   );
 }
 
+function getSectorBoundaryWallTexState(
+  mapJson: unknown,
+  sectorId: number
+): Readonly<{ kind: 'none' } | { kind: 'uniform'; tex: string } | { kind: 'mixed' }> {
+  if (!isRecord(mapJson)) {
+    return { kind: 'none' };
+  }
+
+  const walls = mapJson['walls'];
+  if (!Array.isArray(walls)) {
+    return { kind: 'none' };
+  }
+
+  const textures = new Set<string>();
+  for (const wall of walls) {
+    if (!isRecord(wall)) {
+      continue;
+    }
+
+    const frontSector = wall['front_sector'];
+    if (typeof frontSector !== 'number' || !Number.isInteger(frontSector) || frontSector !== sectorId) {
+      continue;
+    }
+
+    const tex = wall['tex'];
+    if (typeof tex !== 'string') {
+      continue;
+    }
+
+    const trimmed = tex.trim();
+    if (trimmed.length === 0) {
+      continue;
+    }
+
+    textures.add(trimmed);
+    if (textures.size > 1) {
+      return { kind: 'mixed' };
+    }
+  }
+
+  const only = textures.values().next().value as string | undefined;
+  return only ? { kind: 'uniform', tex: only } : { kind: 'none' };
+}
+
 function useEditCommitter(mapDocument: MapDocument | null): {
   commitUpdateFields: (target: MapEditTargetRef, set: Readonly<Record<string, MapEditFieldValue>>) => Promise<void>;
+  commitSetSectorWallTex: (sectorId: number, tex: string) => Promise<void>;
 } {
   const commitUpdateFields = React.useCallback(
     async (target: MapEditTargetRef, set: Readonly<Record<string, MapEditFieldValue>>): Promise<void> => {
@@ -212,7 +259,37 @@ function useEditCommitter(mapDocument: MapDocument | null): {
     [mapDocument]
   );
 
-  return { commitUpdateFields };
+  const commitSetSectorWallTex = React.useCallback(
+    async (sectorId: number, tex: string): Promise<void> => {
+      if (mapDocument === null) {
+        return;
+      }
+
+      const result = await window.nomos.map.edit({
+        baseRevision: mapDocument.revision,
+        command: {
+          kind: 'map-edit/set-sector-wall-tex',
+          sectorId,
+          tex
+        }
+      });
+
+      if (!result.ok) {
+        if (result.error.code === 'map-edit/stale-revision') {
+          await useNomosStore.getState().refreshFromMain();
+          toaster.show({ message: 'Document changed; refreshed. Please retry.', intent: Intent.WARNING });
+          return;
+        }
+
+        // eslint-disable-next-line no-console
+        console.error('[nomos] map set-sector-wall-tex failed', result.error);
+        toaster.show({ message: 'Failed to texture walls.', intent: Intent.DANGER });
+      }
+    },
+    [mapDocument]
+  );
+
+  return { commitUpdateFields, commitSetSectorWallTex };
 }
 
 function buildSectorIdSelectOptions(
@@ -948,7 +1025,7 @@ function SectorEditor(props: {
   sector: MapSector;
   target: MapEditTargetRef;
 }): JSX.Element {
-  const { commitUpdateFields } = useEditCommitter(props.mapDocument);
+  const { commitUpdateFields, commitSetSectorWallTex } = useEditCommitter(props.mapDocument);
 
   const textureOptions = React.useMemo(() => getTextureFileNames(props.assetIndex), [props.assetIndex]);
   const selectionKey = `sector:${props.sector.id}`;
@@ -959,6 +1036,7 @@ function SectorEditor(props: {
   const [floorTex, setFloorTex] = React.useState<string>(props.sector.floorTex);
   const [ceilTex, setCeilTex] = React.useState<string>(props.sector.ceilTex);
   const [floorZToggledPos, setFloorZToggledPos] = React.useState<number | null>(props.sector.floorZToggledPos);
+  const [wallTex, setWallTex] = React.useState<string>('');
 
   const [error, setError] = React.useState<string | null>(null);
 
@@ -969,8 +1047,27 @@ function SectorEditor(props: {
     setFloorTex(props.sector.floorTex);
     setCeilTex(props.sector.ceilTex);
     setFloorZToggledPos(props.sector.floorZToggledPos);
+
+    setWallTex('');
+
     setError(null);
   }, [selectionKey, props.sector]);
+
+  React.useEffect(() => {
+    const wallTexState = getSectorBoundaryWallTexState(props.mapDocument.json, props.sector.id);
+    const nextWallTex =
+      wallTexState.kind === 'uniform'
+        ? wallTexState.tex
+        : wallTexState.kind === 'mixed'
+          ? SECTOR_WALL_TEX_MIXED_VALUE
+          : '';
+
+    setWallTex((current) => {
+      const trimmed = current.trim();
+      const isUserChoice = trimmed.length > 0 && current !== SECTOR_WALL_TEX_MIXED_VALUE;
+      return isUserChoice ? current : nextWallTex;
+    });
+  }, [props.mapDocument.json, props.sector.id]);
 
   const commitNumber = async (
     jsonKey: string,
@@ -1091,6 +1188,52 @@ function SectorEditor(props: {
             </option>
           ))}
         </HTMLSelect>
+      </FormGroup>
+
+      <FormGroup label="Texture Walls" style={{ marginTop: 10, marginBottom: 0 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <HTMLSelect
+            fill={true}
+            value={wallTex}
+            onChange={(event) => {
+              setWallTex(event.currentTarget.value);
+            }}
+            style={{ flex: 1, backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
+          >
+            {textureOptions.length === 0 ? <option value="">No textures indexed</option> : null}
+
+            {textureOptions.length > 0 ? <option value="">(none)</option> : null}
+            {textureOptions.length > 0 ? <option value={SECTOR_WALL_TEX_MIXED_VALUE}>(mixed)</option> : null}
+
+            {textureOptions.map((fileName) => (
+              <option key={fileName} value={fileName}>
+                {fileName}
+              </option>
+            ))}
+
+            {wallTex.trim().length > 0 && wallTex !== SECTOR_WALL_TEX_MIXED_VALUE && !textureOptions.includes(wallTex.trim()) ? (
+              <option value={wallTex.trim()}>{wallTex.trim()} (missing)</option>
+            ) : null}
+          </HTMLSelect>
+
+          <Button
+            text="Set"
+            intent={Intent.PRIMARY}
+            disabled={
+              textureOptions.length === 0 ||
+              wallTex === SECTOR_WALL_TEX_MIXED_VALUE ||
+              wallTex.trim().length === 0 ||
+              !textureOptions.includes(wallTex.trim())
+            }
+            onClick={() => {
+              void commitSetSectorWallTex(props.sector.id, wallTex.trim());
+            }}
+          />
+        </div>
+
+        {textureOptions.length === 0 ? (
+          <div style={{ marginTop: 8, opacity: 0.7, fontSize: 12 }}>No textures indexed under Images/Textures/.</div>
+        ) : null}
       </FormGroup>
 
       <FormGroup label="floorZToggledPos" style={{ marginBottom: 0 }}>

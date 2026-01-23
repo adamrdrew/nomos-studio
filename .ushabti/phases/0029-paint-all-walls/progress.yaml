@@ -2,68 +2,105 @@ phase:
   id: 0029
   slug: paint-all-walls
   title: Paint All Walls
-  status: planned
+  status: complete
 
 steps:
   - id: S001
     title: Confirm “surrounding wall” definition (front_sector)
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Confirmed renderer treats a sector’s boundary loop as walls where wall.frontSector === sectorId (see buildSectorLoop in src/renderer/ui/editor/MapEditorCanvas.tsx and src/renderer/ui/editor/map/wallStripGeometry.ts). Portal walls are identified via backSector > -1 but loop construction/sector boundary selection is still based on frontSector, matching the Phase invariant (no cross-boundary painting)."
+    touched:
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
 
   - id: S002
     title: Define a new atomic map-edit command in the shared IPC contract
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added new atomic command kind 'map-edit/set-sector-wall-tex' to the shared MapEditAtomicCommand union; ran typecheck successfully."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
 
   - id: S003
     title: Implement the command in MapCommandEngine
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Implemented 'map-edit/set-sector-wall-tex' in MapCommandEngine: validates sectorId/tex, iterates walls[], and updates wall.tex where front_sector matches sectorId; selection effect is keep."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
 
   - id: S004
     title: Add MapCommandEngine unit tests for all conditional paths
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added MapCommandEngine tests for 'map-edit/set-sector-wall-tex' covering success (including portal walls via front_sector match), no-op success, and invalid-json failure branches (walls shape, sectorId, tex). Jest run is green."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
 
   - id: S005
     title: Ensure MapEditService integrates the new command end-to-end
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Updated MapEditService to accept 'map-edit/set-sector-wall-tex' (supported kind check + result routing) and added a MapEditService unit test asserting the command is routed, history is recorded, and an applied result is returned."
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
 
   - id: S006
     title: Add the “Texture Walls” control to the Sector Object Properties UI
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added a sector-only 'Texture Walls' dropdown + Set button to the Inspector. Dropdown selection is local; Set dispatches 'map-edit/set-sector-wall-tex'. UI derives initial state from boundary walls (front_sector match) and shows a (mixed) placeholder when textures differ; Set is disabled when no indexed/valid selection."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
 
   - id: S007
     title: Update subsystem documentation (L09)
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Updated docs to reflect the new 'map-edit/set-sector-wall-tex' atomic command (validation + front_sector-only semantics) and the new sector Object Properties 'Texture Walls' dropdown + Set commit behavior."
+    touched:
+      - docs/map-edit-command-system.md
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
 
   - id: S008
     title: Manual smoke test in the editor
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "User verified: sector 'Texture Walls' dropdown + Set applies expected textures to front_sector boundary walls only; undo/redo behaves correctly."
+    touched:
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
 
   - id: S009
     title: Verification gates
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Ran jest, typecheck, and lint successfully."
+    touched:
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
+
+  - id: S010
+    title: Complete branch coverage for malformed wall entries (L04)
+    implemented: true
+    reviewed: true
+    notes: "Added MapCommandEngine tests covering malformed walls entries (non-record entries and invalid/missing/non-integer front_sector values) and verified jest is green."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0029-paint-all-walls/steps.md
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml
+
+  - id: S011
+    title: Update review decision and phase status
+    implemented: true
+    reviewed: true
+    notes: "Updated review.md to reflect S010 completion and returned phase status to review."
+    touched:
+      - .ushabti/phases/0029-paint-all-walls/review.md
+      - .ushabti/phases/0029-paint-all-walls/steps.md
+      - .ushabti/phases/0029-paint-all-walls/progress.yaml

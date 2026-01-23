@@ -105,6 +105,7 @@ export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/create-door'; atWallIndex: number }>
   | Readonly<{ kind: 'map-edit/create-room'; request: CreateRoomRequest }>
+  | Readonly<{ kind: 'map-edit/set-sector-wall-tex'; sectorId: number; tex: string }>
   | Readonly<{
       kind: 'map-edit/set-player-start';
       playerStart: Readonly<{ x: number; y: number; angleDeg: number }>;

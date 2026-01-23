@@ -44,6 +44,7 @@ Atomic commands are the building blocks for edits.
 - `map-edit/clone`
 - `map-edit/create-door`
 - `map-edit/create-room`
+- `map-edit/set-sector-wall-tex`
 - `map-edit/set-player-start`
 - `map-edit/update-fields`
 - `map-edit/move-entity`
@@ -195,6 +196,26 @@ Set-player-start semantics:
 - Writes `player_start` onto the map root JSON object as `{ x, y, angle_deg }`.
 - Selection effect is `map-edit/selection/keep`.
 - This is a dedicated command because `map-edit/update-fields` only allows JSON primitives (objects/arrays are rejected).
+
+`map-edit/set-sector-wall-tex` applies a wall texture filename to the boundary walls of a sector:
+```ts
+{
+  kind: 'map-edit/set-sector-wall-tex';
+  sectorId: number;
+  tex: string;
+}
+```
+
+Set-sector-wall-tex validation rules:
+- `sectorId` must be a non-negative integer.
+- `tex` must be a non-empty string after trimming.
+- `walls` must exist and be an array.
+
+Set-sector-wall-tex semantics:
+- Updates `walls[].tex` for each wall where `walls[].front_sector === sectorId`.
+- Does not paint across sector boundaries:
+  - walls where the sector is only referenced as `back_sector` are intentionally not updated.
+- Selection effect is `map-edit/selection/keep`.
 
 ### Transaction command
 A transaction bundles multiple atomic commands into a single atomic operation.

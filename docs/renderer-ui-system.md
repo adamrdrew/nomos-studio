@@ -165,6 +165,10 @@ The editor UI is organized like a traditional creative tool:
 			- Door fields include `tex`, `starts_closed`, `required_item`, and `required_item_missing_message`.
 			- Sector fields include `light`.
 				- The UI communicates `light` as a 0..1 scalar and clamps out-of-range inputs to `[0, 1]` on commit.
+			- Sector fields include a **Texture Walls** control (dropdown + Set button).
+				- The dropdown is populated from textures indexed under `Images/Textures/` (fallback `Assets/Images/Textures/`) and uses basenames.
+				- Changing the dropdown does not commit; clicking **Set** commits a single `map-edit/set-sector-wall-tex` edit.
+				- “Surrounding walls” are defined as walls where `wall.front_sector === sectorId` (no cross-boundary painting).
 			- Wall fields include toggle authoring:
 				- `toggle_sector` (checkbox)
 				- When enabled, the UI exposes `toggle_sector_id` (dropdown + eye-dropper pick mode), `toggle_sector_oneshot`, `toggle_sound`, and `toggle_sound_finish`.

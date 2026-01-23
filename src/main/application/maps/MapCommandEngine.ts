@@ -310,6 +310,46 @@ export class MapCommandEngine {
           }
         };
       }
+      case 'map-edit/set-sector-wall-tex': {
+        const sectorId = command.sectorId;
+        if (!Number.isFinite(sectorId) || !Number.isInteger(sectorId) || sectorId < 0) {
+          return err('map-edit/invalid-json', 'set-sector-wall-tex.sectorId must be a non-negative integer');
+        }
+
+        const tex = command.tex.trim();
+        if (tex.length === 0) {
+          return err('map-edit/invalid-json', 'set-sector-wall-tex.tex must be a non-empty string');
+        }
+
+        const walls = asArray(json['walls'], 'walls');
+        if (!walls.ok) {
+          return walls;
+        }
+
+        for (const wall of walls.value) {
+          if (!isRecord(wall)) {
+            continue;
+          }
+
+          const frontSector = wall['front_sector'];
+          if (typeof frontSector !== 'number' || !Number.isFinite(frontSector) || !Number.isInteger(frontSector)) {
+            continue;
+          }
+
+          if (frontSector === sectorId) {
+            wall['tex'] = tex;
+          }
+        }
+
+        return {
+          ok: true,
+          value: {
+            nextJson: json,
+            selection: { kind: 'map-edit/selection/keep' },
+            nextSelection: currentSelection ?? null
+          }
+        };
+      }
       case 'map-edit/set-player-start': {
         const x = command.playerStart.x;
         const y = command.playerStart.y;

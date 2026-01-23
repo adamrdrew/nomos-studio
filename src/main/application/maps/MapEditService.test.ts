@@ -134,6 +134,70 @@ describe('MapEditService', () => {
     expect(getDocument()?.revision).toBe(2);
   });
 
+  it('edit accepts set-sector-wall-tex, records history, and returns applied', () => {
+    const lastValidation: MapValidationRecord = { ok: true, validatedAtIso: '2025-01-01T00:00:00.000Z' };
+
+    const { store, getDocument, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson(), walls: [{ v0: 1, v1: 2, front_sector: 10, back_sector: -1, tex: 'a.png' }] },
+      dirty: false,
+      lastValidation,
+      revision: 1
+    });
+
+    let applyCalls = 0;
+    const engine: MapCommandEngine = {
+      apply: (_document: MapDocument, command: Parameters<MapCommandEngine['apply']>[1]) => {
+        applyCalls += 1;
+        expect(command.kind).toBe('map-edit/set-sector-wall-tex');
+
+        return {
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson() },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        };
+      }
+    } as unknown as MapCommandEngine;
+
+    let recordedEntry: MapHistoryEntry | null = null;
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: (entry) => {
+        recordedEntry = entry;
+      },
+      getInfo: () => ({ canUndo: true, canRedo: false, undoDepth: 1, redoDepth: 0 }),
+      undo: () => {
+        throw new Error('undo should not be called in this test');
+      },
+      redo: () => {
+        throw new Error('redo should not be called in this test');
+      }
+    };
+
+    const service = createServiceWithEngineAndHistory(store, engine, history);
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/set-sector-wall-tex', sectorId: 10, tex: 'b.png' }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(result.value.kind).toBe('map-edit/applied');
+    expect(applyCalls).toBe(1);
+    expect(setCalls).toHaveLength(1);
+    expect(getDocument()?.revision).toBe(2);
+    expect(getDocument()?.dirty).toBe(true);
+    expect(getDocument()?.lastValidation).toBe(null);
+    expect(recordedEntry).not.toBeNull();
+  });
+
   it('edit rejects mismatched baseRevision with stale-revision and does not mutate store/engine/history', () => {
     const { store, setCalls } = createMutableStore({
       filePath: '/maps/test.json',

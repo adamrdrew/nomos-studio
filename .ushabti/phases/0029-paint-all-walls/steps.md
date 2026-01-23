@@ -89,3 +89,19 @@
   - Run `npm run typecheck`.
   - Run `npm run lint`.
 - **Done when:** All tasks succeed.
+
+## S010 — Complete branch coverage for malformed wall entries (L04)
+- **Intent:** Ensure the new command path is robust and fully covered by unit tests.
+- **Work:**
+  - Extend `MapCommandEngine` tests for `map-edit/set-sector-wall-tex` to cover the remaining branch outcomes inside wall iteration:
+    - A `walls[]` entry that is not an object is ignored (no crash).
+    - A wall object with `front_sector` missing/invalid type/non-integer is ignored.
+    - Valid matching walls are still updated even when malformed entries are present.
+- **Done when:** `MapCommandEngine.test.ts` covers these cases via `MapCommandEngine.apply(...)` and jest is green.
+
+## S011 — Update review decision and phase status
+- **Intent:** Keep Phase tracking and review artifacts truthful and consistent.
+- **Work:**
+  - Update `.ushabti/phases/0029-paint-all-walls/review.md` to reflect whether S010 is resolved.
+  - Update `.ushabti/phases/0029-paint-all-walls/progress.yaml` to set phase `status: review` once all steps are implemented.
+- **Done when:** Review notes match reality and phase status is `review`.
