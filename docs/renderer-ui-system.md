@@ -158,9 +158,10 @@ The editor UI is organized like a traditional creative tool:
 	- The toolbox is a compact, scrollable column so additional tools can be added without odd stretching.
 	- Entity placement drag/drop:
 		- The map canvas accepts drag payloads from the Entities panel.
-		- While dragging an entity, the cursor indicates validity:
-			- `copy` when the cursor world point is inside any sector
-			- `not-allowed` everywhere else
+		- While dragging an entity, drop validity is enforced by native DOM drag/drop semantics:
+			- The map only **allows** dropping when the cursor world point is inside any sector.
+			- Implementation uses `dragover` + `preventDefault()` (to allow a drop) and sets `dataTransfer.dropEffect` (`copy` vs `none`) to signal intent.
+			- Note: the exact OS cursor glyph can vary by platform/browser; validity is enforced regardless of cursor appearance.
 		- Drops outside any sector are blocked (no map edit is issued).
 		- On a valid drop, the renderer requests `map-edit/create-entity` and applies the returned selection effect.
 

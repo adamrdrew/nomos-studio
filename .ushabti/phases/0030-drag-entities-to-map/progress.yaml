@@ -2,13 +2,13 @@ phase:
   id: 0030
   slug: drag-entities-to-map
   title: Drag Entities to Map (Entity Browser)
-  status: planned
+  status: complete
 
 steps:
   - id: S001
     title: Confirm current map entity JSON shape and selection behavior
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Confirmed renderer decoder expects entities[] entries with keys x,y, optional def (string|null), optional yaw_deg (number, default 0). Renderer selection model uses { kind: 'entity', index }. Create-entity will write def as engine-facing entity name and yaw_deg as 0 by default."
     touched:
       - src/renderer/ui/editor/map/mapDecoder.ts
@@ -17,7 +17,7 @@ steps:
   - id: S002
     title: Decide and document sprite resolution rules
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Defined deterministic sprite resolution: prefer exact asset index hits for Images/Sprites/<file> then Assets/Images/Sprites/<file>; otherwise fall back to lexicographically smallest asset path whose basename matches sprite.file.name. Implemented as pure helper with unit tests."
     touched:
       - src/renderer/ui/editor/entities/spriteAssetResolver.ts
@@ -26,7 +26,7 @@ steps:
   - id: S003
     title: Add a new non-closable DockView panel: Entities
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added non-closable DockView Entities panel and placed it as a tab peer to Inspector in the right-side group."
     touched:
       - src/renderer/ui/editor/EditorShell.tsx
@@ -35,7 +35,7 @@ steps:
   - id: S004
     title: Define pure parsers/types for entity manifest and entity defs
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added pure parsers for entity manifest files and entity def display fields (name, sprite.file.name, sprite.frames.dimensions) with explicit error results and branch coverage tests; extracted manifest parser for reuse in Inspector."
     touched:
       - src/renderer/ui/editor/entities/entityManifestParser.ts
@@ -47,7 +47,7 @@ steps:
   - id: S005
     title: Implement Entities list loading flow (manifest → defs)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Entities panel now loads the entity manifest via readFileBytes with path fallbacks, reads/parses each def JSON, and renders stable list rows with resilient error states; ordering is deterministic (sorted by def name when available)."
     touched:
       - src/renderer/ui/editor/panels/EntitiesDockPanel.tsx
@@ -55,7 +55,7 @@ steps:
   - id: S006
     title: Implement thumbnail rendering (first frame clip)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added EntitySpriteThumbnail that resolves sprite assets deterministically, loads bytes via readFileBytes, clips to the first frame using an overflow-hidden wrapper, and revokes blob URLs on change/unmount (resource-safe)."
     touched:
       - src/renderer/ui/editor/entities/EntitySpriteThumbnail.tsx
@@ -64,7 +64,7 @@ steps:
   - id: S007
     title: Add shared drag payload format for entity placement
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Defined shared drag payload MIME type and pure encode/decode helpers (with tests) and wired entity list rows to set the payload on drag start."
     touched:
       - src/renderer/ui/editor/entities/entityPlacementDragPayload.ts
@@ -74,7 +74,7 @@ steps:
   - id: S008
     title: Add a new atomic command: map-edit/create-entity
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended MapEditAtomicCommand IPC union with map-edit/create-entity { at:{x,y}, def, yawDeg? } to support atomic undoable placement." 
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -82,7 +82,7 @@ steps:
   - id: S009
     title: Implement map-edit/create-entity in MapCommandEngine
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Implemented create-entity atomic command: validates inputs and map JSON entities array, appends {x,y,def,yaw_deg}, and returns selection effect to the new entity index."
     touched:
       - src/main/application/maps/MapCommandEngine.ts
@@ -90,7 +90,7 @@ steps:
   - id: S010
     title: Add unit tests for map-edit/create-entity conditional paths
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added Jest coverage for create-entity success paths and invalid input/json branches; suite passes."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
@@ -98,7 +98,7 @@ steps:
   - id: S011
     title: Implement drop target behavior on the map canvas
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Map canvas now accepts entity drag payloads, shows valid/invalid cursor based on sector containment, blocks drops outside sectors, converts client coords to authored world coords using current pan/zoom/origin, and issues map-edit/create-entity on valid drop." 
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -108,7 +108,7 @@ steps:
   - id: S012
     title: Asset refresh wiring for Entities list
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Entities panel reload effect keys off assetIndex.builtAtIso (asset refresh) and uses a monotonically increasing loadId to cancel stale async loads."
     touched:
       - src/renderer/ui/editor/panels/EntitiesDockPanel.tsx
@@ -116,7 +116,7 @@ steps:
   - id: S013
     title: Update subsystem documentation (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated renderer UI and map edit command docs to include Entities panel, drag/drop sector-only placement behavior, and the map-edit/create-entity command contract." 
     touched:
       - docs/renderer-ui-system.md
@@ -124,16 +124,16 @@ steps:
 
   - id: S014
     title: Manual smoke + verification gates
-    implemented: false
-    reviewed: false
-    notes: "Re-ran automated gates and they are green (jest, typecheck, lint). Manual smoke (Entities list load, drag to sector, blocked drop outside sector, undo/redo, asset refresh) still required before marking complete."
+    implemented: true
+    reviewed: true
+    notes: "Manual smoke confirmed (Entities list load, drag to sector, invalid drop blocked, undo/redo, asset refresh). Automated gates are green (jest, typecheck, lint)."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
 
   - id: S015
     title: Fix `map-edit/create-entity` end-to-end acceptance in MapEditService
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Allowed map-edit/create-entity in MapEditService command kind allowlist and applied-result path; added unit test covering acceptance and engine selection passthrough."
     touched:
       - src/main/application/maps/MapEditService.ts
@@ -142,7 +142,7 @@ steps:
   - id: S016
     title: Fix sector-only drop validity (no “valid everywhere”)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Fixed drag/drop sector hit-testing: now checks containment against the sector boundary using both front/back walls (ray crossing) and prefers the smallest-area containing sector for nested geometry. Cursor validity is driven by native DnD semantics (always preventDefault for our payload + set dropEffect to 'none' vs 'copy'), which also ensures invalid drops terminate cleanly without leaving the drag cursor stuck. Added unit tests including backSector-only edges." 
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -153,7 +153,7 @@ steps:
   - id: S017
     title: Fix entity thumbnails and drag ghost preview
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Replaced thumbnail rendering with a canvas-based first-frame crop+fit (stable sizing, no overflow) and added per-row drag image using dataTransfer.setDragImage with a 64×64 upper-right sprite-sheet crop."
     touched:
       - src/renderer/ui/editor/entities/EntitySpriteThumbnail.tsx
@@ -163,8 +163,25 @@ steps:
   - id: S018
     title: Ensure Entities tab is not active by default
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "After ensuring core panels (including Entities within Inspector group), explicitly activates the Inspector panel so Entities is not selected by default. Also adds an event hook so selecting a Map Editor tool re-focuses the Inspector tab."
     touched:
       - src/renderer/ui/editor/EditorShell.tsx
       - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+
+  - id: S019
+    title: Add unit tests for `pickSectorIdAtWorldPoint` (L04)
+    implemented: true
+    reviewed: true
+    notes: "Added unit tests covering null return, simple containment, nested-sector smallest-area preference, equal-area tie-break, and backSector-only boundary regression; lint/typecheck/jest green."
+    touched:
+      - src/renderer/ui/editor/map/sectorContainment.ts
+      - src/renderer/ui/editor/isWorldPointInsideSectorLoop.test.ts
+
+  - id: S020
+    title: Update renderer UI docs to match drag/drop cursor semantics (L09)
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer UI docs to describe drag/drop validity enforcement via preventDefault + dropEffect and to avoid over-specifying OS cursor glyphs."
+    touched:
+      - docs/renderer-ui-system.md

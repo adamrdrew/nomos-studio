@@ -180,3 +180,18 @@
   - After adding core panels, explicitly activate the Inspector panel.
   - Add a small unit test if there is an existing pattern for Dockview layout initialization tests; otherwise keep change minimal.
 - **Done when:** The default right-side active tab is Inspector (Entities not selected) on startup.
+
+## S019 — Add unit tests for `pickSectorIdAtWorldPoint` (L04)
+- **Intent:** Ensure the new exported sector picking helper is covered across conditional paths.
+- **Work:** Add unit tests covering at least:
+  - returns `null` when no sectors contain the point
+  - returns the expected sector id for a simple containing case
+  - nested sectors: prefers smallest-area containing sector
+  - tie-break: if areas tie, lowest sector id wins
+  - backSector-only boundary still participates in picking (regression)
+- **Done when:** Jest covers all branches in `pickSectorIdAtWorldPoint` and related helpers it owns.
+
+## S020 — Update renderer UI docs to match drag/drop cursor semantics (L09)
+- **Intent:** Ensure docs describe the actual validity behavior without over-promising OS-specific cursor visuals.
+- **Work:** Update `docs/renderer-ui-system.md` to describe that validity is enforced by DOM drag/drop semantics (`preventDefault` + `dataTransfer.dropEffect`), and that the exact OS cursor glyph may vary.
+- **Done when:** Docs reflect the implemented mechanism and constraints accurately.
