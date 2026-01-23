@@ -462,6 +462,62 @@ describe('MapCommandEngine', () => {
       }
     });
 
+    it('rejects create-room when defaults do not include enough textures', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+      const before = JSON.parse(JSON.stringify(json)) as unknown;
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: 5 },
+          size: { width: 4, height: 4 },
+          rotationQuarterTurns: 0,
+          defaults: {
+            ...baseCreateRoomDefaults(),
+            wallTex: '',
+            floorTex: 'FLOOR.PNG',
+            ceilTex: 'CEIL.PNG'
+          },
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/create-room/not-enough-textures');
+      expect(json).toEqual(before);
+    });
+
+    it('rejects nested placement when the room is not fully inside the requested enclosing sector', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+      const before = JSON.parse(JSON.stringify(json)) as unknown;
+
+      // Center far outside the sector 0..10 bounds.
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 50, y: 50 },
+          size: { width: 4, height: 4 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/create-room/not-inside-any-sector');
+      expect(json).toEqual(before);
+    });
+
     it('rejects adjacent placement when snapDistancePx exceeds threshold', () => {
       const engine = new MapCommandEngine();
       const json = baseMapJsonForRoomCreation();
@@ -569,6 +625,34 @@ describe('MapCommandEngine', () => {
       if (!result.ok) {
         expect(result.error.code).toBe('map-edit/create-room/non-collinear');
       }
+    });
+
+    it('rejects adjacent placement when a door is already bound to the target wall_index', () => {
+      const engine = new MapCommandEngine();
+      const json: Record<string, unknown> = {
+        ...baseMapJsonForRoomCreation(),
+        doors: [{ wall_index: 0 }]
+      };
+      const before = JSON.parse(JSON.stringify(json)) as unknown;
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'rectangle',
+          center: { x: 5, y: -1.1 },
+          size: { width: 6, height: 2 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/adjacent', targetWallIndex: 0, snapDistancePx: 10 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/create-room/invalid-request');
+      expect(json).toEqual(before);
     });
   });
 

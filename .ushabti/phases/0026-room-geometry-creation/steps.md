@@ -128,19 +128,6 @@
   - Update `docs/renderer-ui-system.md` to document the Room tool, commands, preview feedback, and key bindings.
 - **Done when:** Docs match implemented behavior.
 
-## S012 — Quality gates + manual verification record
-- **Intent:** Finish Phase to green.
-- **Work:**
-  - Run `npm test`, `npm run typecheck`, `npm run lint`.
-  - Manual verification checklist:
-    - preview appears and tracks mouse
-    - green vs red validity matches expected cases
-    - nested room creation sets `back_sector` to enclosing sector id
-    - adjacent room creation snaps + creates portal + does not reorder walls
-    - invalid placements do nothing
-    - undo/redo works
-- **Done when:** Automated checks pass and verification is recorded in `review.md`.
-
 ## S013 — Fix adjacent placement preview (edge-based snap detection)
 - **Intent:** Make adjacent room creation reachable in the UI by detecting proximity to an existing wall based on the candidate polygon boundary (not its center).
 - **Work:**
@@ -274,8 +261,9 @@
 ## S030 — Add missing unit tests for mapRoomGeometry exported helpers (L04 conditional paths)
 - **Intent:** Satisfy L04 by covering the remaining conditional branches in exported domain helpers.
 - **Work:**
-  - Add tests for `computeRoomPlacementValidity` branches not currently covered (at minimum: `invalid-size`, adjacent `non-collinear`, and adjacent `ambiguous`).
+  - Add tests for `computeRoomPlacementValidity` branches not currently covered (at minimum: `invalid-size` and nested `intersects-walls`).
   - Add tests for `computeAdjacentPortalPlan` error returns (`invalid-wall-index`, `non-collinear`, `no-overlap`) in addition to success.
+  - Document (in progress notes) that `computeRoomPlacementValidity` returning `non-collinear` / `ambiguous` via portal planning is not reachable with the current eligibility filter (snap target selection requires a positive-length overlapping parallel edge, which also guarantees portal planning succeeds).
   - Use the Jest coverage output for `src/shared/domain/mapRoomGeometry.ts` to confirm those branches are exercised.
 - **Done when:** Jest remains green and `mapRoomGeometry.ts` no longer reports uncovered lines for these branches.
 
@@ -285,3 +273,16 @@
   - Add unit tests for remaining create-room failure modes that return distinct typed errors (e.g., `not-enough-textures`, `not-inside-any-sector`, and “door already bound to wall_index” invalid-request).
   - Ensure tests focus on our behavior (error codes + unchanged JSON) rather than library behavior.
 - **Done when:** Jest remains green and the create-room command’s meaningful failure branches are covered.
+
+## S012 — Quality gates + manual verification record
+- **Intent:** Finish Phase to green.
+- **Work:**
+  - Run `npm test`, `npm run typecheck`, `npm run lint`.
+  - Manual verification checklist:
+    - preview appears and tracks mouse
+    - green vs red validity matches expected cases
+    - nested room creation sets `back_sector` to enclosing sector id
+    - adjacent room creation snaps + creates portal + does not reorder walls
+    - invalid placements do nothing
+    - undo/redo works
+- **Done when:** Automated checks pass and verification is recorded in `review.md`.

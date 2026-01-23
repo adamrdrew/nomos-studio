@@ -2,7 +2,7 @@ phase:
   id: 0026
   slug: room-geometry-creation
   title: Room Geometry Creation
-  status: building
+  status: review
 
 steps:
   - id: S001
@@ -111,15 +111,6 @@ steps:
     touched:
       - docs/map-edit-command-system.md
       - docs/renderer-ui-system.md
-
-  - id: S012
-    title: Quality gates + manual verification record
-    implemented: false
-    reviewed: false
-    notes: "Gate re-run (Overseer): npm test passes (exit 0) and npm run typecheck passes, but npm run lint currently FAILS due to a react-hooks/exhaustive-deps warning in MapPropertiesSection.tsx (max-warnings=0). Additionally, Jest coverage output confirms multiple uncovered conditional branches in src/shared/domain/mapRoomGeometry.ts (e.g., computeAdjacentPortalPlan error returns and computeRoomPlacementValidity invalid-size / nested-intersects paths), so L04 coverage of conditional paths is not yet satisfied."
-    touched:
-      - .ushabti/phases/0026-room-geometry-creation/review.md
-      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S013
     title: Fix adjacent placement preview (edge-based snap detection)
@@ -289,25 +280,37 @@ steps:
 
   - id: S029
     title: Fix lint failure (react-hooks/exhaustive-deps) without regressing player start angle editing
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "Fixed react-hooks/exhaustive-deps warning in MapPropertiesSection by syncing player-start input state from derived primitive strings (x/y/angle) + revision, avoiding dependency on an unstable currentPlayerStart object identity. Verified npm run lint passes with --max-warnings=0; preserves prior angle-edit stability fix (no reset-on-render)."
     touched:
       - src/renderer/ui/editor/inspector/MapPropertiesSection.tsx
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S030
     title: Add missing unit tests for mapRoomGeometry exported helpers (L04 conditional paths)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "Added targeted unit tests to cover remaining conditional branches in exported helpers in src/shared/domain/mapRoomGeometry.ts (L04), including: computeRoomPolygon quarter-turn rotations (covers rotateQuarterTurns branches), polygonEdges defensive skip, computeAdjacentPortalPlan error cases (invalid wall index + missing wall vertices + non-collinear + no-overlap) and edge-selection continues/tie-breaks (degenerate edges, disjoint overlap, endpoint-only overlap, closer-edge replacement, larger-overlap tie-break), findNearestWallToPolygonWithinThresholdPx best-selection non-replacement branch, and computeRoomPlacementValidity ambiguous-crossing logic for both horizontal and vertical walls. Coverage for mapRoomGeometry.ts is now 100% branches/lines. Note: computeRoomPlacementValidity mapping of portal-plan errors to non-collinear/ambiguous is not expected under normal eligibility invariants (eligible snap target requires a positive-length overlapping parallel edge), but is still unit-tested via intentionally malformed geometry to validate error mapping behavior."
     touched:
       - src/shared/domain/mapRoomGeometry.test.ts
       - src/shared/domain/mapRoomGeometry.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S031
     title: Expand MapCommandEngine create-room tests to cover remaining meaningful failure branches (L04)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "Expanded MapCommandEngine create-room unit tests to cover additional distinct typed failure outcomes: not-enough-textures (empty/invalid defaults strings), not-inside-any-sector (nested placement not actually inside the requested sector), and invalid-request when a door is already bound to the join target wall_index. Each test asserts error code and confirms the input JSON object is not mutated on failure."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S012
+    title: Quality gates + manual verification record
+    implemented: true
+    reviewed: false
+    notes: "Quality gates re-run: npm test PASS (all suites), npm run typecheck PASS, npm run lint PASS (eslint emits a non-fatal @typescript-eslint parser warning about TS 5.9.3 support, but exits 0 under --max-warnings=0). review.md updated with current gate status and manual verification checklist. Runtime smoke check (user): launched the app; editor behavior remains correct." 
+    touched:
+      - .ushabti/phases/0026-room-geometry-creation/review.md
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml

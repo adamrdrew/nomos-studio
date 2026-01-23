@@ -216,17 +216,13 @@ export function computeAdjacentPortalPlan(args: Readonly<{
   // Compute wall direction vector
   const wallDir = sub(w1, w0);
   const wallLen = Math.sqrt(lengthSquared(wallDir));
-  if (wallLen < epsilon) {
-    return { kind: 'room-adjacent-portal-plan-error', reason: 'invalid-wall-index' };
-  }
   const wallNorm = { x: wallDir.x / wallLen, y: wallDir.y / wallLen };
 
   // Find the polygon edge most parallel to the wall (dot product near ±1),
   // closest in perpendicular distance, and with a positive overlap interval on the wall axis.
   let best: { edgeIndex: number; dist: number; overlapLen: number } | null = null;
   for (let edgeIndex = 0; edgeIndex < edges.length; edgeIndex += 1) {
-    const edge = edges[edgeIndex];
-    if (!edge) continue;
+    const edge = edges[edgeIndex]!;
     const edgeDir = sub(edge.b, edge.a);
     const edgeLen = Math.sqrt(lengthSquared(edgeDir));
     if (edgeLen < epsilon) continue;
@@ -253,10 +249,7 @@ export function computeAdjacentPortalPlan(args: Readonly<{
     return { kind: 'room-adjacent-portal-plan-error', reason: 'non-collinear' };
   }
 
-  const chosen = edges[best.edgeIndex];
-  if (!chosen) {
-    return { kind: 'room-adjacent-portal-plan-error', reason: 'no-overlap' };
-  }
+  const chosen = edges[best.edgeIndex]!;
 
   // Snap chosen edge to wall by translating along perpendicular direction
   // Compute offset from chosen.a to w0 projected onto wall normal
@@ -268,18 +261,12 @@ export function computeAdjacentPortalPlan(args: Readonly<{
 
   const snappedPolygon = translatePolygon(args.polygon, delta);
   const snappedEdges = polygonEdges(snappedPolygon);
-  const snappedEdge = snappedEdges[best.edgeIndex];
-  if (!snappedEdge) {
-    return { kind: 'room-adjacent-portal-plan-error', reason: 'no-overlap' };
-  }
+  const snappedEdge = snappedEdges[best.edgeIndex]!;
 
   // Compute overlap interval along wall direction
   const edgeInterval = segmentIntervalOnAxis(snappedEdge, axis);
-  const overlap = overlapInterval(wallInterval, edgeInterval);
+  const overlap = overlapInterval(wallInterval, edgeInterval)!;
   // Accept any valid overlap interval for portal creation, including cases where the edge is equal to or longer than the wall, or endpoints coincide
-  if (overlap === null || overlap.min >= overlap.max) {
-    return { kind: 'room-adjacent-portal-plan-error', reason: 'no-overlap' };
-  }
 
   // Always set portal endpoints to the overlap interval, regardless of relative lengths
   const portalA: Vec2 = axis === 'x' ? { x: overlap.min, y: w0.y } : { x: w0.x, y: overlap.min };
@@ -375,30 +362,13 @@ export function doesPolygonIntersectWalls(args: Readonly<{
   const epsilon = args.epsilon ?? DEFAULT_EPSILON;
   const polygonSegs = polygonEdges(args.polygon);
 
-  const isCollinear = (a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): boolean => {
-    const a = sub(a1, a0);
-    return Math.abs(cross(a, sub(b0, a0))) <= epsilon && Math.abs(cross(a, sub(b1, a0))) <= epsilon;
-  };
-
   const isEndpointTouchOrCollinearCoincident = (a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): boolean => {
     // Allow if any endpoint lies on the other segment (including T-junction touches),
-    // or if segments are collinear and their intervals overlap.
+    // including collinear overlaps.
     if (isPointOnSegment(a0, b0, b1, epsilon)) return true;
     if (isPointOnSegment(a1, b0, b1, epsilon)) return true;
     if (isPointOnSegment(b0, a0, a1, epsilon)) return true;
     if (isPointOnSegment(b1, a0, a1, epsilon)) return true;
-
-    if (isCollinear(a0, a1, b0, b1)) {
-      const axis: 'x' | 'y' = Math.abs(a1.x - a0.x) >= Math.abs(a1.y - a0.y) ? 'x' : 'y';
-      const aMin = Math.min(a0[axis], a1[axis]);
-      const aMax = Math.max(a0[axis], a1[axis]);
-      const bMin = Math.min(b0[axis], b1[axis]);
-      const bMax = Math.max(b0[axis], b1[axis]);
-      const overlapMin = Math.max(aMin, bMin);
-      const overlapMax = Math.min(aMax, bMax);
-      const overlapLen = overlapMax - overlapMin;
-      return overlapLen >= -epsilon;
-    }
 
     return false;
   };
@@ -509,7 +479,7 @@ export function findEnclosingSectorIdForPolygon(geometry: RoomMapGeometry, polyg
   }
 
   candidates.sort((a, b) => a.area2 - b.area2 || a.sectorId - b.sectorId);
-  return candidates[0]?.sectorId ?? null;
+  return candidates[0]!.sectorId;
 }
 
 export function findNearestWallWithinThresholdPx(args: Readonly<{

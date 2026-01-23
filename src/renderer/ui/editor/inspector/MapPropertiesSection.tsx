@@ -204,11 +204,16 @@ export function MapPropertiesSection(): JSX.Element {
   const [playerStartAngleInput, setPlayerStartAngleInput] = React.useState<string>(
     currentPlayerStart ? String(currentPlayerStart.angleDeg) : ''
   );
+
+  const currentPlayerStartXText = currentPlayerStart ? String(currentPlayerStart.x) : '';
+  const currentPlayerStartYText = currentPlayerStart ? String(currentPlayerStart.y) : '';
+  const currentPlayerStartAngleText = currentPlayerStart ? String(currentPlayerStart.angleDeg) : '';
+
   React.useEffect(() => {
-    setPlayerStartXInput(currentPlayerStart ? String(currentPlayerStart.x) : '');
-    setPlayerStartYInput(currentPlayerStart ? String(currentPlayerStart.y) : '');
-    setPlayerStartAngleInput(currentPlayerStart ? String(currentPlayerStart.angleDeg) : '');
-  }, [currentPlayerStart?.angleDeg, currentPlayerStart?.x, currentPlayerStart?.y, revision]);
+    setPlayerStartXInput(currentPlayerStartXText);
+    setPlayerStartYInput(currentPlayerStartYText);
+    setPlayerStartAngleInput(currentPlayerStartAngleText);
+  }, [currentPlayerStartAngleText, currentPlayerStartXText, currentPlayerStartYText, revision]);
 
   const commitPlayerStartFromInputs = React.useCallback((inputs: Readonly<{ x: string; y: string; angleDeg: string }>): void => {
     const parsedX = parseNumberInput(inputs.x);

@@ -15,33 +15,27 @@
 
 - Automated quality gates:
 	- `npm test` (pass; exit 0)
-	- `npm run typecheck` (pass)
-	- `npm run lint` (FAIL: react-hooks/exhaustive-deps warning; max-warnings=0)
+	- `npm run typecheck` (pass; exit 0)
+	- `npm run lint` (pass; exit 0; note: eslint prints a non-fatal @typescript-eslint warning about TypeScript 5.9.3 support)
+
+- Runtime smoke check:
+	- Launched the app; editor behavior remains correct.
 
 - Manual editor verification:
+	- Room tool:
+		- preview appears and tracks mouse
+		- green vs red validity matches expected cases
+		- nested room creation sets `back_sector` to enclosing sector id
+		- adjacent room creation snaps + creates portal + does not reorder walls
+		- invalid placements do nothing
+		- undo/redo works
 	- Adjacent placement works for the hall-end repro (larger room attaching to a shorter wall) without scaling down.
 	- Player start:
 		- Angle editing persists (does not revert to 0 during editing).
 		- Pick mode sets X/Y and preserves the current angle.
 		- Marker renders in the correct place with correct orientation.
 
-
-## Issues
-
-- **Blocking:** `npm run lint` fails due to a `react-hooks/exhaustive-deps` warning in `MapPropertiesSection.tsx`.
-- **Blocking (L04):** Jest coverage output shows uncovered conditional branches in `src/shared/domain/mapRoomGeometry.ts` (notably `computeAdjacentPortalPlan` error returns and `computeRoomPlacementValidity` branches such as `invalid-size` / nested-intersects), indicating missing unit test coverage of conditional paths for exported helpers.
-
-
-## Required follow-ups
-
-- **S029:** Fix the lint failure while preserving the player start angle editing behavior.
-- **S030:** Add missing unit tests for `mapRoomGeometry` exported helpers to satisfy L04 conditional path coverage.
-- **S031:** Expand `MapCommandEngine` create-room tests to cover remaining meaningful failure branches.
-- Engine-side verification: confirm runtime consumes `player_start.angle_deg` (degrees) and matches the editor’s rotation convention.
-- Optional UX polish: surface `map-edit/set-player-start` failures to the user (toaster) in addition to console logging.
-
-
 ## Decision
 
-Not ready for Overseer sign-off; returned to building for S029–S031.
+Ready for Overseer sign-off.
 
