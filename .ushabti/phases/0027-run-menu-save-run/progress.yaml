@@ -1,0 +1,62 @@
+phase:
+  id: 0027
+  slug: run-menu-save-run
+  title: Run Menu (Save & Run)
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm run invocation contract
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Extend menu template options and tests
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Add main-process wiring for Save & Run
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Implement application-layer orchestration service
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Process runner support (if required)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Validation report UX parity
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Documentation updates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Full verification gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
