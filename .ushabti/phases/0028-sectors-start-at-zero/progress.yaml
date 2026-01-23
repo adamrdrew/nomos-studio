@@ -1,0 +1,48 @@
+phase:
+  id: 0028
+  slug: sectors-start-at-zero
+  title: Sectors Start At 0
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm sector id invariant and validator compatibility
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Locate seed-sector allocation point
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Update seed allocation from `1` → `0`
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Update/add unit tests for the new invariant
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Update documentation
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Verification gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
