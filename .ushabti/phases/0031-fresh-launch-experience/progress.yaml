@@ -2,13 +2,13 @@ phase:
   id: 0031
   slug: fresh-launch-experience
   title: Fresh Launch Experience
-  status: planned
+  status: complete
 
 steps:
   - id: S001
     title: Define routing rule for Fresh Launch
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Centralized main snapshot refresh + stateChanged subscription at renderer root (App) so all views (Fresh Launch / Editor) stay in sync; routing now depends on settings mode + store mapDocument presence."
     touched:
       - src/renderer/renderer.tsx
@@ -18,7 +18,7 @@ steps:
   - id: S002
     title: Build Fresh Launch renderer view
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added FreshLaunchView component and minimal CSS; renderer root now routes to it when mapDocument is null (normal mode)."
     touched:
       - src/renderer/ui/launch/FreshLaunchView.tsx
@@ -29,7 +29,7 @@ steps:
   - id: S003
     title: Promote recent maps into main AppStore
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added recentMapPaths to AppStore and wired main startup/open/new flows to load/bump into store; menu now reads recentMapPaths from store (single source of truth in main)."
     touched:
       - src/main/application/store/AppStore.ts
@@ -39,7 +39,7 @@ steps:
   - id: S004
     title: Extend state snapshot to include recent maps
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended AppStateSnapshot with recentMapPaths, populated from AppStore in main snapshot handler, and stored/exposed in renderer Zustand store; Fresh Launch now renders snapshot-backed recent maps."
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -51,7 +51,7 @@ steps:
   - id: S005
     title: Add a minimal IPC entrypoint for Create New
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added CreateNewMapService (guarded save dialog + path-backed document creation) with unit tests; exposed over new typed IPC channel nomos:map:new via preload; refactored menu New Map to use the same service." 
     touched:
       - src/main/application/maps/CreateNewMapService.ts
@@ -67,7 +67,7 @@ steps:
   - id: S006
     title: Wire Fresh Launch actions
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Fresh Launch Create New calls window.nomos.map.new(); Open Existing uses open-map dialog then map.open; recent map items call map.open."
     touched:
       - src/renderer/renderer.tsx
@@ -76,7 +76,7 @@ steps:
   - id: S007
     title: Missing configuration warning
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "FreshLaunchView now derives isConfigured from snapshot settings and displays a red Settings guidance line when assetsDirPath or gameExecutablePath is missing."
     touched:
       - src/renderer/ui/launch/FreshLaunchView.tsx
@@ -85,7 +85,7 @@ steps:
   - id: S008
     title: Update/extend unit tests (L04)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added/updated unit tests for CreateNewMapService, AppStore recentMapPaths, and IPC registration; Jest runInBand passes."
     touched:
       - src/main/application/maps/CreateNewMapService.test.ts
@@ -96,7 +96,7 @@ steps:
   - id: S009
     title: Update subsystem docs (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated subsystem docs to reflect Fresh Launch routing, AppStore recentMapPaths, and new IPC/preload surface for Create New."
     touched:
       - docs/renderer-ui-system.md
@@ -107,7 +107,20 @@ steps:
 
   - id: S010
     title: Verification pass
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Ran typecheck, lint, and jest (runInBand); user manually confirmed Fresh Launch UX works to spec."
+    touched:
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml
+
+  - id: S011
+    title: Add unit tests for new preload API surface (L04)
+    implemented: true
+    reviewed: true
+    notes: "Added a testable preload API factory and unit test covering window.nomos.map.new() invoking nomos:map:new."
+    touched:
+      - src/preload/createNomosApi.ts
+      - src/preload/createNomosApi.test.ts
+      - src/preload/preload.ts
+      - .ushabti/phases/0031-fresh-launch-experience/steps.md
+      - .ushabti/phases/0031-fresh-launch-experience/progress.yaml

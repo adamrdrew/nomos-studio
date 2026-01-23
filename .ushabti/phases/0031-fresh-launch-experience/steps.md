@@ -87,3 +87,10 @@
     - recent maps list matches menu
     - missing-config warning appears when appropriate
 - **Done when:** All checks are green and the UX matches acceptance criteria.
+
+## S011 — Add unit tests for new preload API surface (L04)
+- **Intent:** Ensure newly added renderer-facing public API methods are covered by unit tests per L04.
+- **Work:**
+  - Add a unit test that verifies the new preload wrapper `window.nomos.map.new()` invokes the correct typed IPC channel (`nomos:map:new`) and returns the typed response.
+  - Introduce a small test seam if needed (e.g., export a factory that builds the `window.nomos` API from an `ipcRenderer`-like adapter), keeping the preload surface narrow.
+- **Done when:** A Jest test covers the new preload method and passes.
