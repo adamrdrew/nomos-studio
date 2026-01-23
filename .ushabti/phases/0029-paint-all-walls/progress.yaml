@@ -1,0 +1,69 @@
+phase:
+  id: 0029
+  slug: paint-all-walls
+  title: Paint All Walls
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm “surrounding wall” definition (front_sector)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define a new atomic map-edit command in the shared IPC contract
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Implement the command in MapCommandEngine
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Add MapCommandEngine unit tests for all conditional paths
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Ensure MapEditService integrates the new command end-to-end
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Add the “Texture Walls” control to the Sector Object Properties UI
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Update subsystem documentation (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Manual smoke test in the editor
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Verification gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
