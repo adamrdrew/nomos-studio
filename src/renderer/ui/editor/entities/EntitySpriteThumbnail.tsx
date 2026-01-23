@@ -24,7 +24,7 @@ function inferImageMimeType(fileName: string): string {
 
 type LoadState =
   | Readonly<{ kind: 'idle' | 'loading' }>
-  | Readonly<{ kind: 'loaded'; src: string }>
+  | Readonly<{ kind: 'loaded'; image: HTMLImageElement }>
   | Readonly<{ kind: 'failed' }>;
 
 export function EntitySpriteThumbnail(props: {
@@ -33,6 +33,8 @@ export function EntitySpriteThumbnail(props: {
   frameWidthPx: number;
   frameHeightPx: number;
   sizePx: number;
+  dragPreviewCanvasRef?: React.RefObject<HTMLCanvasElement>;
+  dragPreviewSizePx?: number;
 }): JSX.Element {
   const resolvedRelativePath = React.useMemo(() => {
     return resolveSpriteAssetRelativePath({ assetIndex: props.assetIndex, spriteFileName: props.spriteFileName });
@@ -72,7 +74,24 @@ export function EntitySpriteThumbnail(props: {
       const blob = new Blob([new Uint8Array(bytesResult.value)], { type: inferImageMimeType(resolvedRelativePath) });
       const url = URL.createObjectURL(blob);
       objectUrlRef.current = url;
-      setLoadState({ kind: 'loaded', src: url });
+
+      const imageResult = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to decode image: ${resolvedRelativePath}`));
+        img.src = url;
+      }).catch(() => null);
+
+      if (loadIdRef.current !== loadId) {
+        return;
+      }
+
+      if (imageResult === null) {
+        setLoadState({ kind: 'failed' });
+        return;
+      }
+
+      setLoadState({ kind: 'loaded', image: imageResult });
     })();
 
     return () => {
@@ -83,10 +102,109 @@ export function EntitySpriteThumbnail(props: {
     };
   }, [resolvedRelativePath]);
 
-  const scale =
-    props.frameWidthPx > 0 && props.frameHeightPx > 0
-      ? Math.min(props.sizePx / props.frameWidthPx, props.sizePx / props.frameHeightPx)
-      : 1;
+  const thumbnailCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
+  const draw = React.useCallback(
+    (args: Readonly<{
+      image: HTMLImageElement;
+      canvas: HTMLCanvasElement;
+      sizePx: number;
+      sourceRect: Readonly<{ x: number; y: number; w: number; h: number }>;
+      fit: 'contain' | 'stretch';
+    }>): void => {
+      const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+      args.canvas.width = Math.max(1, Math.floor(args.sizePx * dpr));
+      args.canvas.height = Math.max(1, Math.floor(args.sizePx * dpr));
+      args.canvas.style.width = `${args.sizePx}px`;
+      args.canvas.style.height = `${args.sizePx}px`;
+
+      const ctx = args.canvas.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, args.sizePx, args.sizePx);
+      ctx.imageSmoothingEnabled = false;
+
+      const safeW = Math.max(1, args.sourceRect.w);
+      const safeH = Math.max(1, args.sourceRect.h);
+
+      if (args.fit === 'stretch') {
+        ctx.drawImage(
+          args.image,
+          args.sourceRect.x,
+          args.sourceRect.y,
+          safeW,
+          safeH,
+          0,
+          0,
+          args.sizePx,
+          args.sizePx
+        );
+        return;
+      }
+
+      const scale = Math.min(args.sizePx / safeW, args.sizePx / safeH);
+      const destW = safeW * scale;
+      const destH = safeH * scale;
+      const destX = (args.sizePx - destW) / 2;
+      const destY = (args.sizePx - destH) / 2;
+
+      ctx.drawImage(
+        args.image,
+        args.sourceRect.x,
+        args.sourceRect.y,
+        safeW,
+        safeH,
+        destX,
+        destY,
+        destW,
+        destH
+      );
+    },
+    []
+  );
+
+  React.useEffect(() => {
+    if (loadState.kind !== 'loaded') {
+      return;
+    }
+
+    const canvas = thumbnailCanvasRef.current;
+    if (canvas === null) {
+      return;
+    }
+
+    const frameW = Math.max(1, Math.floor(props.frameWidthPx || 1));
+    const frameH = Math.max(1, Math.floor(props.frameHeightPx || 1));
+
+    draw({
+      image: loadState.image,
+      canvas,
+      sizePx: props.sizePx,
+      sourceRect: { x: 0, y: 0, w: frameW, h: frameH },
+      fit: 'contain'
+    });
+
+    const dragCanvas = props.dragPreviewCanvasRef?.current ?? null;
+    const dragSize = props.dragPreviewSizePx ?? null;
+    if (dragCanvas !== null && dragSize !== null) {
+      const crop = 64;
+      const sx = Math.max(0, loadState.image.width - crop);
+      const sy = 0;
+      const sw = Math.min(crop, loadState.image.width);
+      const sh = Math.min(crop, loadState.image.height);
+
+      draw({
+        image: loadState.image,
+        canvas: dragCanvas,
+        sizePx: dragSize,
+        sourceRect: { x: sx, y: sy, w: sw, h: sh },
+        fit: 'stretch'
+      });
+    }
+  }, [draw, loadState, props.dragPreviewCanvasRef, props.dragPreviewSizePx, props.frameHeightPx, props.frameWidthPx, props.sizePx]);
 
   if (loadState.kind !== 'loaded') {
     return (
@@ -115,25 +233,16 @@ export function EntitySpriteThumbnail(props: {
         justifyContent: 'center'
       }}
     >
-      <div
+      <canvas
+        ref={thumbnailCanvasRef}
+        draggable={false}
         style={{
-          width: props.frameWidthPx,
-          height: props.frameHeightPx,
-          overflow: 'hidden',
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left'
+          display: 'block',
+          width: props.sizePx,
+          height: props.sizePx,
+          imageRendering: 'pixelated'
         }}
-      >
-        <img
-          src={loadState.src}
-          alt=""
-          draggable={false}
-          style={{
-            display: 'block',
-            imageRendering: 'pixelated'
-          }}
-        />
-      </div>
+      />
     </div>
   );
 }

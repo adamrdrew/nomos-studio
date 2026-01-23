@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Colors, H5, Spinner } from '@blueprintjs/core';
 
 import { useNomosStore } from '../../../store/nomosStore';
+import type { AssetIndex } from '../../../../shared/domain/models';
 
 import { parseEntityDefDisplayModel, type EntityDefDisplayModel } from '../entities/entityDefParser';
 import { parseEntityManifestFiles } from '../entities/entityManifestParser';
@@ -75,6 +76,83 @@ function toEntityRow(defRelativePath: string, display: EntityDefDisplayModel): E
     frameHeightPx: display.frameHeightPx,
     defRelativePath
   };
+}
+
+function EntityBrowserEntityRow(
+  props: Readonly<{ row: Extract<EntityBrowserRow, { kind: 'entity' }>; assetIndex: AssetIndex | null }>
+): JSX.Element {
+  const dragCanvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  return (
+    <div
+      draggable={true}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = 'copy';
+        writeEntityPlacementDragPayload(event.dataTransfer, { defName: props.row.defName });
+
+        const dragCanvas = dragCanvasRef.current;
+        if (dragCanvas !== null) {
+          event.dataTransfer.setDragImage(dragCanvas, 32, 32);
+        }
+      }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: 8,
+        border: `1px solid ${Colors.DARK_GRAY1}`,
+        borderRadius: 3,
+        backgroundColor: Colors.DARK_GRAY4
+      }}
+    >
+      <EntitySpriteThumbnail
+        assetIndex={props.assetIndex}
+        spriteFileName={props.row.spriteFileName}
+        frameWidthPx={props.row.frameWidthPx}
+        frameHeightPx={props.row.frameHeightPx}
+        sizePx={40}
+        dragPreviewCanvasRef={dragCanvasRef}
+        dragPreviewSizePx={64}
+      />
+      <canvas
+        ref={dragCanvasRef}
+        aria-hidden={true}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: -10000,
+          width: 64,
+          height: 64,
+          pointerEvents: 'none'
+        }}
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <div
+          style={{
+            color: Colors.WHITE,
+            fontSize: 13,
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+        >
+          {props.row.defName}
+        </div>
+        <div
+          style={{
+            color: Colors.GRAY3,
+            fontSize: 11,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+        >
+          {props.row.spriteFileName} ({props.row.frameWidthPx}×{props.row.frameHeightPx})
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function EntitiesDockPanel(): JSX.Element {
@@ -200,41 +278,7 @@ export function EntitiesDockPanel(): JSX.Element {
                 );
               }
 
-              return (
-                <div
-                  key={row.defRelativePath}
-                  draggable={true}
-                  onDragStart={(event) => {
-                    event.dataTransfer.effectAllowed = 'copy';
-                    writeEntityPlacementDragPayload(event.dataTransfer, { defName: row.defName });
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: 8,
-                    border: `1px solid ${Colors.DARK_GRAY1}`,
-                    borderRadius: 3,
-                    backgroundColor: Colors.DARK_GRAY4
-                  }}
-                >
-                  <EntitySpriteThumbnail
-                    assetIndex={assetIndex}
-                    spriteFileName={row.spriteFileName}
-                    frameWidthPx={row.frameWidthPx}
-                    frameHeightPx={row.frameHeightPx}
-                    sizePx={40}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <div style={{ color: Colors.WHITE, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {row.defName}
-                    </div>
-                    <div style={{ color: Colors.GRAY3, fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {row.spriteFileName} ({row.frameWidthPx}×{row.frameHeightPx})
-                    </div>
-                  </div>
-                </div>
-              );
+              return <EntityBrowserEntityRow key={row.defRelativePath} row={row} assetIndex={assetIndex} />;
             })}
           </div>
         ) : null}

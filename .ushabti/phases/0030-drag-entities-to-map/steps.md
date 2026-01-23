@@ -147,3 +147,36 @@
     - refresh asset index and confirm list updates
   - Run: `npm test -- --runInBand`, `npm run typecheck`, `npm run lint`.
 - **Done when:** UX behaves as specified and all checks pass.
+
+## S015 — Fix `map-edit/create-entity` end-to-end acceptance in MapEditService
+- **Intent:** Unblock entity placement by ensuring the new command is accepted by the edit service and returns an applied result with correct selection.
+- **Work:**
+  - Update `MapEditService.edit(...)` to recognize `map-edit/create-entity` as a supported command kind.
+  - Ensure selection handling is correct:
+    - the command should return `map-edit/applied` like other atomic edits
+    - selection should be driven by the command engine’s returned selection effect (select new entity)
+  - Add/extend unit tests to cover the new command kind through `MapEditService`.
+- **Done when:** Drag-drop placement no longer fails with unsupported-target and unit tests cover the new branch.
+
+## S016 — Fix sector-only drop validity (no “valid everywhere”)
+- **Intent:** Ensure entity drops are only considered valid when the cursor is inside a sector polygon.
+- **Work:**
+  - Change sector containment used by drag-over/drop to use the same sector loop polygon used for floor rendering (buildSectorLoop + point-in-polygon).
+  - Ensure points outside any sector return invalid and do not call `map.edit`.
+  - Add unit tests for the new sector containment helper.
+- **Done when:** The cursor is only valid over sectors and unit tests cover inside/outside behavior.
+
+## S017 — Fix entity thumbnails and drag ghost preview
+- **Intent:** Make thumbnails stable and correctly clipped/scaled; ensure the drag preview is a 64×64 crop (upper-right) as requested.
+- **Work:**
+  - Replace thumbnail rendering with a deterministic canvas render of the first frame crop (0,0,w,h) scaled to fit within the square.
+  - Add a per-row drag image element and call `dataTransfer.setDragImage(...)` to use a 64×64 upper-right crop of the sprite sheet.
+  - Ensure any created object URLs are revoked (L05).
+- **Done when:** Thumbnails no longer overflow/misalign and drag image is a 64×64 upper-right crop.
+
+## S018 — Ensure Entities tab is not active by default
+- **Intent:** Keep Entities available but do not auto-open/select it on startup.
+- **Work:**
+  - After adding core panels, explicitly activate the Inspector panel.
+  - Add a small unit test if there is an existing pattern for Dockview layout initialization tests; otherwise keep change minimal.
+- **Done when:** The default right-side active tab is Inspector (Entities not selected) on startup.

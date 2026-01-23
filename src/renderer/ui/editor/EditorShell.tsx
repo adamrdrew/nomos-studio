@@ -53,6 +53,9 @@ function ensureCorePanelsPresent(event: DockviewReadyEvent): void {
       }
     });
   }
+
+  // Ensure Inspector remains the default active tab on startup.
+  event.api.getPanel('inspector')?.api.setActive();
 }
 
 export function EditorShell(): JSX.Element {

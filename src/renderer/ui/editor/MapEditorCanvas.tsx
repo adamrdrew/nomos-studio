@@ -6,7 +6,8 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 
 import { useNomosStore } from '../../store/nomosStore';
 import { decodeMapViewModel } from './map/mapDecoder';
-import { isPointInSector, pickMapSelection } from './map/mapPicking';
+import { pickMapSelection } from './map/mapPicking';
+import { buildSectorLoop, isWorldPointInsideSectorLoop } from './map/sectorContainment';
 import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
@@ -261,59 +262,6 @@ function readPlayerStartFromJson(json: unknown): PlayerStart | null {
   return { x, y, angleDeg };
 }
 
-function buildSectorLoop(map: MapViewModel, sectorId: number): readonly number[] | null {
-  const edges = map.walls
-    .filter((wall) => wall.frontSector === sectorId)
-    .map((wall) => ({ a: wall.v0, b: wall.v1 }));
-
-  if (edges.length === 0) {
-    return null;
-  }
-
-  const remaining = [...edges];
-  const first = remaining.shift();
-  if (!first) {
-    return null;
-  }
-
-  const loop: number[] = [first.a, first.b];
-  const start = loop[0];
-  if (start === undefined) {
-    return null;
-  }
-  let current = first.b;
-
-  // Walk edges until we return to the start or run out.
-  for (let steps = 0; steps < edges.length + 4; steps += 1) {
-    if (current === loop[0] && loop.length > 2) {
-      break;
-    }
-
-    const nextIndex = remaining.findIndex((edge) => edge.a === current || edge.b === current);
-    if (nextIndex < 0) {
-      break;
-    }
-
-    const next = remaining.splice(nextIndex, 1)[0];
-    if (!next) {
-      break;
-    }
-
-    const nextVertex = next.a === current ? next.b : next.a;
-    loop.push(nextVertex);
-    current = nextVertex;
-  }
-
-  if (loop.length < 4) {
-    return null;
-  }
-  if (loop[0] !== loop[loop.length - 1]) {
-    loop.push(start);
-  }
-
-  return loop;
-}
-
 function computeMapBounds(map: MapViewModel): Bounds | null {
   let minX = Number.POSITIVE_INFINITY;
   let minY = Number.POSITIVE_INFINITY;
@@ -460,7 +408,7 @@ export const MapEditorCanvas = React.forwardRef<
 
   const findSectorIdAtWorldPoint = React.useCallback((worldPoint: Point, map: MapViewModel): number | null => {
     for (const sector of map.sectors) {
-      if (isPointInSector(worldPoint, map, sector.id)) {
+      if (isWorldPointInsideSectorLoop(worldPoint, map, sector.id)) {
         return sector.id;
       }
     }
@@ -2454,7 +2402,7 @@ export const MapEditorCanvas = React.forwardRef<
           return;
         }
         // eslint-disable-next-line no-console
-        console.error('[nomos] map create-entity failed', result.error);
+        console.error('[nomos] map create-entity failed', result.error.code, result.error.message, result.error);
         return;
       }
 

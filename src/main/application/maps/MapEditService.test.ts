@@ -198,6 +198,48 @@ describe('MapEditService', () => {
     expect(recordedEntry).not.toBeNull();
   });
 
+  it('edit accepts create-entity and returns applied', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null,
+      revision: 1
+    });
+
+    let applyCalls = 0;
+    const engine: MapCommandEngine = {
+      apply: (_document: MapDocument, command: Parameters<MapCommandEngine['apply']>[1]) => {
+        applyCalls += 1;
+        expect(command.kind).toBe('map-edit/create-entity');
+
+        return {
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), entities: [{ x: 1, y: 2, def: 'Torch', yaw_deg: 0 }] },
+            selection: { kind: 'map-edit/selection/set', ref: { kind: 'entity', index: 0 } }
+          }
+        };
+      }
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngine(store, engine);
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/create-entity', at: { x: 1, y: 2 }, def: 'Torch' }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(applyCalls).toBe(1);
+    expect(setCalls).toHaveLength(1);
+    expect(result.value.kind).toBe('map-edit/applied');
+  });
+
   it('edit rejects mismatched baseRevision with stale-revision and does not mutate store/engine/history', () => {
     const { store, setCalls } = createMutableStore({
       filePath: '/maps/test.json',

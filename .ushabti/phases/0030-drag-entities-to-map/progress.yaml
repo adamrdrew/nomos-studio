@@ -129,3 +129,40 @@ steps:
     notes: "Automated gates run and green: jest, typecheck, lint. Manual smoke (Entities list load, drag to sector, blocked drop outside sector, undo/redo, asset refresh) still required before marking complete."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
+
+  - id: S015
+    title: Fix `map-edit/create-entity` end-to-end acceptance in MapEditService
+    implemented: true
+    reviewed: false
+    notes: "Allowed map-edit/create-entity in MapEditService command kind allowlist and applied-result path; added unit test covering acceptance and engine selection passthrough."
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+
+  - id: S016
+    title: Fix sector-only drop validity (no “valid everywhere”)
+    implemented: true
+    reviewed: false
+    notes: "Replaced drag/drop sector hit-testing with loop-based polygon containment (buildSectorLoop + point-in-polygon) and added unit tests for inside/outside and missing-loop behavior."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/map/sectorContainment.ts
+      - src/renderer/ui/editor/isWorldPointInsideSectorLoop.test.ts
+
+  - id: S017
+    title: Fix entity thumbnails and drag ghost preview
+    implemented: true
+    reviewed: false
+    notes: "Replaced thumbnail rendering with a canvas-based first-frame crop+fit (stable sizing, no overflow) and added per-row drag image using dataTransfer.setDragImage with a 64×64 upper-right sprite-sheet crop."
+    touched:
+      - src/renderer/ui/editor/entities/EntitySpriteThumbnail.tsx
+      - src/renderer/ui/editor/panels/EntitiesDockPanel.tsx
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+
+  - id: S018
+    title: Ensure Entities tab is not active by default
+    implemented: true
+    reviewed: false
+    notes: "After ensuring core panels (including Entities within Inspector group), explicitly activates the Inspector panel so Entities is not selected by default."
+    touched:
+      - src/renderer/ui/editor/EditorShell.tsx
