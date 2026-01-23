@@ -292,7 +292,7 @@ describe('MapCommandEngine', () => {
       if (result.value.selection.kind !== 'map-edit/selection/set') {
         throw new Error('Expected selection/set');
       }
-      expect(result.value.selection.ref).toEqual({ kind: 'sector', id: 1 });
+      expect(result.value.selection.ref).toEqual({ kind: 'sector', id: 0 });
 
       const next = result.value.nextJson;
       expect((next['sectors'] as unknown[]).length).toBe(1);
@@ -301,10 +301,66 @@ describe('MapCommandEngine', () => {
 
       const walls = next['walls'] as Record<string, unknown>[];
       for (const wall of walls) {
-        expect(wall['front_sector']).toBe(1);
+        expect(wall['front_sector']).toBe(0);
         expect(wall['back_sector']).toBe(-1);
         expect(wall['tex']).toBe('WALL.PNG');
       }
+    });
+
+    it('allocates sector ids starting at 0 and then increments (seed then nested)', () => {
+      const engine = new MapCommandEngine();
+
+      const seedResult = engine.apply(
+        baseDocument({ vertices: [], sectors: [], walls: [] }),
+        {
+          kind: 'map-edit/create-room',
+          request: {
+            template: 'rectangle',
+            center: { x: 5, y: 5 },
+            size: { width: 4, height: 4 },
+            rotationQuarterTurns: 0,
+            defaults: baseCreateRoomDefaults(),
+            placement: { kind: 'room-placement/seed' }
+          } as unknown as CreateRoomRequest
+        } as unknown as MapEditCommand
+      );
+
+      expect(seedResult.ok).toBe(true);
+      if (!seedResult.ok) {
+        throw new Error('Expected seed create-room success');
+      }
+
+      expect(seedResult.value.selection.kind).toBe('map-edit/selection/set');
+      if (seedResult.value.selection.kind !== 'map-edit/selection/set') {
+        throw new Error('Expected selection/set');
+      }
+      expect(seedResult.value.selection.ref).toEqual({ kind: 'sector', id: 0 });
+
+      const nestedResult = engine.apply(baseDocument(seedResult.value.nextJson), {
+        kind: 'map-edit/create-room',
+        request: {
+          template: 'square',
+          center: { x: 5, y: 5 },
+          size: { width: 1.5, height: 1.5 },
+          rotationQuarterTurns: 0,
+          defaults: baseCreateRoomDefaults(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 0 }
+        } as unknown as CreateRoomRequest
+      } as unknown as MapEditCommand);
+
+      expect(nestedResult.ok).toBe(true);
+      if (!nestedResult.ok) {
+        throw new Error(`Expected nested create-room success, got: ${nestedResult.error.code} ${nestedResult.error.message ?? ''}`);
+      }
+
+      expect(nestedResult.value.selection.kind).toBe('map-edit/selection/set');
+      if (nestedResult.value.selection.kind !== 'map-edit/selection/set') {
+        throw new Error('Expected selection/set');
+      }
+      expect(nestedResult.value.selection.ref).toEqual({ kind: 'sector', id: 1 });
+
+      const next = nestedResult.value.nextJson;
+      expect((next['sectors'] as unknown[]).length).toBe(2);
     });
 
     it('rejects seed placement when the map is not empty', () => {

@@ -162,7 +162,7 @@ Create-room validation rules (high level):
 Create-room semantics:
 - Allocates a new sector id deterministically:
   - If sectors exist: `max(id) + 1`.
-  - If the map is empty (seed placement): `1`.
+  - If the map is empty (seed placement): `0`.
 - Adds a new sector with the provided defaults.
 - Adds new vertices/walls for the room boundary.
 - Back-sector rules:

@@ -694,7 +694,7 @@ export class MapCommandEngine {
       return err('map-edit/invalid-json', 'sectors must not be empty');
     }
 
-    const newSectorId = Number.isFinite(maxSectorId) ? maxSectorId + 1 : 1;
+    const newSectorId = Number.isFinite(maxSectorId) ? maxSectorId + 1 : 0;
 
     const nextVertices = verticesRaw.value.slice();
     const nextWalls = wallsRaw.value.slice();

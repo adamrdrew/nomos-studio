@@ -2,47 +2,50 @@ phase:
   id: 0028
   slug: sectors-start-at-zero
   title: Sectors Start At 0
-  status: planned
+  status: complete
 
 steps:
   - id: S001
     title: Confirm sector id invariant and validator compatibility
-    implemented: false
-    reviewed: false
-    notes: ""
+    implemented: true
+    reviewed: true
+    notes: "Confirmed sector ids are treated as normal integers with -1 used as the sentinel for 'no back sector' (portal checks use back_sector > -1), so sector id 0 is a valid authored id; sector ids must be non-negative integers."
     touched: []
 
   - id: S002
     title: Locate seed-sector allocation point
-    implemented: false
-    reviewed: false
-    notes: ""
+    implemented: true
+    reviewed: true
+    notes: "Seed-sector id allocation is in src/main/application/maps/MapCommandEngine.ts via the empty-map fallback in: const newSectorId = Number.isFinite(maxSectorId) ? maxSectorId + 1 : <seed>; (seed path is when maxSectorId is not finite and placement.kind === room-placement/seed). No other empty-list sector allocation paths found."
     touched: []
 
   - id: S003
     title: Update seed allocation from `1` → `0`
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Updated create-room seed allocation so empty-map seed rooms allocate sector id 0 (previously 1) while preserving max(id)+1 behavior for non-empty maps."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
 
   - id: S004
     title: Update/add unit tests for the new invariant
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Updated seed-room test to expect sector id 0; added regression test asserting the next allocated sector id is 1 after seed creation (seed then nested)."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
 
   - id: S005
     title: Update documentation
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Updated create-room semantics docs to state seed placement allocates sector id 0 (not 1)."
+    touched:
+      - docs/map-edit-command-system.md
 
   - id: S006
     title: Verification gates
-    implemented: false
-    reviewed: false
-    notes: ""
+    implemented: true
+    reviewed: true
+    notes: "Ran jest (runInBand), typecheck, and lint; all succeeded (lint prints upstream TypeScript-eslint support warning only)."
     touched: []
