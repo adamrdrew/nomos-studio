@@ -2,7 +2,7 @@ phase:
   id: 0026
   slug: room-geometry-creation
   title: Room Geometry Creation
-  status: review
+  status: building
 
 steps:
   - id: S001
@@ -33,16 +33,6 @@ steps:
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S004
-  - id: S005
-    title: Remove final restriction on adjacent placement for squares/triangles
-    implemented: true
-    reviewed: false
-    notes: "Fixed findNearestEligibleWallToPolygonWithinThresholdPx to use distanceSegmentToSegment for finding nearest eligible walls, filtering for solid axis-aligned walls. This resolves the restriction where adjacent placement failed for squares/triangles when their edge was longer than the target wall. Confirmed with passing tests in mapRoomGeometry.test.ts. No TypeScript errors."
-    touched:
-      - src/shared/domain/mapRoomGeometry.ts
-      - src/shared/domain/mapRoomGeometry.test.ts
-      - .ushabti/phases/0026-room-geometry-creation/steps.md
-      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
     title: Extend shared IPC types with map-edit/create-room
     implemented: true
     reviewed: false
@@ -122,19 +112,13 @@ steps:
       - docs/map-edit-command-system.md
       - docs/renderer-ui-system.md
 
+  - id: S012
     title: Quality gates + manual verification record
-    implemented: true
+    implemented: false
     reviewed: false
-    notes: "Quality gates (post-fix): npm test (35/35 suites, 378 tests passed), npm run typecheck (pass), npm run lint (pass; emits TypeScript version support warning from @typescript-eslint). Manual verification to re-check: adjacent placement becomes valid within 12px snap threshold (green preview) and creates a portal; Rectangle defaults to a long/thin hall distinct from Square; undo/redo works."
+    notes: "Gate re-run (Overseer): npm test passes (exit 0) and npm run typecheck passes, but npm run lint currently FAILS due to a react-hooks/exhaustive-deps warning in MapPropertiesSection.tsx (max-warnings=0). Additionally, Jest coverage output confirms multiple uncovered conditional branches in src/shared/domain/mapRoomGeometry.ts (e.g., computeAdjacentPortalPlan error returns and computeRoomPlacementValidity invalid-size / nested-intersects paths), so L04 coverage of conditional paths is not yet satisfied."
     touched:
-  - id: S013
-    title: Bugfix: adjacent placement for square and triangle rooms
-    implemented: true
-    reviewed: false
-    notes: "Generalized edge selection and collinearity logic in computeAdjacentPortalPlan to support adjacent placement for square and triangle rooms. Confirmed via unit tests in mapRoomGeometry.test.ts that all shapes (rectangle, square, triangle) can now be attached adjacently. No TypeScript errors; all tests pass."
-    touched:
-      - src/shared/domain/mapRoomGeometry.ts
-      - src/shared/domain/mapRoomGeometry.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/review.md
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
 
   - id: S013
@@ -271,3 +255,59 @@ steps:
       - docs/map-edit-command-system.md
       - docs/renderer-ui-system.md
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S026
+    title: Repair Phase tracking artifacts (steps/progress consistency)
+    implemented: true
+    reviewed: false
+    notes: "Normalized steps.md and progress.yaml into a 1:1 ordered set of unique step IDs/titles (split S012, fixed merged S004/S005 block, removed duplicate IDs by introducing S027/S028 entries, and updated review.md to reflect readiness)."
+    touched:
+      - .ushabti/phases/0026-room-geometry-creation/steps.md
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+      - .ushabti/phases/0026-room-geometry-creation/review.md
+
+  - id: S027
+    title: Bugfix: adjacent placement for square and triangle rooms
+    implemented: true
+    reviewed: false
+    notes: "Generalized edge selection and collinearity logic in computeAdjacentPortalPlan to support adjacent placement for square and triangle rooms. Confirmed via unit tests in mapRoomGeometry.test.ts that all shapes (rectangle, square, triangle) can now be attached adjacently. No TypeScript errors; all tests pass."
+    touched:
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S028
+    title: Remove final restriction on adjacent placement for squares/triangles
+    implemented: true
+    reviewed: false
+    notes: "Fixed findNearestEligibleWallToPolygonWithinThresholdPx to use distanceSegmentToSegment for finding nearest eligible walls, filtering for solid axis-aligned walls. This resolves the restriction where adjacent placement failed for squares/triangles when their edge was longer than the target wall. Confirmed with passing tests in mapRoomGeometry.test.ts. No TypeScript errors."
+    touched:
+      - src/shared/domain/mapRoomGeometry.ts
+      - src/shared/domain/mapRoomGeometry.test.ts
+      - .ushabti/phases/0026-room-geometry-creation/steps.md
+      - .ushabti/phases/0026-room-geometry-creation/progress.yaml
+
+  - id: S029
+    title: Fix lint failure (react-hooks/exhaustive-deps) without regressing player start angle editing
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched:
+      - src/renderer/ui/editor/inspector/MapPropertiesSection.tsx
+
+  - id: S030
+    title: Add missing unit tests for mapRoomGeometry exported helpers (L04 conditional paths)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched:
+      - src/shared/domain/mapRoomGeometry.test.ts
+      - src/shared/domain/mapRoomGeometry.ts
+
+  - id: S031
+    title: Expand MapCommandEngine create-room tests to cover remaining meaningful failure branches (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts

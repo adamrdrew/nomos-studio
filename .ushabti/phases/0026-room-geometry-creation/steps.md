@@ -35,12 +35,6 @@
 
 ## S004 — Extend shared IPC types with `map-edit/create-room`
 
-## S005 — Remove final restriction on adjacent placement for squares/triangles
-- **Intent:** Ensure adjacent placement works for all room shapes, even when the new room's edge is equal to or longer than the target wall, or endpoints coincide.
-- **Work:**
-  - Inspect and update domain logic in src/shared/domain/mapRoomGeometry.ts to guarantee any valid overlap (including zero-length and full-length intervals) is accepted for adjacent placement.
-  - Confirm with passing tests for square/triangle adjacent placement in src/shared/domain/mapRoomGeometry.test.ts.
-- **Done when:** All adjacent placement tests for squares and triangles pass, and no length restriction remains in the domain logic.
 - **Intent:** Make room creation an official, typed main-owned edit (L03).
 - **Work:**
   - Extend `MapEditAtomicCommand` with `kind: 'map-edit/create-room'` and the payload from S002.
@@ -220,13 +214,6 @@
   - Keep selection effect as `map-edit/selection/keep`.
 - **Done when:** Unit tests pass for success + failure cases.
 
-## S024 — Tests: MapCommandEngine set-player-start
-- **Intent:** Satisfy L04 for the new public command behavior.
-- **Work:**
-  - Add tests for success (writes `player_start` object to root).
-  - Add tests for invalid payload (non-finite numbers / wrong shapes) rejects.
-- **Done when:** Jest passes and new branches are covered.
-
 ## S022 — Add Player Start controls to Map Properties section
 - **Intent:** Allow authors to view/edit player start from the right-side Map Properties panel.
 - **Work:**
@@ -242,8 +229,59 @@
   - Render the player start marker as a circle plus a small vision cone indicating `angle_deg`.
 - **Done when:** Clicking in the map updates player start and the marker renders in the correct place with correct orientation.
 
+## S024 — Tests: MapCommandEngine set-player-start
+- **Intent:** Satisfy L04 for the new public command behavior.
+- **Work:**
+  - Add tests for success (writes `player_start` object to root).
+  - Add tests for invalid payload (non-finite numbers / wrong shapes) rejects.
+- **Done when:** Jest passes and new branches are covered.
+
 ## S025 — Docs update (player start)
 - **Intent:** Keep subsystem docs accurate (L09).
 - **Work:**
   - Update `docs/map-edit-command-system.md` and `docs/renderer-ui-system.md` to include `player_start` and `map-edit/set-player-start`.
 - **Done when:** Docs match implemented behavior.
+
+## S026 — Repair Phase tracking artifacts (steps/progress consistency)
+- **Intent:** Make Phase 0026 reviewable and auditable by ensuring tracking files accurately represent the completed work.
+- **Work:**
+  - Fix `progress.yaml` so it has **unique** step IDs (no duplicates), no merged/duplicated keys, and includes an entry for **S012**.
+  - Fix `steps.md` so step IDs are unique (no repeated S005 headers) and ordered consistently.
+  - Ensure `steps.md` and `progress.yaml` represent the same set of steps (1:1), with matching titles.
+- **Done when:** `progress.yaml` and `steps.md` are consistent, unambiguous, and ready for Overseer review.
+
+## S027 — Bugfix: adjacent placement for square and triangle rooms
+- **Intent:** Ensure all room templates (rectangle/square/triangle) can be attached adjacently under the same eligibility/collinearity rules.
+- **Work:**
+  - Update domain adjacent portal planning to handle square/triangle joins correctly.
+  - Add/maintain unit tests covering square/triangle adjacent placement.
+- **Done when:** All shapes can attach adjacently and the Jest suite remains green.
+
+## S028 — Remove final restriction on adjacent placement for squares/triangles
+- **Intent:** Ensure adjacent placement does not fail when the new room edge is equal to or longer than the target wall.
+- **Work:**
+  - Update domain snap-target selection to compute proximity using segment-to-segment distance (polygon boundary), not a center-point heuristic.
+  - Add/maintain unit tests covering the “edge longer than wall” adjacent placement case.
+- **Done when:** Adjacent placement works for the square/triangle edge-length repro and tests remain green.
+
+## S029 — Fix lint failure (react-hooks/exhaustive-deps) without regressing player start angle editing
+- **Intent:** Restore `npm run lint` to green while preserving the player-start angle editing fix.
+- **Work:**
+  - Update `MapPropertiesSection` hook dependencies (or refactor to avoid unstable deps) so `react-hooks/exhaustive-deps` is satisfied.
+  - Ensure the prior regression does not return: editing player start angle must not revert to 0 during typing.
+- **Done when:** `npm run lint` passes with `--max-warnings=0`.
+
+## S030 — Add missing unit tests for mapRoomGeometry exported helpers (L04 conditional paths)
+- **Intent:** Satisfy L04 by covering the remaining conditional branches in exported domain helpers.
+- **Work:**
+  - Add tests for `computeRoomPlacementValidity` branches not currently covered (at minimum: `invalid-size`, adjacent `non-collinear`, and adjacent `ambiguous`).
+  - Add tests for `computeAdjacentPortalPlan` error returns (`invalid-wall-index`, `non-collinear`, `no-overlap`) in addition to success.
+  - Use the Jest coverage output for `src/shared/domain/mapRoomGeometry.ts` to confirm those branches are exercised.
+- **Done when:** Jest remains green and `mapRoomGeometry.ts` no longer reports uncovered lines for these branches.
+
+## S031 — Expand MapCommandEngine create-room tests to cover remaining meaningful failure branches (L04)
+- **Intent:** Ensure the public `MapCommandEngine.apply` behavior for `map-edit/create-room` is fully branch-covered for its meaningful validation outcomes.
+- **Work:**
+  - Add unit tests for remaining create-room failure modes that return distinct typed errors (e.g., `not-enough-textures`, `not-inside-any-sector`, and “door already bound to wall_index” invalid-request).
+  - Ensure tests focus on our behavior (error codes + unchanged JSON) rather than library behavior.
+- **Done when:** Jest remains green and the create-room command’s meaningful failure branches are covered.
