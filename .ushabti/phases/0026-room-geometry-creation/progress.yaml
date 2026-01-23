@@ -2,13 +2,13 @@ phase:
   id: 0026
   slug: room-geometry-creation
   title: Room Geometry Creation
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Record current map geometry invariants (repo truth)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Confirmed sector-id semantics and portal predicate: renderer decode maps walls[].front_sector/back_sector directly to MapWall.frontSector/backSector (no index remap) in src/renderer/ui/editor/map/mapDecoder.ts and src/renderer/ui/editor/map/mapViewModel.ts, so walls reference sector ids in-editor. Portal-ness is consistently wall.backSector > -1 (MapEditorCanvas Door tool canPlaceDoorAtWallIndex and portal overlay). Wall order must remain stable because doors bind by wall array index (MapDoor.wallIndex) and MapCommandEngine create-door uses wall_index; therefore create-room must never reorder walls and must preserve existing indices when splitting (append new segments)."
     touched:
       - .ushabti/phases/0026-room-geometry-creation/progress.yaml
@@ -16,7 +16,7 @@ steps:
   - id: S002
     title: Define the room placement contract + defaults
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Defined shared, deterministic create-room contract in src/shared/domain/mapRoomCreation.ts: CreateRoomRequest (template, center, size, rotationQuarterTurns, defaults, placement plan) plus constants (snapThresholdPx=12, rotation step, scale step, min size). Texture defaults are passed explicitly as strings (renderer-selected from AssetIndex) to keep main command deterministic and game-agnostic."
     touched:
       - src/shared/domain/mapRoomCreation.ts
@@ -25,7 +25,7 @@ steps:
   - id: S003
     title: Implement pure geometry helpers for preview + validation (domain)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added deterministic, pure geometry helpers in src/shared/domain/mapRoomGeometry.ts: template polygon generation (rectangle/square/triangle), 90° rotation, edge extraction, segment intersection, point-in-sector containment and enclosing-sector selection, nearest-wall snapping (px threshold), adjacent portal planning (axis-aligned collinearity + snap translation + overlap interval), and a structured validity result (nested vs adjacent vs invalid with reason). Updated adjacent validity to evaluate intersection after snapping (on the snapped polygon, ignoring the target wall) so ineligible nearby walls (diagonals/portals) don’t incorrectly invalidate placements. Triangle template base is on +Y by default so triangles can attach to horizontal walls without requiring rotation. Unit tests updated/extended in src/shared/domain/mapRoomGeometry.test.ts; suite passes."
     touched:
       - src/shared/domain/mapRoomGeometry.ts
@@ -35,7 +35,7 @@ steps:
   - id: S004
     title: Extend shared IPC types with map-edit/create-room
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended shared IPC typing to include the new atomic command kind 'map-edit/create-room' carrying CreateRoomRequest (src/shared/ipc/nomosIpc.ts). Added create-room-specific MapEditError codes in src/shared/domain/results.ts. Updated exhaustiveness across command unions; behavior is implemented in S005. Typecheck and Jest suite pass."
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -46,7 +46,7 @@ steps:
   - id: S005
     title: Implement map-edit/create-room in MapCommandEngine
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Implemented 'map-edit/create-room' in MapCommandEngine with strict request/json validation, nested vs adjacent placement handling, intersection rejection, deterministic sector id allocation (max+1), portal wiring via wall splitting without reordering existing walls, and selection set to the new sector. Updated adjacent validation to allow harmless endpoint-touch intersections and added vertex/endpoint reuse to prevent degenerate split segments. Verified via Jest coverage on create-room scenarios."
     touched:
       - src/main/application/maps/MapCommandEngine.ts
@@ -57,7 +57,7 @@ steps:
   - id: S006
     title: Unit tests: MapCommandEngine create-room
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added MapCommandEngine create-room unit tests covering nested + adjacent success paths and major failure modes (invalid JSON, invalid size, adjacent-too-far, intersects-walls, non-collinear). Added regression coverage for continuing room creation after a full-wall portal join, and relaxed a brittle wall-count assertion to avoid depending on whether portal endpoints coincide with existing vertices. Confirmed MapCommandEngine.test.ts passes."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
@@ -66,7 +66,7 @@ steps:
   - id: S007
     title: Unit tests: MapEditService integration
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated MapEditService to allow and correctly return results for map-edit/create-room, and added/ran integration tests covering revision gating, dirty/lastValidation semantics, and undo/redo behavior for create-room. Confirmed full Jest suite passes under coverage."
     touched:
       - src/main/application/maps/MapEditService.ts
@@ -76,7 +76,7 @@ steps:
   - id: S008
     title: Add Room tool to renderer tool registry + toolbox button
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Registered the Room tool in the renderer tool registry (MapEditorToolId + toolbar command ids + tool definition with a pencil/edit icon) and wired the Map Editor toolbar command handler to track the active room template (rectangle/square/triangle). Extended MapEditorInteractionMode to include 'room' so the tool is selectable without type errors."
     touched:
       - src/renderer/ui/editor/tools/mapEditorTools.ts
@@ -88,7 +88,7 @@ steps:
   - id: S009
     title: Implement Room tool preview rendering + click behavior
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Implemented Room tool interaction in MapEditorCanvas: mouse move computes a template polygon under cursor, validates via shared pure geometry helpers (nested vs adjacent with 12px snap threshold), renders a red/green outline, and sets cursor to not-allowed/crosshair. Clicking when valid issues window.nomos.map.edit with map-edit/create-room (renderer supplies deterministic texture defaults from AssetIndex as texture filenames/basenames) and applies the returned selection effect; stale revisions refresh the snapshot without auto-retry."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -97,7 +97,7 @@ steps:
   - id: S010
     title: Implement modifier key behavior for rotate/scale
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added Room preview key handling in MapEditorCanvas: primary modifier (Cmd on macOS, Ctrl on Windows/Linux) + left/right rotates by 90°; primary + alt/option + arrows scales non-uniformly along view axes in fixed steps, clamped to min size. Shortcuts ignore key events when typing in inputs and call preventDefault/stopPropagation when handled."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -106,7 +106,7 @@ steps:
   - id: S011
     title: Docs update (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Documented map-edit/create-room in command-system docs and documented Room tool UX (templates, preview validity, click-to-create, texture defaults, keybindings) in renderer UI docs."
     touched:
       - docs/map-edit-command-system.md
@@ -115,7 +115,7 @@ steps:
   - id: S013
     title: Fix adjacent placement preview (edge-based snap detection)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated shared snap-target detection to use segment-to-segment distance from the candidate polygon boundary (not polygon bbox center), enabling adjacent placement for large/long rooms. Added a unit test covering the edge-within-threshold case."
     touched:
       - src/shared/domain/mapRoomGeometry.ts
@@ -125,7 +125,7 @@ steps:
   - id: S014
     title: Make Rectangle template default long-and-thin
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Renderer Room tool now uses template-specific default sizes and resets size/rotation when switching templates: Rectangle defaults to a long/thin hall; Square defaults square; Triangle uses a moderate default."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -134,7 +134,7 @@ steps:
   - id: S015
     title: Add Room tool keyboard hint text in the Map Editor command bar
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added a right-aligned, white-text hint block in the Map Editor command bar when the Room tool is active, showing platform-idiomatic rotate/scale shortcuts (Cmd/Ctrl + arrows, Cmd/Ctrl + Option/Alt + arrows)."
     touched:
       - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
@@ -144,7 +144,7 @@ steps:
   - id: S016
     title: Allow seed room creation in an empty map
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added seed room placement mode (room-placement/seed) for creating the first room on an empty map (no sectors/walls). Shared placement validity now returns room-valid/seed for empty geometry; renderer sends seed placement in that case; main MapCommandEngine accepts seed placement only when sectors/walls are empty and creates a sector with exterior walls (no portal wiring). Added unit tests for domain validity and engine success/rejection, and updated docs describing the exception."
     touched:
       - src/shared/domain/mapRoomCreation.ts
@@ -160,7 +160,7 @@ steps:
   - id: S017
     title: Make New Map create an empty map document (enables seed-room workflow)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated File → New Map handling in main process to create a new empty, valid map document (empty vertices/walls/sectors plus empty optional arrays) after prompting for a destination path. This makes seed-room creation reachable in the UI while keeping Save/unsaved-changes behavior safe."
     touched:
       - src/main/main.ts
@@ -169,7 +169,7 @@ steps:
   - id: S018
     title: Fix adjacent snap target selection in maps with portals/diagonals
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated shared adjacent placement validity to only consider eligible snap targets (solid walls with backSectorId=-1 and axis-aligned orientation), preventing portal/diagonal walls from blocking adjacency as maps grow. Added unit tests covering diagonal/portal snap-target interference and updated the diagonal-only case to report no-snap-target."
     touched:
       - src/shared/domain/mapRoomGeometry.ts
@@ -179,7 +179,7 @@ steps:
   - id: S019
     title: Allow adjacent placement when a target wall endpoint touches the interior of the new room edge
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Fixed adjacent placement validity for the hall-end case by allowing T-junction endpoint touches (an endpoint of an existing wall lying on the interior of a candidate room edge) when allowEndpointTouch is enabled. Added a regression test modeling a narrow hall end wall with a larger square attaching successfully. User confirmed this repro now works in the editor; Jest remains green."
     touched:
       - src/shared/domain/mapRoomGeometry.ts
@@ -190,7 +190,7 @@ steps:
   - id: S020
     title: Define player_start schema and shared command shape
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended shared IPC MapEditAtomicCommand with map-edit/set-player-start carrying playerStart { x, y, angleDeg }. This supports editing map-root player_start as an object ({x,y,angle_deg}) while keeping update-fields primitive-only." 
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -199,7 +199,7 @@ steps:
   - id: S021
     title: Implement map-edit/set-player-start in MapCommandEngine
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Implemented map-edit/set-player-start in MapCommandEngine (validates finite x/y/angleDeg and writes map-root player_start {x,y,angle_deg}) and added support in MapEditService. Marked implemented now that S024 unit tests are in place and Jest is green."
     touched:
       - src/main/application/maps/MapCommandEngine.ts
@@ -209,7 +209,7 @@ steps:
   - id: S022
     title: Add Player Start controls to Map Properties section
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added Player Start inspector controls (X/Y/Angle inputs) that commit via map-edit/set-player-start, plus a Pick/Cancel toggle. Introduced a shared renderer store flag (isPickingPlayerStart) with unit tests so the canvas can react to pick-mode. Follow-up fix: angle (and other fields) no longer silently fall back to 0 on invalid non-empty input; invalid values show a toaster error instead, so legitimate angle edits persist."
     touched:
       - src/renderer/ui/editor/inspector/MapPropertiesSection.tsx
@@ -220,7 +220,7 @@ steps:
   - id: S023
     title: Implement player start pick mode + canvas marker rendering
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Implemented Player Start pick mode in MapEditorCanvas (next click sets player_start x/y via IPC and exits pick mode) and rendered a player start marker (circle + vision cone) based on map-root player_start {x,y,angle_deg}. Also fixed lint-blocking issues encountered while integrating UI state (hook deps + unused helper)."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -230,7 +230,7 @@ steps:
   - id: S024
     title: Tests: MapCommandEngine set-player-start
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added MapCommandEngine unit tests covering set-player-start success (writes player_start onto root JSON) and failure (rejects non-finite payload numbers)."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
@@ -240,7 +240,7 @@ steps:
   - id: S025
     title: Docs update (player start)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated command-system and renderer UI docs to include map-root player_start, map-edit/set-player-start, inspector controls, pick mode, and canvas marker rendering." 
     touched:
       - docs/map-edit-command-system.md
@@ -250,7 +250,7 @@ steps:
   - id: S026
     title: Repair Phase tracking artifacts (steps/progress consistency)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Normalized steps.md and progress.yaml into a 1:1 ordered set of unique step IDs/titles (split S012, fixed merged S004/S005 block, removed duplicate IDs by introducing S027/S028 entries, and updated review.md to reflect readiness)."
     touched:
       - .ushabti/phases/0026-room-geometry-creation/steps.md
@@ -260,7 +260,7 @@ steps:
   - id: S027
     title: Bugfix: adjacent placement for square and triangle rooms
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Generalized edge selection and collinearity logic in computeAdjacentPortalPlan to support adjacent placement for square and triangle rooms. Confirmed via unit tests in mapRoomGeometry.test.ts that all shapes (rectangle, square, triangle) can now be attached adjacently. No TypeScript errors; all tests pass."
     touched:
       - src/shared/domain/mapRoomGeometry.ts
@@ -270,7 +270,7 @@ steps:
   - id: S028
     title: Remove final restriction on adjacent placement for squares/triangles
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Fixed findNearestEligibleWallToPolygonWithinThresholdPx to use distanceSegmentToSegment for finding nearest eligible walls, filtering for solid axis-aligned walls. This resolves the restriction where adjacent placement failed for squares/triangles when their edge was longer than the target wall. Confirmed with passing tests in mapRoomGeometry.test.ts. No TypeScript errors."
     touched:
       - src/shared/domain/mapRoomGeometry.ts
@@ -281,7 +281,7 @@ steps:
   - id: S029
     title: Fix lint failure (react-hooks/exhaustive-deps) without regressing player start angle editing
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Fixed react-hooks/exhaustive-deps warning in MapPropertiesSection by syncing player-start input state from derived primitive strings (x/y/angle) + revision, avoiding dependency on an unstable currentPlayerStart object identity. Verified npm run lint passes with --max-warnings=0; preserves prior angle-edit stability fix (no reset-on-render)."
     touched:
       - src/renderer/ui/editor/inspector/MapPropertiesSection.tsx
@@ -290,7 +290,7 @@ steps:
   - id: S030
     title: Add missing unit tests for mapRoomGeometry exported helpers (L04 conditional paths)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added targeted unit tests to cover remaining conditional branches in exported helpers in src/shared/domain/mapRoomGeometry.ts (L04), including: computeRoomPolygon quarter-turn rotations (covers rotateQuarterTurns branches), polygonEdges defensive skip, computeAdjacentPortalPlan error cases (invalid wall index + missing wall vertices + non-collinear + no-overlap) and edge-selection continues/tie-breaks (degenerate edges, disjoint overlap, endpoint-only overlap, closer-edge replacement, larger-overlap tie-break), findNearestWallToPolygonWithinThresholdPx best-selection non-replacement branch, and computeRoomPlacementValidity ambiguous-crossing logic for both horizontal and vertical walls. Coverage for mapRoomGeometry.ts is now 100% branches/lines. Note: computeRoomPlacementValidity mapping of portal-plan errors to non-collinear/ambiguous is not expected under normal eligibility invariants (eligible snap target requires a positive-length overlapping parallel edge), but is still unit-tested via intentionally malformed geometry to validate error mapping behavior."
     touched:
       - src/shared/domain/mapRoomGeometry.test.ts
@@ -300,7 +300,7 @@ steps:
   - id: S031
     title: Expand MapCommandEngine create-room tests to cover remaining meaningful failure branches (L04)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Expanded MapCommandEngine create-room unit tests to cover additional distinct typed failure outcomes: not-enough-textures (empty/invalid defaults strings), not-inside-any-sector (nested placement not actually inside the requested sector), and invalid-request when a door is already bound to the join target wall_index. Each test asserts error code and confirms the input JSON object is not mutated on failure."
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
@@ -309,7 +309,7 @@ steps:
   - id: S012
     title: Quality gates + manual verification record
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Quality gates re-run: npm test PASS (all suites), npm run typecheck PASS, npm run lint PASS (eslint emits a non-fatal @typescript-eslint parser warning about TS 5.9.3 support, but exits 0 under --max-warnings=0). review.md updated with current gate status and manual verification checklist. Runtime smoke check (user): launched the app; editor behavior remains correct." 
     touched:
       - .ushabti/phases/0026-room-geometry-creation/review.md
