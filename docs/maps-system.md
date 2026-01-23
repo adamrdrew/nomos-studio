@@ -3,6 +3,8 @@
 ## Overview
 Nomos Studio currently supports opening, validating, and saving map files (JSON) via main-process application services. Validation is performed by invoking an external “game executable” (configured in settings) with a `--validate-map` command.
 
+Nomos Studio also supports a fast iteration loop via **Run → Save & Run (F5)**, which saves the current map, validates it, and (if valid) runs the configured game executable with the map filename.
+
 For the map editing/undo/redo design and its transactional command model, see:
 - `docs/map-edit-command-system.md`
 
@@ -23,6 +25,7 @@ The maps system spans application services, infrastructure seams for filesystem/
 	- `MapValidationService` validates a map path by running the configured game executable.
 	- `OpenMapService` enforces prerequisite settings, validates the map, reads JSON from disk, constructs a `MapDocument`, and stores it in `AppStore`.
 	- `SaveMapService` serializes the current `MapDocument.json` and performs a safe write back to disk.
+	- `SaveAndRunMapService` saves the current document, validates it, and runs the engine executable with the map filename.
 	- `UnsavedChangesGuard` coordinates Save/Don't Save/Cancel prompting for destructive transitions (open/new/recent/quit).
 	- `OpenMapFromAssetsService` resolves a relative asset path against `settings.assetsDirPath` (with traversal protection) and opens the map.
 	- `RecentMapsService` tracks last-opened map paths (deduped, max 5) and persists them in userData.
@@ -51,6 +54,9 @@ The maps system spans application services, infrastructure seams for filesystem/
 - `SaveMapService`
 	- `saveCurrentDocument(): Promise<Result<MapDocument, MapIoError>>`
 	- `saveCurrentDocumentAs(destinationPath: string): Promise<Result<MapDocument, MapIoError>>`
+
+- `SaveAndRunMapService`
+	- `saveAndRunCurrentMap(): Promise<void>`
 
 - `UnsavedChangesGuard`
 	- `runGuarded(action: () => Promise<void>): Promise<{ proceeded: boolean }>`
@@ -194,6 +200,13 @@ If validation fails with `code: 'map-validation/invalid-map'`:
 - the map is not loaded
 - an error dialog is shown with title and message exactly `Map validation failed`
 - the dialog detail contains the validator report pretty text (JSON pretty print when parseable; otherwise raw text)
+
+### Save & Run contract
+- Save & Run performs: save → validate → run.
+- When validation succeeds, the engine is executed via `ProcessRunner.run`:
+	- `command = settings.gameExecutablePath`
+	- `args = [<mapFileName.json>]` (filename only)
+- Save & Run does not enforce that the map is under `Assets/Levels`; project/path correctness is considered user/project configuration.
 
 ### Save behavior (L06)
 - Save writes to `<file>.tmp` and then atomically replaces the destination using a Windows-safe rename strategy.

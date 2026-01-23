@@ -2,61 +2,69 @@ phase:
   id: 0027
   slug: run-menu-save-run
   title: Run Menu (Save & Run)
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Confirm run invocation contract
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "Confirmed contract: run uses args [<mapFileName.json>] (no MAP=), engine resolves under Assets/Levels internally, no cwd handling, and editor does not enforce Assets/Levels path correctness."
     touched: []
 
   - id: S002
     title: Extend menu template options and tests
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added top-level Run menu with Save & Run (F5) in menu template; added unit tests covering presence and enablement."
+    touched:
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
 
   - id: S003
-    title: Add main-process wiring for Save & Run
-    implemented: false
+    title: Implement application-layer orchestration service
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added SaveAndRunMapService orchestrating save → validate → run with notifier parity for validation failures; added unit tests covering all branches."
+    touched:
+      - src/main/application/maps/SaveAndRunMapService.ts
+      - src/main/application/maps/SaveAndRunMapService.test.ts
 
   - id: S004
-    title: Implement application-layer orchestration service
-    implemented: false
+    title: Add main-process wiring for Save & Run
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Main menu wiring passes onSaveAndRun callback to menu template and delegates to SaveAndRunMapService (no inline orchestration in menu click)."
+    touched:
+      - src/main/main.ts
 
   - id: S005
     title: Process runner support (if required)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "No ProcessRunner changes needed: engine invocation uses explicit args [filename] and does not require cwd/env support."
     touched: []
 
   - id: S006
     title: Validation report UX parity
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "SaveAndRunMapService uses the same invalid-map title/message ('Map validation failed') and includes report.prettyText as detail; covered by unit tests."
     touched: []
 
   - id: S007
     title: Documentation updates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated menu/process/maps subsystem docs to document Run → Save & Run (F5) behavior, wiring, and process invocation." 
+    touched:
+      - docs/menu-system.md
+      - docs/process-system.md
+      - docs/maps-system.md
 
   - id: S008
     title: Full verification gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "Ran jest (runInBand), typecheck, and lint; all passed (lint prints TypeScript-eslint version support warning only)."
     touched: []

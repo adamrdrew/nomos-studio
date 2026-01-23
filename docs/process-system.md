@@ -24,6 +24,13 @@ This subsystem lives entirely in the main process (privileged). The renderer nev
 		- `command = settings.gameExecutablePath`
 		- `args = ['--validate-map', absoluteMapPath]`
 
+### Consumer (added)
+- `src/main/application/maps/SaveAndRunMapService.ts`
+	- Orchestrates save → validate → run.
+	- Uses `ProcessRunner.run({ command, args })` to run the configured executable:
+		- `command = settings.gameExecutablePath`
+		- `args = [mapFileName]` (filename only)
+
 ## Public API / entrypoints
 
 ### Infrastructure API

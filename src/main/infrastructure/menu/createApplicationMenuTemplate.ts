@@ -21,6 +21,7 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   onOpenRecentMap: (mapPath: string) => void;
   onSave: () => void;
   onSaveAs: () => void;
+  onSaveAndRun?: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onRefreshAssetsIndex: () => void;
@@ -98,6 +99,18 @@ export function createApplicationMenuTemplate(
   template.push(fileMenu);
 
   template.push(editMenu);
+
+  template.push({
+    label: 'Run',
+    submenu: [
+      {
+        label: 'Save & Run',
+        enabled: options.canSave,
+        accelerator: 'F5',
+        click: () => options.onSaveAndRun?.()
+      }
+    ]
+  });
 
   template.push({
     label: 'View',

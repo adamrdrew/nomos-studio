@@ -188,6 +188,104 @@ describe('createApplicationMenuTemplate', () => {
     expect(saveItem?.enabled).toBe(false);
   });
 
+  it('includes Run → Save & Run (F5)', () => {
+    const onSaveAndRun = jest.fn();
+
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: true,
+      canUndo: false,
+      canRedo: false,
+      recentMapPaths: [],
+      mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onNewMap: () => {},
+      onOpenMap: () => {},
+      onOpenRecentMap: () => {},
+      onSave: () => {},
+      onSaveAs: () => {},
+      onSaveAndRun,
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const runMenu = template.find((item) => item.label === 'Run');
+    if (runMenu === undefined || runMenu.submenu === undefined || !Array.isArray(runMenu.submenu)) {
+      throw new Error('Expected Run menu submenu');
+    }
+
+    const saveAndRunItem = runMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Save & Run'
+    ) as { label?: string; accelerator?: string; enabled?: boolean; click?: () => void } | undefined;
+
+    expect(saveAndRunItem).toBeDefined();
+    expect(saveAndRunItem?.accelerator).toBe('F5');
+    expect(saveAndRunItem?.enabled).toBe(true);
+
+    saveAndRunItem?.click?.();
+    expect(onSaveAndRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Run → Save & Run when canSave is false', () => {
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      canUndo: false,
+      canRedo: false,
+      recentMapPaths: [],
+      mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onNewMap: () => {},
+      onOpenMap: () => {},
+      onOpenRecentMap: () => {},
+      onSave: () => {},
+      onSaveAs: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const runMenu = template.find((item) => item.label === 'Run');
+    if (runMenu === undefined || runMenu.submenu === undefined || !Array.isArray(runMenu.submenu)) {
+      throw new Error('Expected Run menu submenu');
+    }
+
+    const saveAndRunItem = runMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Save & Run'
+    ) as { enabled?: boolean } | undefined;
+
+    expect(saveAndRunItem?.enabled).toBe(false);
+  });
+
   it('includes File → Save As… (Shift+Cmd/Ctrl+S)', () => {
     const template = createApplicationMenuTemplate({
       appName: 'Nomos Studio',

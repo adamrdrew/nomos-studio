@@ -23,6 +23,7 @@ import { OpenMapFromAssetsService } from './application/maps/OpenMapFromAssetsSe
 import { RecentMapsService } from './application/maps/RecentMapsService';
 import type { UserNotifier } from './application/ui/UserNotifier';
 import { SaveMapService } from './application/maps/SaveMapService';
+import { SaveAndRunMapService } from './application/maps/SaveAndRunMapService';
 import { MapEditService } from './application/maps/MapEditService';
 import { MapCommandEngine } from './application/maps/MapCommandEngine';
 import { MapEditHistory } from './application/maps/MapEditHistory';
@@ -47,6 +48,7 @@ const setApplicationMenu = (
     onOpenRecentMap: (mapPath: string) => Promise<void>;
     onSave: () => Promise<void>;
     onSaveAs: () => Promise<void>;
+    onSaveAndRun: () => Promise<void>;
     canUndo: boolean;
     canRedo: boolean;
     onUndo: () => Promise<void>;
@@ -91,6 +93,7 @@ const setApplicationMenu = (
     onOpenRecentMap: (mapPath) => void options.onOpenRecentMap(mapPath),
     onSave: () => void options.onSave(),
     onSaveAs: () => void options.onSaveAs(),
+    onSaveAndRun: () => void options.onSaveAndRun(),
     onUndo: () => void options.onUndo(),
     onRedo: () => void options.onRedo(),
     onRefreshAssetsIndex: () => void options.onRefreshAssetsIndex(),
@@ -213,6 +216,13 @@ app.on('ready', () => {
   const openMapService = new OpenMapService(store, mapValidationService, nodeFileSystem, notifier, mapEditHistory);
   const openMapFromAssetsService = new OpenMapFromAssetsService(store, nodePathService, notifier, openMapService);
   const saveMapService = new SaveMapService(store, nodeFileSystem, notifier);
+  const saveAndRunMapService = new SaveAndRunMapService(
+    store,
+    saveMapService,
+    mapValidationService,
+    nodeProcessRunner,
+    notifier
+  );
   const mapEditService = new MapEditService(store, mapCommandEngine, mapEditHistory);
 
   const recentMapsRepository = new JsonFileRecentMapsRepository({
@@ -431,6 +441,7 @@ app.on('ready', () => {
       onOpenRecentMap: openRecentMap,
       onSave: save,
       onSaveAs: saveAs,
+      onSaveAndRun: saveAndRun,
       canUndo: mapEditHistory.getInfo().canUndo,
       canRedo: mapEditHistory.getInfo().canRedo,
       onUndo: async () => {
@@ -510,6 +521,10 @@ app.on('ready', () => {
       return;
     }
     await nomosHandlers.saveMap();
+  };
+
+  const saveAndRun = async (): Promise<void> => {
+    await saveAndRunMapService.saveAndRunCurrentMap();
   };
 
   const saveAs = async (): Promise<void> => {

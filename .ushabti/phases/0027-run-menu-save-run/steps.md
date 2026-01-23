@@ -15,15 +15,9 @@
   - Insert a new top-level **Run** menu with a single **Save & Run** item using accelerator `F5`.
   - Add/adjust unit tests for menu template to assert presence, label, and accelerator.
 - **Done when:** Menu template tests pass and demonstrate correct platform behavior.
+- **Done when:** Menu template tests pass and demonstrate correct platform behavior.
 
-## S003 — Add main-process wiring for Save & Run
-- **Intent:** Connect the menu item to main-process orchestration without expanding renderer privileges.
-- **Work:**
-  - In main composition/root (`src/main/main.ts`), wire `onSaveAndRun` to a single application-layer entrypoint (service method) rather than inlining multi-step logic in the menu callback.
-  - Ensure menu rebuild logic includes any enablement state required.
-- **Done when:** The menu callback is wired to a single well-named application method and can be exercised via tests.
-
-## S004 — Implement application-layer orchestration service
+## S003 — Implement application-layer orchestration service
 - **Intent:** Provide a cohesive, testable public API for Save → Validate → Run.
 - **Work:**
   - Introduce an application service (e.g., `RunMapService` or `SaveAndRunMapService`) with a single public method (e.g., `saveAndRunCurrentMap()`), injected with:
@@ -41,6 +35,13 @@
     5. If validation succeeds, run engine executable using the agreed invocation contract.
   - Ensure failures are handled deterministically and do not attempt later steps.
 - **Done when:** The service exists, has a stable public method name, and is fully unit-tested for all branches.
+
+## S004 — Add main-process wiring for Save & Run
+- **Intent:** Connect the menu item to the orchestration service without expanding renderer privileges.
+- **Work:**
+  - In main composition/root (`src/main/main.ts`), wire `onSaveAndRun` to the orchestration service method rather than inlining multi-step logic in the menu callback.
+  - Ensure menu rebuild logic includes any enablement state required.
+- **Done when:** The menu callback is wired to a single well-named application method.
 
 ## S005 — Process runner support (if required)
 - **Intent:** Support the run contract without shell execution while remaining cross-platform and testable.
