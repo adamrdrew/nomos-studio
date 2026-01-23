@@ -1,0 +1,104 @@
+phase:
+  id: 0030
+  slug: drag-entities-to-map
+  title: Drag Entities to Map (Entity Browser)
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm current map entity JSON shape and selection behavior
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Decide and document sprite resolution rules
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Add a new non-closable DockView panel: Entities
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Define pure parsers/types for entity manifest and entity defs
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Implement Entities list loading flow (manifest → defs)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Implement thumbnail rendering (first frame clip)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Add shared drag payload format for entity placement
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Add a new atomic command: map-edit/create-entity
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Implement map-edit/create-entity in MapCommandEngine
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Add unit tests for map-edit/create-entity conditional paths
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Implement drop target behavior on the map canvas
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S012
+    title: Asset refresh wiring for Entities list
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S013
+    title: Update subsystem documentation (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S014
+    title: Manual smoke + verification gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
