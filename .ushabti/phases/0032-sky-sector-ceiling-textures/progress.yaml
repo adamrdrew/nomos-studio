@@ -1,0 +1,76 @@
+phase:
+  id: 0032
+  slug: sky-sector-ceiling-textures
+  title: SKY support for sector ceiling textures
+  status: planned
+
+steps:
+  - id: S001
+    title: Locate current sector ceiling texture editing UI
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define SKY detection helper
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Add “Show Skybox” control to Sector Object Properties
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Implement toggle-on behavior (set ceil_tex to "SKY")
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Implement toggle-off behavior without introducing a dropdown SKY option
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Conditionally render the ceiling texture dropdown
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Confirm/implement textured ceiling SKY resolution via map.sky
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Add/adjust unit tests for SKY (UI + main + rendering helpers) (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Update documentation (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Verification pass
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
