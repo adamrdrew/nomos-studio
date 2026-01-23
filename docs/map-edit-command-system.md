@@ -42,6 +42,7 @@ Atomic commands are the building blocks for edits.
 
 - `map-edit/delete`
 - `map-edit/clone`
+- `map-edit/create-entity`
 - `map-edit/create-door`
 - `map-edit/create-room`
 - `map-edit/set-sector-wall-tex`
@@ -96,6 +97,29 @@ Update-fields semantics:
 - Fields are set directly onto the target object in map JSON (no schema inference).
   - When `target.kind === 'map'`, fields are set on the map JSON root object.
 - Selection effect is `map-edit/selection/keep`.
+
+`map-edit/create-entity` appends a new entity placement to the map `entities[]` array:
+```ts
+{
+  kind: 'map-edit/create-entity';
+  at: { x: number; y: number };
+  def: string;
+  yawDeg?: number;
+}
+```
+
+Create-entity validation rules:
+- `at.x` and `at.y` must be finite numbers.
+- `def` must be a non-empty string after trimming.
+- `yawDeg` must be a finite number when provided.
+- `entities` must be absent or an array (a missing `entities` property is created).
+
+Create-entity semantics:
+- Ensures `entities` exists as an array.
+- Appends a new entity record:
+	- `{ x, y, def, yaw_deg }`
+	- `yaw_deg` is set to `yawDeg` when provided, otherwise defaults to `0`.
+- Selection effect is `map-edit/selection/set` to the newly appended `{ kind: 'entity', index }`.
 
 `map-edit/create-door` creates a new door bound to a portal wall by wall array index:
 ```ts

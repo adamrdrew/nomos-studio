@@ -103,6 +103,12 @@ export type MapEditFieldValue = MapEditPrimitiveValue | MapEditUnset;
 export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
+  | Readonly<{
+      kind: 'map-edit/create-entity';
+      at: Readonly<{ x: number; y: number }>;
+      def: string;
+      yawDeg?: number;
+    }>
   | Readonly<{ kind: 'map-edit/create-door'; atWallIndex: number }>
   | Readonly<{ kind: 'map-edit/create-room'; request: CreateRoomRequest }>
   | Readonly<{ kind: 'map-edit/set-sector-wall-tex'; sectorId: number; tex: string }>

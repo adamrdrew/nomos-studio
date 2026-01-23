@@ -245,6 +245,37 @@ export class MapCommandEngine {
     MapEditError
   > {
     switch (command.kind) {
+      case 'map-edit/create-entity': {
+        const toX = command.at.x;
+        const toY = command.at.y;
+        if (!isFiniteNumber(toX) || !isFiniteNumber(toY)) {
+          return err('map-edit/invalid-json', 'create-entity.at must have finite number x/y');
+        }
+
+        const defName = command.def.trim();
+        if (defName.length === 0) {
+          return err('map-edit/invalid-json', 'create-entity.def must be a non-empty string');
+        }
+
+        const yawDeg = command.yawDeg ?? 0;
+        if (!isFiniteNumber(yawDeg)) {
+          return err('map-edit/invalid-json', 'create-entity.yawDeg must be a finite number when provided');
+        }
+
+        const createResult = this.createEntityInJson(json, { x: toX, y: toY, def: defName, yawDeg });
+        if (!createResult.ok) {
+          return createResult;
+        }
+
+        return {
+          ok: true,
+          value: {
+            nextJson: createResult.value.nextJson,
+            selection: { kind: 'map-edit/selection/set', ref: createResult.value.newRef },
+            nextSelection: createResult.value.newRef
+          }
+        };
+      }
       case 'map-edit/delete': {
         const deleteResult = this.deleteFromJson(json, command.target);
         if (!deleteResult.ok) {
@@ -440,6 +471,41 @@ export class MapCommandEngine {
         return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
       }
     }
+  }
+
+  private createEntityInJson(
+    json: Record<string, unknown>,
+    request: Readonly<{ x: number; y: number; def: string; yawDeg: number }>
+  ): Result<Readonly<{ nextJson: Record<string, unknown>; newRef: MapEditTargetRef }>, MapEditError> {
+    const entitiesValue = json['entities'];
+    let entities: unknown[];
+
+    if (entitiesValue === undefined) {
+      entities = [];
+      json['entities'] = entities;
+    } else {
+      const asEntities = asArray(entitiesValue, 'entities');
+      if (!asEntities.ok) {
+        return asEntities;
+      }
+      entities = asEntities.value;
+    }
+
+    const newIndex = entities.length;
+    entities.push({
+      x: request.x,
+      y: request.y,
+      def: request.def,
+      yaw_deg: request.yawDeg
+    });
+
+    return {
+      ok: true,
+      value: {
+        nextJson: json,
+        newRef: { kind: 'entity', index: newIndex }
+      }
+    };
   }
 
   private createDoorAtPortalWallIndex(

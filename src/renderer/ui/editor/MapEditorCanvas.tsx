@@ -6,7 +6,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 
 import { useNomosStore } from '../../store/nomosStore';
 import { decodeMapViewModel } from './map/mapDecoder';
-import { pickMapSelection } from './map/mapPicking';
+import { isPointInSector, pickMapSelection } from './map/mapPicking';
 import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
@@ -15,6 +15,7 @@ import { ROOM_CREATION_DEFAULTS } from '../../../shared/domain/mapRoomCreation';
 import type { CreateRoomRequest, RoomTemplate } from '../../../shared/domain/mapRoomCreation';
 import { computeRoomPlacementValidity, computeRoomPolygon } from '../../../shared/domain/mapRoomGeometry';
 import type { RoomMapGeometry, RoomPlacementValidity, Vec2 } from '../../../shared/domain/mapRoomGeometry';
+import { tryReadEntityPlacementDragPayload } from './entities/entityPlacementDragPayload';
 
 export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom';
 
@@ -383,6 +384,19 @@ export const MapEditorCanvas = React.forwardRef<
   const stageRef = React.useRef<
     Readonly<{ getPointerPosition: () => Readonly<{ x: number; y: number }> | null }> | null
   >(null);
+
+  type EntityDropCursorState = 'none' | 'valid' | 'invalid';
+  const [entityDropCursorState, setEntityDropCursorState] = React.useState<EntityDropCursorState>('none');
+  const entityDropCursorStateRef = React.useRef<EntityDropCursorState>('none');
+
+  const setEntityDropCursorStateIfChanged = React.useCallback((next: EntityDropCursorState) => {
+    if (entityDropCursorStateRef.current === next) {
+      return;
+    }
+    entityDropCursorStateRef.current = next;
+    setEntityDropCursorState(next);
+  }, []);
+
   const [size, setSize] = React.useState<Size>({ width: 1, height: 1 });
 
   const mapDocument = useNomosStore((state) => state.mapDocument);
@@ -443,6 +457,15 @@ export const MapEditorCanvas = React.forwardRef<
     }
     return computeMapBounds(decodedMap.value);
   }, [decodedMap]);
+
+  const findSectorIdAtWorldPoint = React.useCallback((worldPoint: Point, map: MapViewModel): number | null => {
+    for (const sector of map.sectors) {
+      if (isPointInSector(worldPoint, map, sector.id)) {
+        return sector.id;
+      }
+    }
+    return null;
+  }, []);
 
   const maxCachedTextures = 64;
   const textureCacheRef = React.useRef<Map<string, Readonly<{ image: HTMLImageElement; objectUrl: string }>>>(
@@ -592,6 +615,28 @@ export const MapEditorCanvas = React.forwardRef<
     offsetY: 0,
     scale: 1
   });
+
+  const tryComputeAuthoredWorldPointFromClient = React.useCallback(
+    (clientPoint: Readonly<{ x: number; y: number }>): Point | null => {
+      const container = containerRef.current;
+      if (container === null) {
+        return null;
+      }
+
+      const rect = container.getBoundingClientRect();
+      const screenPoint: Point = {
+        x: clientPoint.x - rect.left,
+        y: clientPoint.y - rect.top
+      };
+
+      const renderWorldPoint = screenToWorld(screenPoint, view);
+      return {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+    },
+    [mapOrigin.x, mapOrigin.y, view]
+  );
 
   const zoomStepFactor = 1.2;
 
@@ -2326,8 +2371,110 @@ export const MapEditorCanvas = React.forwardRef<
     }
   }
 
+  const onDragEnter = (event: React.DragEvent<HTMLDivElement>): void => {
+    const payload = tryReadEntityPlacementDragPayload(event.dataTransfer);
+    if (payload === null) {
+      return;
+    }
+    setEntityDropCursorStateIfChanged('invalid');
+  };
+
+  const onDragLeave = (event: React.DragEvent<HTMLDivElement>): void => {
+    void event;
+    setEntityDropCursorStateIfChanged('none');
+  };
+
+  const onDragOver = (event: React.DragEvent<HTMLDivElement>): void => {
+    const payload = tryReadEntityPlacementDragPayload(event.dataTransfer);
+    if (payload === null) {
+      return;
+    }
+
+    if (mapDocument === null || decodedMap === null || !decodedMap.ok) {
+      setEntityDropCursorStateIfChanged('invalid');
+      return;
+    }
+
+    const authoredWorldPoint = tryComputeAuthoredWorldPointFromClient({ x: event.clientX, y: event.clientY });
+    if (authoredWorldPoint === null) {
+      setEntityDropCursorStateIfChanged('invalid');
+      return;
+    }
+
+    const sectorId = findSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
+    if (sectorId === null) {
+      setEntityDropCursorStateIfChanged('invalid');
+      return;
+    }
+
+    setEntityDropCursorStateIfChanged('valid');
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  };
+
+  const onDrop = (event: React.DragEvent<HTMLDivElement>): void => {
+    const payload = tryReadEntityPlacementDragPayload(event.dataTransfer);
+    if (payload === null) {
+      return;
+    }
+
+    if (mapDocument === null || decodedMap === null || !decodedMap.ok) {
+      setEntityDropCursorStateIfChanged('none');
+      return;
+    }
+
+    const authoredWorldPoint = tryComputeAuthoredWorldPointFromClient({ x: event.clientX, y: event.clientY });
+    if (authoredWorldPoint === null) {
+      setEntityDropCursorStateIfChanged('none');
+      return;
+    }
+
+    const sectorId = findSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
+    if (sectorId === null) {
+      setEntityDropCursorStateIfChanged('none');
+      return;
+    }
+
+    event.preventDefault();
+    setEntityDropCursorStateIfChanged('none');
+
+    void (async () => {
+      const result = await window.nomos.map.edit({
+        baseRevision: mapDocument.revision,
+        command: {
+          kind: 'map-edit/create-entity',
+          at: { x: authoredWorldPoint.x, y: authoredWorldPoint.y },
+          def: payload.defName
+        }
+      });
+
+      if (!result.ok) {
+        if (result.error.code === 'map-edit/stale-revision') {
+          await useNomosStore.getState().refreshFromMain();
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error('[nomos] map create-entity failed', result.error);
+        return;
+      }
+
+      if (result.value.kind === 'map-edit/applied') {
+        applyMapSelectionEffect(result.value.selection);
+      }
+    })();
+  };
+
+  const cursor = entityDropCursorState === 'valid' ? 'copy' : entityDropCursorState === 'invalid' ? 'not-allowed' : 'auto';
+
   return (
-    <div ref={containerRef} style={{ height: '100%', width: '100%' }}>
+    <div
+      ref={containerRef}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      style={{ height: '100%', width: '100%', cursor }}
+    >
       <Stage
         ref={(stage) => {
           stageRef.current = stage as unknown as Readonly<{

@@ -394,6 +394,117 @@ describe('MapCommandEngine', () => {
     });
   });
 
+  describe('create-entity', () => {
+    it('creates entities array when missing, appends a placement, and selects the new entity', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument({ lights: [], particles: [] }), {
+        kind: 'map-edit/create-entity',
+        at: { x: 10, y: 20 },
+        def: 'Imp'
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/set', ref: { kind: 'entity', index: 0 } });
+      expect(result.value.nextJson['entities']).toEqual([{ x: 10, y: 20, def: 'Imp', yaw_deg: 0 }]);
+    });
+
+    it('appends to an existing entities array and selects the appended index', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/create-entity',
+        at: { x: -1.5, y: 2.25 },
+        def: 'Shambler',
+        yawDeg: 90
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/set', ref: { kind: 'entity', index: 1 } });
+
+      const entities = result.value.nextJson['entities'];
+      expect(Array.isArray(entities)).toBe(true);
+      if (!Array.isArray(entities)) {
+        throw new Error('Expected entities to be an array');
+      }
+      expect(entities.length).toBe(2);
+      expect(entities[1]).toEqual({ x: -1.5, y: 2.25, def: 'Shambler', yaw_deg: 90 });
+    });
+
+    it('rejects non-finite x/y', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/create-entity',
+        at: { x: Number.POSITIVE_INFINITY, y: 1 },
+        def: 'Imp'
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+
+    it('rejects empty def', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/create-entity',
+        at: { x: 1, y: 2 },
+        def: '   '
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+
+    it('rejects non-finite yawDeg when provided', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/create-entity',
+        at: { x: 1, y: 2 },
+        def: 'Imp',
+        yawDeg: Number.NaN
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+
+    it('rejects invalid json when entities exists but is not an array', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument({ entities: {} }), {
+        kind: 'map-edit/create-entity',
+        at: { x: 1, y: 2 },
+        def: 'Imp'
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+  });
+
   describe('create-room', () => {
     it('still allows creating additional rooms after an adjacent join that uses the full target wall as the portal', () => {
       const engine = new MapCommandEngine();

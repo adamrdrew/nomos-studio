@@ -5,6 +5,7 @@ import { Intent, Position, Toaster } from '@blueprintjs/core';
 import { useNomosStore } from '../../store/nomosStore';
 
 import { InspectorDockPanel } from './panels/InspectorDockPanel';
+import { EntitiesDockPanel } from './panels/EntitiesDockPanel';
 import { MapEditorDockPanel } from './panels/MapEditorDockPanel';
 
 const toaster = Toaster.create({ position: Position.TOP });
@@ -35,6 +36,20 @@ function ensureCorePanelsPresent(event: DockviewReadyEvent): void {
       position: {
         referencePanel: 'map-editor',
         direction: 'right'
+      }
+    });
+  }
+
+  if (event.api.getPanel('entities') === undefined) {
+    // Place Entities in the same right-side tab group as Inspector.
+    event.api.addPanel({
+      id: 'entities',
+      title: 'Entities',
+      component: 'entities',
+      tabComponent: 'nonClosable',
+      position: {
+        referencePanel: 'inspector',
+        direction: 'within'
       }
     });
   }
@@ -138,7 +153,8 @@ export function EditorShell(): JSX.Element {
         }}
         components={{
           mapEditor: MapEditorDockPanel,
-          inspector: InspectorDockPanel
+          inspector: InspectorDockPanel,
+          entities: EntitiesDockPanel
         }}
       />
     </div>

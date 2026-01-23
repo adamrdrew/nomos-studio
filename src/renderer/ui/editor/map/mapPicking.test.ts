@@ -1,4 +1,4 @@
-import { pickMapSelection } from './mapPicking';
+import { isPointInSector, pickMapSelection } from './mapPicking';
 import type { MapViewModel } from './mapViewModel';
 import type { WallStripPolygon } from './wallStripGeometry';
 
@@ -613,5 +613,33 @@ describe('pickMapSelection', () => {
     });
 
     expect(selection).toBeNull();
+  });
+});
+
+describe('isPointInSector', () => {
+  test('returns true for a point inside the sector polygon and false outside', () => {
+    const map: MapViewModel = {
+      sky: null,
+      vertices: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 10 },
+        { x: 0, y: 10 }
+      ],
+      sectors: [{ ...sectorDefaults, id: 1, floorZ: 0, ceilZ: 4, floorTex: 'F.PNG', ceilTex: 'C.PNG', light: 1 }],
+      walls: [
+        { ...wallDefaults, index: 0, v0: 0, v1: 1, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 1, v0: 1, v1: 2, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 2, v0: 2, v1: 3, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false },
+        { ...wallDefaults, index: 3, v0: 3, v1: 0, frontSector: 1, backSector: -1, tex: 'W.PNG', endLevel: false }
+      ],
+      doors: [],
+      lights: [],
+      particles: [],
+      entities: []
+    };
+
+    expect(isPointInSector({ x: 5, y: 5 }, map, 1)).toBe(true);
+    expect(isPointInSector({ x: -1, y: 5 }, map, 1)).toBe(false);
   });
 });

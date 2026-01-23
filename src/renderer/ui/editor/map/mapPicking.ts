@@ -75,7 +75,7 @@ function pointInPolygon(worldPoint: Point, polygon: readonly Point[]): boolean {
   return crossings % 2 === 1;
 }
 
-function pointInSector(worldPoint: Point, map: MapViewModel, sectorId: number): boolean {
+export function isPointInSector(worldPoint: Point, map: MapViewModel, sectorId: number): boolean {
   let crossings = 0;
   for (const wall of map.walls) {
     if (wall.frontSector !== sectorId) {
@@ -307,7 +307,7 @@ export function pickMapSelection(args: Readonly<{
   const areaEps = 0.0001;
 
   for (const sector of args.map.sectors) {
-    if (!pointInSector(args.worldPoint, args.map, sector.id)) {
+    if (!isPointInSector(args.worldPoint, args.map, sector.id)) {
       continue;
     }
 

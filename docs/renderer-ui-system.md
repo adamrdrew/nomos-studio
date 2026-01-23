@@ -28,8 +28,16 @@ Current responsibilities:
 	- Creates the main DockView panels:
 		- Map Editor (center)
 		- Inspector (right)
+		- Entities (right, tabbed with Inspector)
 	- Refreshes the renderer snapshot on mount.
 	- Subscribes to main→renderer state changes and refreshes automatically.
+	- Core panels are non-closable and are re-created if removed.
+
+- `src/renderer/ui/editor/panels/EntitiesDockPanel.tsx`
+	- Entity browser panel.
+	- Loads the entity manifest and entity defs from the assets directory via preload IPC.
+	- Renders a thumbnail (first sprite frame) and entity name for each manifest entry.
+	- Entity rows are draggable to place entities onto the map.
 
 - `src/renderer/ui/editor/MapEditorCanvas.tsx`
 	- Konva `Stage`/`Layer` based map viewport.
@@ -148,6 +156,13 @@ The editor UI is organized like a traditional creative tool:
 			- primary modifier + alt/option + arrows: scale along view axes in fixed steps
 	- Buttons are icon-based with tooltips, fill the toolbox width, and do not stretch to fill the vertical space.
 	- The toolbox is a compact, scrollable column so additional tools can be added without odd stretching.
+	- Entity placement drag/drop:
+		- The map canvas accepts drag payloads from the Entities panel.
+		- While dragging an entity, the cursor indicates validity:
+			- `copy` when the cursor world point is inside any sector
+			- `not-allowed` everywhere else
+		- Drops outside any sector are blocked (no map edit is issued).
+		- On a valid drop, the renderer requests `map-edit/create-entity` and applies the returned selection effect.
 
 - **Tool bar** (row above the Map Editor canvas): tool-specific commands for the currently selected tool.
 	- Tool bar commands are registry-driven (tool definitions declare which commands they expose).
@@ -189,7 +204,7 @@ The editor UI is organized like a traditional creative tool:
 		- The X/Y/Angle inputs accept numeric values only; invalid non-empty input shows an error and does not commit.
 
 ### Non-closable core panels
-- The Map Editor and Inspector DockView panels are treated as “core” panels and are not closeable via the DockView tab UI.
+- The Map Editor, Inspector, and Entities DockView panels are treated as “core” panels and are not closeable via the DockView tab UI.
 
 ## Public API / entrypoints
 
