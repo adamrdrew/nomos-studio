@@ -1,0 +1,76 @@
+phase:
+  id: 0031
+  slug: fresh-launch-experience
+  title: Fresh Launch Experience
+  status: planned
+
+steps:
+  - id: S001
+    title: Define routing rule for Fresh Launch
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Build Fresh Launch renderer view
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Promote recent maps into main AppStore
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Extend state snapshot to include recent maps
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Add a minimal IPC entrypoint for Create New
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Wire Fresh Launch actions
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Missing configuration warning
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Update/extend unit tests (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Update subsystem docs (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Verification pass
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
