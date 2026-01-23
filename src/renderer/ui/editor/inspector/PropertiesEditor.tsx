@@ -1,5 +1,18 @@
 import React from 'react';
-import { Button, Colors, FormGroup, HTMLSelect, InputGroup, Intent, Position, Switch, TextArea, Toaster } from '@blueprintjs/core';
+import {
+  Button,
+  Colors,
+  FormGroup,
+  HTMLSelect,
+  InputGroup,
+  Intent,
+  Position,
+  Radio,
+  RadioGroup,
+  Switch,
+  TextArea,
+  Toaster
+} from '@blueprintjs/core';
 import { IconNames } from '@blueprintjs/icons';
 
 import type { AssetIndex, MapDocument } from '../../../../shared/domain/models';
@@ -189,13 +202,13 @@ function getSectorBoundaryWallTexState(
 }
 
 function useEditCommitter(mapDocument: MapDocument | null): {
-  commitUpdateFields: (target: MapEditTargetRef, set: Readonly<Record<string, MapEditFieldValue>>) => Promise<void>;
+  commitUpdateFields: (target: MapEditTargetRef, set: Readonly<Record<string, MapEditFieldValue>>) => Promise<boolean>;
   commitSetSectorWallTex: (sectorId: number, tex: string) => Promise<void>;
 } {
   const commitUpdateFields = React.useCallback(
-    async (target: MapEditTargetRef, set: Readonly<Record<string, MapEditFieldValue>>): Promise<void> => {
+    async (target: MapEditTargetRef, set: Readonly<Record<string, MapEditFieldValue>>): Promise<boolean> => {
       if (mapDocument === null) {
-        return;
+        return false;
       }
 
       const result = await window.nomos.map.edit({
@@ -211,12 +224,15 @@ function useEditCommitter(mapDocument: MapDocument | null): {
         if (result.error.code === 'map-edit/stale-revision') {
           await useNomosStore.getState().refreshFromMain();
           toaster.show({ message: 'Document changed; refreshed. Please retry.', intent: Intent.WARNING });
-          return;
+          return false;
         }
 
         // eslint-disable-next-line no-console
         console.error('[nomos] map update-fields failed', result.error);
+        return false;
       }
+
+      return true;
     },
     [mapDocument]
   );
@@ -987,10 +1003,58 @@ function SectorEditor(props: {
   sector: MapSector;
   target: MapEditTargetRef;
 }): JSX.Element {
+  const isSkyCeilTex = (value: string): boolean => value.trim().toLowerCase() === 'sky';
+
   const { commitUpdateFields, commitSetSectorWallTex } = useEditCommitter(props.mapDocument);
 
   const textureOptions = React.useMemo(() => getTextureFileNames(props.assetIndex), [props.assetIndex]);
   const selectionKey = `sector:${props.sector.id}`;
+
+  const showSkybox = isSkyCeilTex(props.sector.ceilTex);
+
+  const [pendingSkyboxSectorId, setPendingSkyboxSectorId] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    setPendingSkyboxSectorId(null);
+  }, [selectionKey]);
+
+  React.useEffect(() => {
+    if (showSkybox && pendingSkyboxSectorId === props.sector.id) {
+      setPendingSkyboxSectorId(null);
+    }
+  }, [pendingSkyboxSectorId, props.sector.id, showSkybox]);
+
+  const isSkyboxTogglePending = pendingSkyboxSectorId === props.sector.id;
+  const effectiveShowSkybox = showSkybox || isSkyboxTogglePending;
+
+  const handleShowSkyboxChange = (next: boolean): void => {
+    if (next) {
+      if (!showSkybox) {
+        const sectorId = props.sector.id;
+        setPendingSkyboxSectorId(sectorId);
+        void (async () => {
+          const ok = await commitUpdateFields(props.target, { ceil_tex: 'SKY' });
+          if (!ok) {
+            setPendingSkyboxSectorId((current) => (current === sectorId ? null : current));
+          }
+        })();
+      }
+      return;
+    }
+
+    setPendingSkyboxSectorId(null);
+    if (!showSkybox) {
+      return;
+    }
+
+    const firstTexture = textureOptions[0] ?? null;
+    if (firstTexture === null) {
+      return;
+    }
+
+    setCeilTex(firstTexture);
+    void commitUpdateFields(props.target, { ceil_tex: firstTexture });
+  };
 
   const [floorZText, setFloorZText] = React.useState<string>(String(props.sector.floorZ));
   const [ceilZText, setCeilZText] = React.useState<string>(String(props.sector.ceilZ));
@@ -1131,26 +1195,55 @@ function SectorEditor(props: {
         </HTMLSelect>
       </FormGroup>
 
-      <FormGroup label="ceil texture" style={{ marginBottom: 0 }}>
-        <HTMLSelect
-          value={ceilTex}
+      <FormGroup label="Show Skybox" style={{ marginBottom: 10 }}>
+        <RadioGroup
+          inline={true}
+          selectedValue={effectiveShowSkybox ? 'on' : 'off'}
           onChange={(event) => {
-            const next = event.currentTarget.value;
-            setCeilTex(next);
-            if (next !== props.sector.ceilTex) {
-              void commitUpdateFields(props.target, { ceil_tex: next });
+            if (isSkyboxTogglePending) {
+              return;
             }
+            const nextValue = (event.currentTarget as HTMLInputElement).value;
+            handleShowSkyboxChange(nextValue === 'on');
           }}
-          style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
         >
-          {textureOptions.length === 0 ? <option value={ceilTex}>No textures indexed</option> : null}
-          {textureOptions.map((fileName) => (
-            <option key={fileName} value={fileName}>
-              {fileName}
-            </option>
-          ))}
-        </HTMLSelect>
+          <Radio value="off" label="Off" disabled={isSkyboxTogglePending || (showSkybox && textureOptions.length === 0)} />
+          <Radio value="on" label="On" disabled={isSkyboxTogglePending} />
+        </RadioGroup>
+
+        {showSkybox && textureOptions.length === 0 ? (
+          <div style={{ marginTop: 6, opacity: 0.7, fontSize: 12 }}>
+            At least one texture is required to disable Skybox.
+          </div>
+        ) : null}
+
+        {isSkyboxTogglePending ? (
+          <div style={{ marginTop: 6, opacity: 0.7, fontSize: 12 }}>Applying Skybox…</div>
+        ) : null}
       </FormGroup>
+
+      {!effectiveShowSkybox ? (
+        <FormGroup label="ceil texture" style={{ marginBottom: 0 }}>
+          <HTMLSelect
+            value={ceilTex}
+            onChange={(event) => {
+              const next = event.currentTarget.value;
+              setCeilTex(next);
+              if (next !== props.sector.ceilTex) {
+                void commitUpdateFields(props.target, { ceil_tex: next });
+              }
+            }}
+            style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
+          >
+            {textureOptions.length === 0 ? <option value={ceilTex}>No textures indexed</option> : null}
+            {textureOptions.map((fileName) => (
+              <option key={fileName} value={fileName}>
+                {fileName}
+              </option>
+            ))}
+          </HTMLSelect>
+        </FormGroup>
+      ) : null}
 
       <FormGroup label="Texture Walls" style={{ marginTop: 10, marginBottom: 0 }}>
         <div style={{ display: 'flex', gap: 8 }}>

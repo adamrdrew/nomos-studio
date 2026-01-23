@@ -202,6 +202,12 @@ The editor UI is organized like a traditional creative tool:
 			- Door fields include `tex`, `starts_closed`, `required_item`, and `required_item_missing_message`.
 			- Sector fields include `light`.
 				- The UI communicates `light` as a 0..1 scalar and clamps out-of-range inputs to `[0, 1]` on commit.
+			- Sector fields include `floor_tex` and `ceil_tex` selection (from textures indexed under `Images/Textures/`, using basenames).
+			- Sector fields include a **Show Skybox** control:
+				- On: commits `ceil_tex = "SKY"` (case-insensitive in interpretation) and hides the ceiling texture dropdown.
+				- Off: shows the ceiling texture dropdown.
+				- When switching from SKY to Off, the UI immediately commits `ceil_tex` to the first available texture option (to keep the map valid) and does not add a synthetic SKY dropdown entry.
+				- If no textures are indexed under `Images/Textures/`, switching Off is blocked with an inline message.
 			- Sector fields include a **Texture Walls** control (dropdown + Set button).
 				- The dropdown is populated from textures indexed under `Images/Textures/` (fallback `Assets/Images/Textures/`) and uses basenames.
 				- Changing the dropdown does not commit; clicking **Set** commits a single `map-edit/set-sector-wall-tex` edit.

@@ -12,6 +12,7 @@ import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
 import type { WallStripPolygon } from './map/wallStripGeometry';
+import { resolveSectorSurfaceTexture } from './map/resolveSectorSurfaceTexture';
 import { ROOM_CREATION_DEFAULTS } from '../../../shared/domain/mapRoomCreation';
 import type { CreateRoomRequest, RoomTemplate } from '../../../shared/domain/mapRoomCreation';
 import { computeRoomPlacementValidity, computeRoomPolygon } from '../../../shared/domain/mapRoomGeometry';
@@ -1902,20 +1903,11 @@ export const MapEditorCanvas = React.forwardRef<
           continue;
         }
 
-        const { resolvedTextureKey, isSkyFill } = (() => {
-          if (mapSectorSurface === 'floor') {
-            return { resolvedTextureKey: sector.floorTex, isSkyFill: false };
-          }
-
-          if (sector.ceilTex.trim().toLowerCase() === 'sky') {
-            if (map.sky === null) {
-              return { resolvedTextureKey: null, isSkyFill: true };
-            }
-            return { resolvedTextureKey: `Images/Sky/${map.sky}`, isSkyFill: true };
-          }
-
-          return { resolvedTextureKey: sector.ceilTex, isSkyFill: false };
-        })();
+        const { resolvedTextureKey, isSkyFill } = resolveSectorSurfaceTexture({
+          surface: mapSectorSurface,
+          sector,
+          mapSky: map.sky
+        });
 
         if (resolvedTextureKey === null) {
           continue;

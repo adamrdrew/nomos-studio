@@ -1372,6 +1372,45 @@ describe('MapCommandEngine', () => {
     ]);
   });
 
+  it('update-fields allows setting sector ceil_tex to SKY (and back to a texture)', () => {
+    const engine = new MapCommandEngine();
+
+    const base = baseDocument({
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, light: 1, floor_tex: 'floor.png', ceil_tex: 'ceil.png' }]
+    });
+
+    const toSky = engine.apply(base, {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'sector', id: 1 },
+      set: { ceil_tex: 'SKY' }
+    });
+
+    expect(toSky.ok).toBe(true);
+    if (!toSky.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(toSky.value.selection).toEqual({ kind: 'map-edit/selection/keep' });
+    expect(toSky.value.nextJson['sectors']).toEqual([
+      { id: 1, floor_z: 0, ceil_z: 4, light: 1, floor_tex: 'floor.png', ceil_tex: 'SKY' }
+    ]);
+
+    const backToTexture = engine.apply(baseDocument(toSky.value.nextJson), {
+      kind: 'map-edit/update-fields',
+      target: { kind: 'sector', id: 1 },
+      set: { ceil_tex: 'other.png' }
+    });
+
+    expect(backToTexture.ok).toBe(true);
+    if (!backToTexture.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(backToTexture.value.nextJson['sectors']).toEqual([
+      { id: 1, floor_z: 0, ceil_z: 4, light: 1, floor_tex: 'floor.png', ceil_tex: 'other.png' }
+    ]);
+  });
+
   it('returns invalid-json when update-fields target collection is missing or not an array', () => {
     const engine = new MapCommandEngine();
 

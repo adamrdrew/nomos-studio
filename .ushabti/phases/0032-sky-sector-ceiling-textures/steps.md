@@ -88,3 +88,27 @@
       - SKY ceilings render using `Images/Sky/<map.sky>`.
       - If `map.sky` is missing/empty or unloadable, SKY ceilings do not crash the renderer.
 - **Done when:** All checks are green and behavior matches acceptance criteria.
+
+## S011 — Prevent transient invalid ceiling dropdown state during Skybox toggle
+- **Intent:** Avoid rendering a `<select>` whose `value` is not present in its options (especially during the On-toggle event before the main snapshot updates).
+- **Work:**
+  - Ensure that when the user toggles **Show Skybox = On**, the ceiling texture dropdown is not rendered in any intermediate UI state where the local ceiling texture value has been set to `SKY` but `props.sector.ceilTex` has not yet updated.
+  - Acceptable approaches include (choose one):
+    - Do not set local `ceilTex` to `SKY` on toggle-on (rely on the persisted snapshot update).
+    - Introduce a short-lived local “pending skybox” flag used only to hide the dropdown while the edit is in flight.
+    - Ensure the dropdown only renders when its current `value` is guaranteed to be present in the options.
+- **Done when:** Toggling On never results in a rendered ceiling `<select>` with `value="SKY"` unless `SKY` is also a valid option (which it must not be for this Phase).
+
+## S012 — Ensure Skybox toggle pending state clears on edit failure
+- **Intent:** Avoid getting the Sector editor into a stuck “Applying Skybox…” state if the underlying `map-edit/update-fields` call fails (non-stale error).
+- **Work:**
+  - When toggling Skybox On, ensure any local “pending” UI state is cleared when the edit completes, regardless of success/failure.
+  - The UI must allow retrying the toggle if the edit fails.
+- **Done when:** The “Applying Skybox…” state is always short-lived; it clears after the edit attempt completes and does not permanently disable the Skybox control.
+
+## S013 — Reset Skybox pending state on selection changes
+- **Intent:** Prevent the Skybox “Applying…” pending UI state from leaking across selection changes (e.g., toggling On and immediately selecting a different sector).
+- **Work:**
+  - Ensure any local skybox pending state is cleared when the selected sector changes (sector id / selection key changes).
+  - The Show Skybox control must always reflect the newly selected sector’s persisted `ceil_tex` (plus any in-flight edit for that same sector only).
+- **Done when:** Switching selection while a Skybox edit is in-flight cannot leave the newly selected sector stuck in “Applying Skybox…”, cannot hide its ceiling dropdown incorrectly, and does not permanently disable the control.
