@@ -1,0 +1,90 @@
+phase:
+  id: 0035
+  slug: room-clone
+  title: Room Clone
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm UX decisions and scope boundaries
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Define a typed “room stamp” payload (geometry + properties)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Add pure helpers for sector boundary extraction and wall ordering
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Add pure helpers for stamp transforms (preview/placement)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Extend shared IPC command types with map-edit/stamp-room
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Implement map-edit/stamp-room in MapCommandEngine
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Unit tests for MapCommandEngine stamp-room
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Renderer clone buffer state and extraction from selection
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Renderer Clone action switches to Room tool with stamp preview
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Room tool supports stamping a buffered polygon
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Docs update (renderer UI + map edit command system)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S012
+    title: Quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
