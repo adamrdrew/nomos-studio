@@ -1,6 +1,17 @@
 import { registerNomosIpcHandlers } from './registerNomosIpcHandlers';
 import { NOMOS_IPC_CHANNELS } from '../../shared/ipc/nomosIpc';
 
+const defaultSettings = {
+  assetsDirPath: null,
+  gameExecutablePath: null,
+  defaultSky: null,
+  defaultSoundfont: null,
+  defaultBgmusic: null,
+  defaultWallTex: null,
+  defaultFloorTex: null,
+  defaultCeilTex: null
+} as const;
+
 describe('registerNomosIpcHandlers', () => {
   it('registers handlers for all expected channels', () => {
     const channels = NOMOS_IPC_CHANNELS;
@@ -16,8 +27,8 @@ describe('registerNomosIpcHandlers', () => {
       ipcMain as unknown as Parameters<typeof registerNomosIpcHandlers>[0],
       channels,
       {
-        getSettings: async () => ({ ok: true, value: { assetsDirPath: null, gameExecutablePath: null } }),
-        updateSettings: async () => ({ ok: true, value: { assetsDirPath: null, gameExecutablePath: null } }),
+        getSettings: async () => ({ ok: true, value: defaultSettings }),
+        updateSettings: async () => ({ ok: true, value: defaultSettings }),
         pickDirectory: async () => ({ ok: true, value: null }),
         pickFile: async () => ({ ok: true, value: null }),
         openMapDialog: async () => ({ ok: true, value: null }),
@@ -74,7 +85,16 @@ describe('registerNomosIpcHandlers', () => {
         getStateSnapshot: async () => ({
           ok: true,
           value: {
-            settings: { assetsDirPath: null, gameExecutablePath: null },
+            settings: {
+              assetsDirPath: null,
+              gameExecutablePath: null,
+              defaultSky: null,
+              defaultSoundfont: null,
+              defaultBgmusic: null,
+              defaultWallTex: null,
+              defaultFloorTex: null,
+              defaultCeilTex: null
+            },
             assetIndex: null,
             recentMapPaths: [],
             mapDocument: null,

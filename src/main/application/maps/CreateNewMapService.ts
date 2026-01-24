@@ -1,6 +1,6 @@
 import type { AppStore } from '../store/AppStore';
 
-import type { MapDocument } from '../../../shared/domain/models';
+import type { EditorSettings, MapDocument } from '../../../shared/domain/models';
 import type { Result } from '../../../shared/domain/results';
 import type { MapEditHistoryPort } from './MapEditHistory';
 
@@ -18,8 +18,8 @@ export type RecentMapsPort = Readonly<{
 
 export type NewMapResponse = Result<MapDocument | null, { message: string }>;
 
-function createEmptyMapJson(): unknown {
-  return {
+function createEmptyMapJson(settings: EditorSettings): unknown {
+  const json: Record<string, unknown> = {
     vertices: [],
     sectors: [],
     walls: [],
@@ -28,6 +28,23 @@ function createEmptyMapJson(): unknown {
     particles: [],
     entities: []
   };
+
+  const sky = settings.defaultSky?.trim() ?? '';
+  if (sky.length > 0) {
+    json['sky'] = sky;
+  }
+
+  const soundfont = settings.defaultSoundfont?.trim() ?? '';
+  if (soundfont.length > 0) {
+    json['soundfont'] = soundfont;
+  }
+
+  const bgmusic = settings.defaultBgmusic?.trim() ?? '';
+  if (bgmusic.length > 0) {
+    json['bgmusic'] = bgmusic;
+  }
+
+  return json;
 }
 
 export class CreateNewMapService {
@@ -69,7 +86,7 @@ export class CreateNewMapService {
 
       createdDocument = {
         filePath: destinationPath,
-        json: createEmptyMapJson(),
+        json: createEmptyMapJson(this.store.getState().settings),
         dirty: true,
         lastValidation: null,
         revision: 1

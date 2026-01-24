@@ -61,6 +61,173 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "typecheck (absolute npm)",
+			"type": "shell",
+			"command": "/Users/adam/.nvm/versions/node/v20.17.0/bin/npm",
+			"args": [
+				"run",
+				"typecheck"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node npm-cli)",
+			"type": "shell",
+			"command": "/Users/adam/.nvm/versions/node/v20.17.0/bin/node",
+			"args": [
+				"/Users/adam/.nvm/versions/node/v20.17.0/lib/node_modules/npm/bin/npm-cli.js",
+				"run",
+				"typecheck"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc)",
+			"type": "shell",
+			"command": "/Users/adam/.nvm/versions/node/v20.17.0/bin/node",
+			"args": [
+				"./node_modules/typescript/bin/tsc",
+				"-p",
+				"tsconfig.json",
+				"--noEmit"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc)",
+			"type": "shell",
+			"command": "/Users/adam/.nvm/versions/node/v20.17.0/bin/node",
+			"args": [
+				"./node_modules/typescript/bin/tsc",
+				"-p",
+				"tsconfig.json",
+				"--noEmit"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc)",
+			"type": "shell",
+			"command": "/Users/adam/.nvm/versions/node/v20.17.0/bin/node",
+			"args": [
+				"./node_modules/typescript/bin/tsc",
+				"-p",
+				"tsconfig.json",
+				"--noEmit"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc pretty false)",
+			"type": "shell",
+			"command": "/Users/adam/.nvm/versions/node/v20.17.0/bin/node",
+			"args": [
+				"./node_modules/typescript/bin/tsc",
+				"-p",
+				"tsconfig.json",
+				"--noEmit",
+				"--pretty",
+				"false"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc + exit)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false; echo EXIT:$?"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc + exit)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false; echo EXIT:$?"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc + exit)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false; echo EXIT:$?"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc + exit)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false; echo EXIT:$?"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc + exit)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false; echo EXIT:$?"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc + exit)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false; echo EXIT:$?"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "typecheck (node tsc + exit)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false; echo EXIT:$?"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }

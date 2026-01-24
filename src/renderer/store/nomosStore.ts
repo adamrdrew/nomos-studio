@@ -84,7 +84,13 @@ function selectionMatchesRef(selection: MapSelection | null, ref: MapEditTargetR
 
 const defaultSettings: EditorSettings = {
   assetsDirPath: null,
-  gameExecutablePath: null
+  gameExecutablePath: null,
+  defaultSky: null,
+  defaultSoundfont: null,
+  defaultBgmusic: null,
+  defaultWallTex: null,
+  defaultFloorTex: null,
+  defaultCeilTex: null
 };
 
 export const useNomosStore = create<NomosStoreState>((set) => ({

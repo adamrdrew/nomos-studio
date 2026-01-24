@@ -167,11 +167,11 @@ The editor UI is organized like a traditional creative tool:
 		- Validity is enforced (not advisory): rooms must be nested inside a sector or adjacent/snapped to an existing wall; intersections are rejected.
 			- Exception: if the map has no sectors and no walls, the first room may be created as a “seed” room (not nested/adjacent).
 		- On a valid click, the renderer requests `map-edit/create-room` via `window.nomos.map.edit(...)`.
-		- Texture defaults are computed in the renderer from the current `assetIndex.entries`:
-			- filter entries under `Images/Textures/`
-			- sort lexicographically by relative path
-			- take the first 3 filenames (prefix stripped) as `{ wallTex, floorTex, ceilTex }`
-			- if fewer than 3 textures exist, room creation is blocked (invalid preview).
+		- Texture defaults are computed in the renderer from the current settings + `assetIndex.entries`:
+			- list available textures under `Images/Textures/` (fallback `Assets/Images/Textures/`) and sort by filename
+			- if `settings.defaultWallTex/defaultFloorTex/defaultCeilTex` are all set, non-empty, and present in the available options, use them
+			- otherwise, fall back to the existing heuristic: take the first 3 filenames as `{ wallTex, floorTex, ceilTex }`
+			- if fewer than 3 usable textures exist, room creation is blocked (invalid preview)
 		- Key bindings while preview is visible:
 			- primary modifier + left/right: rotate 90° (CCW/CW)
 			- primary modifier + alt/option + arrows: scale along view axes in fixed steps
@@ -248,9 +248,17 @@ This is used by the Settings window to render a dedicated settings view.
 ## Data shapes
 
 ### Settings form fields
-Settings UI uses two strings (nullable in persisted settings):
-- `assetsDirPath: string` (empty string treated as null)
-- `gameExecutablePath: string` (empty string treated as null)
+Settings UI edits a subset of `EditorSettings`.
+
+Path fields (strings; empty string treated as null on save):
+- `assetsDirPath: string`
+- `gameExecutablePath: string`
+
+Default-asset fields (nullable; stored as basenames and sourced from `assetIndex.entries`):
+- `defaultSky: string | null` (from `Images/Sky/`)
+- `defaultSoundfont: string | null` (from `Sounds/SoundFonts/`)
+- `defaultBgmusic: string | null` (from `Sounds/MIDI/`)
+- `defaultWallTex/defaultFloorTex/defaultCeilTex: string | null` (from `Images/Textures/`, fallback `Assets/Images/Textures/`)
 
 ### Renderer store snapshot
 `useNomosStore.refreshFromMain()` loads `AppStateSnapshot` via IPC and stores:
@@ -274,7 +282,9 @@ Settings UI uses two strings (nullable in persisted settings):
 ### Settings mode behavior
 - When in settings mode:
 	- The root UI renders only the Settings panel.
-	- “Done” and “Cancel” close the window.
+	- “Apply” persists changes without closing the window.
+	- “Done” closes the window.
+	- If assets are configured but `assetIndex` is still null, the UI shows a spinner and “Indexing assets…” and keeps default-asset dropdowns disabled until the index arrives.
 
 ### State freshness
 - Renderer state is snapshot-based.

@@ -22,7 +22,16 @@ describe('OpenMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: null,
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -71,7 +80,16 @@ describe('OpenMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -120,7 +138,16 @@ describe('OpenMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: '/assets', gameExecutablePath: null },
+        settings: {
+          assetsDirPath: '/assets',
+          gameExecutablePath: null,
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -171,7 +198,16 @@ describe('OpenMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: '/assets', gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: '/assets',
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null,
@@ -234,7 +270,16 @@ describe('OpenMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: '/assets', gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: '/assets',
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null,
@@ -292,7 +337,16 @@ describe('OpenMapService', () => {
   it('returns parse-failed when file JSON is invalid', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: '/assets', gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: '/assets',
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -339,7 +393,16 @@ describe('OpenMapService', () => {
   it('returns read-failed when file read throws', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: '/assets', gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: '/assets',
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null

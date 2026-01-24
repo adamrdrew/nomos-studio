@@ -6,6 +6,17 @@ import type { AppStore } from '../store/AppStore';
 import type { CreateRoomRequest } from '../../../shared/domain/mapRoomCreation';
 import type { MapDocument, MapValidationRecord } from '../../../shared/domain/models';
 
+const defaultSettings = {
+  assetsDirPath: null,
+  gameExecutablePath: null,
+  defaultSky: null,
+  defaultSoundfont: null,
+  defaultBgmusic: null,
+  defaultWallTex: null,
+  defaultFloorTex: null,
+  defaultCeilTex: null
+} as const;
+
 type StoredMapDocument = Readonly<{ dirty: boolean; json: unknown }>;
 
 type MapDocumentFixture = Omit<MapDocument, 'revision'> & Partial<Pick<MapDocument, 'revision'>>;
@@ -50,7 +61,7 @@ function createMutableStore(initialDocument: MapDocumentFixture | null): Readonl
 
   const store: AppStore = {
     getState: () => ({
-      settings: { assetsDirPath: null, gameExecutablePath: null },
+      settings: defaultSettings,
       assetIndex: null,
       assetIndexError: null,
       mapDocument
@@ -76,7 +87,7 @@ describe('MapEditService', () => {
   it('undo returns no-document when no map is loaded', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -1420,7 +1431,7 @@ describe('MapEditService', () => {
   it('redo returns no-document when no map is loaded', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -1934,7 +1945,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2029,7 +2040,7 @@ describe('MapEditService', () => {
   it('returns no-document when no map is loaded', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -2054,7 +2065,7 @@ describe('MapEditService', () => {
   it('returns invalid-json when current document JSON is not an object', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2084,7 +2095,7 @@ describe('MapEditService', () => {
   it('returns unsupported-target when command kind is unknown', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2114,7 +2125,7 @@ describe('MapEditService', () => {
   it('returns unsupported-target when target kind is unknown (delete)', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2147,7 +2158,7 @@ describe('MapEditService', () => {
   it('returns unsupported-target when target kind is unknown (clone)', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2182,7 +2193,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2224,7 +2235,7 @@ describe('MapEditService', () => {
   it('returns not-found when deleting an out-of-range indexed target', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2256,7 +2267,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2308,7 +2319,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2357,7 +2368,7 @@ describe('MapEditService', () => {
   it('returns invalid-json when cloning a particle with invalid x/y', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2392,7 +2403,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2437,7 +2448,7 @@ describe('MapEditService', () => {
   it('returns not-found when deleting a door id that does not exist', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2472,7 +2483,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2513,7 +2524,7 @@ describe('MapEditService', () => {
   it('returns invalid-json when an expected collection is not an array', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2543,7 +2554,7 @@ describe('MapEditService', () => {
   it('returns not-found when cloning a door id that does not exist (even if other door entries are malformed)', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2578,7 +2589,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2621,7 +2632,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2664,7 +2675,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2710,7 +2721,7 @@ describe('MapEditService', () => {
   it('returns not-found when deleting a negative index target', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2740,7 +2751,7 @@ describe('MapEditService', () => {
   it('returns not-found when cloning a non-integer index target', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2775,7 +2786,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2821,7 +2832,7 @@ describe('MapEditService', () => {
   it('returns invalid-json when cloning a door whose id is empty/whitespace', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2854,7 +2865,7 @@ describe('MapEditService', () => {
   it('returns invalid-json when cloning an indexed target but the expected collection is not an array', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2884,7 +2895,7 @@ describe('MapEditService', () => {
   it('returns not-found when cloning an indexed target with an out-of-range index (source undefined)', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2914,7 +2925,7 @@ describe('MapEditService', () => {
   it('returns invalid-json when cloning an indexed target whose entry is not an object', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2944,7 +2955,7 @@ describe('MapEditService', () => {
   it('returns invalid-json when doors is not an array (delete)', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -2974,7 +2985,7 @@ describe('MapEditService', () => {
   it('returns invalid-json when doors is not an array (clone)', () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -3006,7 +3017,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -3053,7 +3064,7 @@ describe('MapEditService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {

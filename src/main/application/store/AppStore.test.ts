@@ -9,7 +9,16 @@ describe('AppStore', () => {
 
     const state = store.getState();
 
-    expect(state.settings).toEqual({ assetsDirPath: null, gameExecutablePath: null });
+    expect(state.settings).toEqual({
+      assetsDirPath: null,
+      gameExecutablePath: null,
+      defaultSky: null,
+      defaultSoundfont: null,
+      defaultBgmusic: null,
+      defaultWallTex: null,
+      defaultFloorTex: null,
+      defaultCeilTex: null
+    });
     expect(state.assetIndex).toBeNull();
     expect(state.assetIndexError).toBeNull();
     expect(state.recentMapPaths).toEqual([]);
@@ -33,14 +42,41 @@ describe('AppStore', () => {
       lastSettings = state.settings;
     });
 
-    store.setSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    store.setSettings({
+      assetsDirPath: '/assets',
+      gameExecutablePath: null,
+      defaultSky: null,
+      defaultSoundfont: null,
+      defaultBgmusic: null,
+      defaultWallTex: null,
+      defaultFloorTex: null,
+      defaultCeilTex: null
+    });
 
     expect(calls).toBe(1);
-    expect(lastSettings).toEqual({ assetsDirPath: '/assets', gameExecutablePath: null });
+    expect(lastSettings).toEqual({
+      assetsDirPath: '/assets',
+      gameExecutablePath: null,
+      defaultSky: null,
+      defaultSoundfont: null,
+      defaultBgmusic: null,
+      defaultWallTex: null,
+      defaultFloorTex: null,
+      defaultCeilTex: null
+    });
 
     unsubscribe();
 
-    store.setSettings({ assetsDirPath: null, gameExecutablePath: '/game' });
+    store.setSettings({
+      assetsDirPath: null,
+      gameExecutablePath: '/game',
+      defaultSky: null,
+      defaultSoundfont: null,
+      defaultBgmusic: null,
+      defaultWallTex: null,
+      defaultFloorTex: null,
+      defaultCeilTex: null
+    });
 
     expect(calls).toBe(1);
   });

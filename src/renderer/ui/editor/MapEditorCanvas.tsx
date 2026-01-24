@@ -7,6 +7,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import { useNomosStore } from '../../store/nomosStore';
 import { decodeMapViewModel } from './map/mapDecoder';
 import { pickMapSelection } from './map/mapPicking';
+import { pickDefaultRoomTextures } from './map/pickDefaultRoomTextures';
 import { buildSectorLoop, pickSectorIdAtWorldPoint } from './map/sectorContainment';
 import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
@@ -61,41 +62,6 @@ function toRoomMapGeometry(map: MapViewModel): RoomMapGeometry {
       backSectorId: wall.backSector
     }))
   };
-}
-
-function pickDefaultRoomTextures(assetIndex: Readonly<{ entries: readonly string[] }> | null):
-  | Readonly<{ wallTex: string; floorTex: string; ceilTex: string }>
-  | null {
-  if (assetIndex === null) {
-    return null;
-  }
-
-  const prefixes = ['Images/Textures/', 'Assets/Images/Textures/'] as const;
-
-  let matches: string[] = [];
-  for (const prefix of prefixes) {
-    const candidate = assetIndex.entries
-      .filter((entry) => entry.startsWith(prefix))
-      .map((entry) => entry.slice(prefix.length))
-      .filter((fileName) => fileName.trim().length > 0);
-
-    if (candidate.length > 0) {
-      matches = candidate;
-      break;
-    }
-  }
-
-  matches.sort((a, b) => a.localeCompare(b));
-
-  const wallTex = matches[0] ?? null;
-  const floorTex = matches[1] ?? null;
-  const ceilTex = matches[2] ?? null;
-
-  if (wallTex === null || floorTex === null || ceilTex === null) {
-    return null;
-  }
-
-  return { wallTex, floorTex, ceilTex };
 }
 
 function getDefaultRoomSizeForTemplate(template: RoomTemplate): Readonly<{ width: number; height: number }> {
@@ -347,6 +313,7 @@ export const MapEditorCanvas = React.forwardRef<
   const mapDoorVisibility = useNomosStore((state) => state.mapDoorVisibility);
   const mapSelection = useNomosStore((state) => state.mapSelection);
   const assetIndex = useNomosStore((state) => state.assetIndex);
+  const settings = useNomosStore((state) => state.settings);
   const isPickingPlayerStart = useNomosStore((state) => state.isPickingPlayerStart);
   const setIsPickingPlayerStart = useNomosStore((state) => state.setIsPickingPlayerStart);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
@@ -912,7 +879,7 @@ export const MapEditorCanvas = React.forwardRef<
     });
 
 
-    const textures = pickDefaultRoomTextures(assetIndex);
+    const textures = pickDefaultRoomTextures({ assetIndex, settings });
     if (textures === null) {
       return {
         polygon,
@@ -949,7 +916,7 @@ export const MapEditorCanvas = React.forwardRef<
     };
 
     return { polygon, validity, request };
-  }, [assetIndex, decodedMap, isRoomEnabled, props.roomTemplate, roomCenter, roomRotationQuarterTurns, roomSize.height, roomSize.width, view.scale]);
+  }, [assetIndex, decodedMap, isRoomEnabled, props.roomTemplate, roomCenter, roomRotationQuarterTurns, roomSize.height, roomSize.width, settings, view.scale]);
 
   React.useEffect(() => {
     if (!isRoomEnabled) {

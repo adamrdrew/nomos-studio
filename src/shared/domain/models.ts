@@ -1,6 +1,12 @@
 export type EditorSettings = Readonly<{
   assetsDirPath: string | null;
   gameExecutablePath: string | null;
+  defaultSky: string | null;
+  defaultSoundfont: string | null;
+  defaultBgmusic: string | null;
+  defaultWallTex: string | null;
+  defaultFloorTex: string | null;
+  defaultCeilTex: string | null;
 }>;
 
 export type AssetIndexStats = Readonly<{

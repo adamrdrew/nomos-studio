@@ -7,7 +7,16 @@ import type { MapDocument } from '../../../shared/domain/models';
 function createStore(mapDocument: MapDocument | null): AppStore {
   return {
     getState: () => ({
-      settings: { assetsDirPath: null, gameExecutablePath: null },
+      settings: {
+        assetsDirPath: null,
+        gameExecutablePath: null,
+        defaultSky: null,
+        defaultSoundfont: null,
+        defaultBgmusic: null,
+        defaultWallTex: null,
+        defaultFloorTex: null,
+        defaultCeilTex: null
+      },
       assetIndex: null,
       assetIndexError: null,
       mapDocument,

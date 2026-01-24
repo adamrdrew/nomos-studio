@@ -1,6 +1,17 @@
 import { SettingsService, type SettingsRepository } from './SettingsService';
 import type { EditorSettings } from '../../../shared/domain/models';
 
+const defaultSettings: EditorSettings = {
+  assetsDirPath: null,
+  gameExecutablePath: null,
+  defaultSky: null,
+  defaultSoundfont: null,
+  defaultBgmusic: null,
+  defaultWallTex: null,
+  defaultFloorTex: null,
+  defaultCeilTex: null
+};
+
 function okSettings(settings: EditorSettings) {
   return { ok: true as const, value: settings };
 }
@@ -19,7 +30,7 @@ function errSettings(code: string) {
 describe('SettingsService', () => {
   it('getSettings forwards repository load', async () => {
     const repository: SettingsRepository = {
-      loadSettings: async () => okSettings({ assetsDirPath: null, gameExecutablePath: null }),
+      loadSettings: async () => okSettings(defaultSettings),
       saveSettings: async () => ({ ok: true as const, value: undefined })
     };
 
@@ -47,7 +58,7 @@ describe('SettingsService', () => {
     let saved: EditorSettings | null = null;
 
     const repository: SettingsRepository = {
-      loadSettings: async () => okSettings({ assetsDirPath: null, gameExecutablePath: null }),
+      loadSettings: async () => okSettings(defaultSettings),
       saveSettings: async (settings) => {
         saved = settings;
         return { ok: true as const, value: undefined };
@@ -59,12 +70,99 @@ describe('SettingsService', () => {
     const result = await service.updateSettings({ assetsDirPath: '/assets' });
 
     expect(result.ok).toBe(true);
-    expect(saved).toEqual({ assetsDirPath: '/assets', gameExecutablePath: null });
+    expect(saved).toEqual({ ...defaultSettings, assetsDirPath: '/assets' });
+  });
+
+  it('updateSettings preserves default-asset fields when updates omit them', async () => {
+    let saved: EditorSettings | null = null;
+
+    const current: EditorSettings = {
+      ...defaultSettings,
+      defaultSky: 'day.png',
+      defaultSoundfont: 'soundfont.sf2',
+      defaultBgmusic: 'track.mid',
+      defaultWallTex: 'wall.png',
+      defaultFloorTex: 'floor.png',
+      defaultCeilTex: 'ceil.png'
+    };
+
+    const repository: SettingsRepository = {
+      loadSettings: async () => okSettings(current),
+      saveSettings: async (settings) => {
+        saved = settings;
+        return { ok: true as const, value: undefined };
+      }
+    };
+
+    const service = new SettingsService(repository);
+
+    const result = await service.updateSettings({ assetsDirPath: '/assets' });
+
+    expect(result.ok).toBe(true);
+    expect(saved).toEqual({ ...current, assetsDirPath: '/assets' });
+  });
+
+  it('updateSettings updates default-asset fields when provided', async () => {
+    let saved: EditorSettings | null = null;
+
+    const repository: SettingsRepository = {
+      loadSettings: async () => okSettings(defaultSettings),
+      saveSettings: async (settings) => {
+        saved = settings;
+        return { ok: true as const, value: undefined };
+      }
+    };
+
+    const service = new SettingsService(repository);
+
+    const result = await service.updateSettings({
+      defaultSky: 'day.png',
+      defaultSoundfont: 'soundfont.sf2',
+      defaultBgmusic: 'track.mid',
+      defaultWallTex: 'wall.png',
+      defaultFloorTex: 'floor.png',
+      defaultCeilTex: 'ceil.png'
+    });
+
+    expect(result.ok).toBe(true);
+    expect(saved).toEqual({
+      ...defaultSettings,
+      defaultSky: 'day.png',
+      defaultSoundfont: 'soundfont.sf2',
+      defaultBgmusic: 'track.mid',
+      defaultWallTex: 'wall.png',
+      defaultFloorTex: 'floor.png',
+      defaultCeilTex: 'ceil.png'
+    });
+  });
+
+  it('updateSettings clears a default-asset field when null is provided', async () => {
+    let saved: EditorSettings | null = null;
+
+    const current: EditorSettings = {
+      ...defaultSettings,
+      defaultSky: 'day.png'
+    };
+
+    const repository: SettingsRepository = {
+      loadSettings: async () => okSettings(current),
+      saveSettings: async (settings) => {
+        saved = settings;
+        return { ok: true as const, value: undefined };
+      }
+    };
+
+    const service = new SettingsService(repository);
+
+    const result = await service.updateSettings({ defaultSky: null });
+
+    expect(result.ok).toBe(true);
+    expect(saved).toEqual({ ...current, defaultSky: null });
   });
 
   it('updateSettings returns error when save fails', async () => {
     const repository: SettingsRepository = {
-      loadSettings: async () => okSettings({ assetsDirPath: null, gameExecutablePath: null }),
+      loadSettings: async () => okSettings(defaultSettings),
       saveSettings: async () =>
         ({
           ok: false as const,

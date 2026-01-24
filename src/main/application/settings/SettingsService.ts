@@ -31,7 +31,19 @@ export class SettingsService {
       gameExecutablePath:
         updates.gameExecutablePath === undefined
           ? currentResult.value.gameExecutablePath
-          : updates.gameExecutablePath
+          : updates.gameExecutablePath,
+      defaultSky:
+        updates.defaultSky === undefined ? currentResult.value.defaultSky : updates.defaultSky,
+      defaultSoundfont:
+        updates.defaultSoundfont === undefined ? currentResult.value.defaultSoundfont : updates.defaultSoundfont,
+      defaultBgmusic:
+        updates.defaultBgmusic === undefined ? currentResult.value.defaultBgmusic : updates.defaultBgmusic,
+      defaultWallTex:
+        updates.defaultWallTex === undefined ? currentResult.value.defaultWallTex : updates.defaultWallTex,
+      defaultFloorTex:
+        updates.defaultFloorTex === undefined ? currentResult.value.defaultFloorTex : updates.defaultFloorTex,
+      defaultCeilTex:
+        updates.defaultCeilTex === undefined ? currentResult.value.defaultCeilTex : updates.defaultCeilTex
     };
 
     const saveResult = await this.repository.saveSettings(next);

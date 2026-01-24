@@ -2,75 +2,118 @@ phase:
   id: 0033
   slug: default-assets
   title: Default assets
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Inventory current asset dropdown sources and naming
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Confirmed map root stores bgmusic/soundfont/sky as non-empty strings (treated as basenames in UI) and sector/wall textures as strings; existing dropdown sources: MapPropertiesSection.extractAssetBasenames() filters assetIndex.entries by prefix Sounds/MIDI/, Sounds/SoundFonts/, Images/Sky/; texture file names come from PropertiesEditor.getTextureFileNames() using prefixes Images/Textures/ and fallback Assets/Images/Textures/."
+    touched:
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S002
     title: Extend shared settings model (EditorSettings) for default assets
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Extended EditorSettings with default asset fields (all string|null) and updated main/renderer defaults plus affected store/test fixtures so the codebase typechecks."
+    touched:
+      - src/shared/domain/models.ts
+      - src/main/application/store/AppStore.ts
+      - src/renderer/store/nomosStore.ts
+      - src/main/application/settings/SettingsService.ts
+      - src/main/application/store/AppStore.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/application/assets/AssetIndexService.test.ts
+      - src/main/application/maps/UnsavedChangesGuard.test.ts
+      - src/main/application/maps/OpenMapService.test.ts
+      - src/main/application/maps/MapValidationService.test.ts
+      - src/main/application/maps/SaveAndRunMapService.test.ts
+      - src/main/application/maps/SaveMapService.test.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - src/main/application/settings/SettingsService.test.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.test.ts
+      - src/main/infrastructure/settings/settingsCodec.test.ts
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S003
     title: Persist new settings fields (codec + repo) and update format docs
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated settings codec and JSON repository defaults to include new keys; updated settings file format and settings subsystem docs to document the expanded schema and unknown-key preservation rules."
+    touched:
+      - src/main/infrastructure/settings/settingsCodec.ts
+      - src/main/infrastructure/settings/settingsCodec.test.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.ts
+      - src/main/infrastructure/settings/JsonFileSettingsRepository.test.ts
+      - src/main/infrastructure/settings/settingsFileFormat.md
+      - docs/settings-system.md
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S004
     title: Update SettingsService tests for merge semantics (L04)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added unit tests covering undefined-vs-null semantics for new default-asset fields and verifying updates do not overwrite omitted fields."
+    touched:
+      - src/main/application/settings/SettingsService.ts
+      - src/main/application/settings/SettingsService.test.ts
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S005
     title: Add “Default assets” dropdowns to Settings window UI
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added Default assets dropdowns to Settings UI; options are derived from assetIndex by prefix and controls are disabled until assetsDirPath is configured and indexing has completed, with an Indexing assets… spinner while waiting."
+    touched:
+      - src/renderer/renderer.tsx
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S006
     title: Save/load defaults in Settings UI
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Settings window now loads persisted default-asset values, supports Apply (save without closing) and Done (close), and triggers/re-triggers asset indexing while showing an Indexing assets… spinner until assetIndex becomes available."
+    touched:
+      - src/renderer/renderer.tsx
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S007
     title: Apply map-level defaults when creating a new map
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "New map creation now initializes sky/soundfont/bgmusic from settings defaults when present; unit tests cover both default and null cases."
+    touched:
+      - src/main/application/maps/CreateNewMapService.ts
+      - src/main/application/maps/CreateNewMapService.test.ts
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S008
     title: Apply sector texture defaults during room/sector creation
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Room tool now prefers defaultWallTex/defaultFloorTex/defaultCeilTex when all are set, non-empty, and present in the available texture options; otherwise falls back to the existing heuristic. Implemented as a small pure helper with unit tests and integrated into MapEditorCanvas room request defaults."
+    touched:
+      - src/renderer/ui/editor/map/pickDefaultRoomTextures.ts
+      - src/renderer/ui/editor/map/pickDefaultRoomTextures.test.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S009
     title: Documentation updates (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated renderer UI subsystem docs to describe Settings default-asset dropdowns (and their prerequisites) and the room tool’s texture-default override behavior. Settings subsystem docs for the new keys were updated earlier under S003."
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0033-default-assets/progress.yaml
 
   - id: S010
     title: Verification pass
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Automated checks are green (npm test/typecheck/lint). Manual UI smoke completed: configure assets dir and observe Indexing assets… spinner → set default assets → Create New Map applies sky/soundfont/bgmusic defaults → Room tool create-room uses wall/floor/ceil defaults. Note: eslint emits a warning about unsupported TypeScript version, but lint exits 0."
+    touched:
+      - .ushabti/phases/0033-default-assets/progress.yaml

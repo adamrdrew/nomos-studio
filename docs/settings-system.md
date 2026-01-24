@@ -1,7 +1,7 @@
 # Settings System
 
 ## Overview
-Nomos Studio persists a small set of app-level settings (currently: assets directory path and game executable path) to a JSON file under Electron’s `app.getPath('userData')`. Settings are loaded in the main process at startup and are exposed to the renderer via a minimal preload API (`window.nomos.settings`).
+Nomos Studio persists a small set of app-level settings (assets directory path, game executable path, and default-asset selections) to a JSON file under Electron’s `app.getPath('userData')`. Settings are loaded in the main process at startup and are exposed to the renderer via a minimal preload API (`window.nomos.settings`).
 
 The settings system is designed to be **extensible and forward-compatible**:
 - The on-disk JSON format is versioned.
@@ -78,6 +78,12 @@ Defined in `src/shared/ipc/nomosIpc.ts`:
 type EditorSettings = Readonly<{
 	assetsDirPath: string | null;
 	gameExecutablePath: string | null;
+	defaultSky: string | null;
+	defaultSoundfont: string | null;
+	defaultBgmusic: string | null;
+	defaultWallTex: string | null;
+	defaultFloorTex: string | null;
+	defaultCeilTex: string | null;
 }>;
 ```
 
@@ -98,7 +104,13 @@ Current versioned shape (written as pretty JSON):
 {
 	"version": 1,
 	"assetsDirPath": null,
-	"gameExecutablePath": null
+	"gameExecutablePath": null,
+	"defaultSky": null,
+	"defaultSoundfont": null,
+	"defaultBgmusic": null,
+	"defaultWallTex": null,
+	"defaultFloorTex": null,
+	"defaultCeilTex": null
 }
 ```
 
@@ -132,7 +144,16 @@ Important semantics:
 	- Best-effort cleanup attempts to remove tmp and backup files; cleanup failure does not crash the app.
 
 ### Extensibility / unknown-key preservation
-- `settingsCodec` extracts `unknownFields` as all top-level keys other than `version`, `assetsDirPath`, and `gameExecutablePath`.
+- `settingsCodec` extracts `unknownFields` as all top-level keys other than:
+	- `version`
+	- `assetsDirPath`
+	- `gameExecutablePath`
+	- `defaultSky`
+	- `defaultSoundfont`
+	- `defaultBgmusic`
+	- `defaultWallTex`
+	- `defaultFloorTex`
+	- `defaultCeilTex`
 - `JsonFileSettingsRepository.saveSettings` attempts to read an existing file and preserve those `unknownFields` during the next write.
 - If reading/parsing the existing file fails, saving still proceeds but unknown-key preservation cannot be guaranteed for that write.
 

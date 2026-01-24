@@ -10,13 +10,25 @@ The settings file is a single JSON object with a schema version and a small set 
 {
   "version": 1,
   "assetsDirPath": null,
-  "gameExecutablePath": null
+  "gameExecutablePath": null,
+  "defaultSky": null,
+  "defaultSoundfont": null,
+  "defaultBgmusic": null,
+  "defaultWallTex": null,
+  "defaultFloorTex": null,
+  "defaultCeilTex": null
 }
 ```
 
 - `version` is a number. The app currently writes `1`.
 - `assetsDirPath` is `string | null`.
 - `gameExecutablePath` is `string | null`.
+- `defaultSky` is `string | null` (basename under `Images/Sky/`).
+- `defaultSoundfont` is `string | null` (basename under `Sounds/SoundFonts/`).
+- `defaultBgmusic` is `string | null` (basename under `Sounds/MIDI/`).
+- `defaultWallTex` is `string | null` (basename under `Images/Textures/`).
+- `defaultFloorTex` is `string | null` (basename under `Images/Textures/`).
+- `defaultCeilTex` is `string | null` (basename under `Images/Textures/`).
 
 ## Forward-compatible behavior (unknown keys)
 

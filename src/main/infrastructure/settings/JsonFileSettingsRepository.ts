@@ -16,7 +16,13 @@ const DEFAULT_FILE_NAME = 'nomos-settings.json';
 function defaultSettings(): EditorSettings {
   return {
     assetsDirPath: null,
-    gameExecutablePath: null
+    gameExecutablePath: null,
+    defaultSky: null,
+    defaultSoundfont: null,
+    defaultBgmusic: null,
+    defaultWallTex: null,
+    defaultFloorTex: null,
+    defaultCeilTex: null
   };
 }
 

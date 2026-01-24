@@ -1,5 +1,16 @@
 import { decodeSettingsFile, encodeSettingsFile, SETTINGS_FILE_VERSION } from './settingsCodec';
 
+const defaultSettings = {
+  assetsDirPath: null,
+  gameExecutablePath: null,
+  defaultSky: null,
+  defaultSoundfont: null,
+  defaultBgmusic: null,
+  defaultWallTex: null,
+  defaultFloorTex: null,
+  defaultCeilTex: null
+} as const;
+
 describe('settingsCodec', () => {
   it('decodes legacy/unversioned files (no version field)', () => {
     const raw = JSON.stringify({ assetsDirPath: '/assets', gameExecutablePath: '/nomos-engine' });
@@ -11,7 +22,13 @@ describe('settingsCodec', () => {
       expect(result.value.version).toBeNull();
       expect(result.value.settings).toEqual({
         assetsDirPath: '/assets',
-        gameExecutablePath: '/nomos-engine'
+        gameExecutablePath: '/nomos-engine',
+        defaultSky: null,
+        defaultSoundfont: null,
+        defaultBgmusic: null,
+        defaultWallTex: null,
+        defaultFloorTex: null,
+        defaultCeilTex: null
       });
       expect(result.value.unknownFields).toEqual({});
     }
@@ -69,7 +86,13 @@ describe('settingsCodec', () => {
       ...decoded.value,
       settings: {
         assetsDirPath: '/new-assets',
-        gameExecutablePath: null
+        gameExecutablePath: null,
+        defaultSky: null,
+        defaultSoundfont: null,
+        defaultBgmusic: null,
+        defaultWallTex: null,
+        defaultFloorTex: null,
+        defaultCeilTex: null
       }
     });
 
@@ -87,6 +110,8 @@ describe('settingsCodec', () => {
     if (!decoded.ok) {
       throw new Error('Expected ok');
     }
+
+    expect(decoded.value.settings).toEqual(defaultSettings);
 
     const encoded = encodeSettingsFile(decoded.value);
     expect(encoded['version']).toBe(SETTINGS_FILE_VERSION);

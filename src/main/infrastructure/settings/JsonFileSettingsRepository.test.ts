@@ -65,6 +65,17 @@ describe('JsonFileSettingsRepository', () => {
   const userDataDirPath = '/user-data';
   const filePath = path.join(userDataDirPath, 'nomos-settings.json');
 
+  const defaultSettings = {
+    assetsDirPath: null,
+    gameExecutablePath: null,
+    defaultSky: null,
+    defaultSoundfont: null,
+    defaultBgmusic: null,
+    defaultWallTex: null,
+    defaultFloorTex: null,
+    defaultCeilTex: null
+  } as const;
+
   it('returns defaults when settings file does not exist', async () => {
     const fs = createInMemoryFileSystem({ files: new Map() });
     const repository = new JsonFileSettingsRepository({ fs, userDataDirPath });
@@ -162,6 +173,7 @@ describe('JsonFileSettingsRepository', () => {
     const repository = new JsonFileSettingsRepository({ fs, userDataDirPath });
 
     const saveResult = await repository.saveSettings({
+      ...defaultSettings,
       assetsDirPath: '/assets',
       gameExecutablePath: '/game.exe'
     });
@@ -180,7 +192,7 @@ describe('JsonFileSettingsRepository', () => {
     const fs = createInMemoryFileSystem({ files: new Map(), throwOn: { writeFile: true } });
     const repository = new JsonFileSettingsRepository({ fs, userDataDirPath });
 
-    const result = await repository.saveSettings({ assetsDirPath: null, gameExecutablePath: null });
+    const result = await repository.saveSettings(defaultSettings);
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -211,14 +223,22 @@ describe('JsonFileSettingsRepository', () => {
       return originalRename(oldPath, newPath);
     };
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(true);
     expect(state.files.has(tmpPath)).toBe(false);
     expect(state.files.has(backupPath)).toBe(false);
-    expect(state.files.get(filePath)).toBe(
-      JSON.stringify({ version: 1, assetsDirPath: '/assets', gameExecutablePath: null }, null, 2)
-    );
+    expect(JSON.parse(state.files.get(filePath) ?? 'null')).toEqual({
+      version: 1,
+      assetsDirPath: '/assets',
+      gameExecutablePath: null,
+      defaultSky: null,
+      defaultSoundfont: null,
+      defaultBgmusic: null,
+      defaultWallTex: null,
+      defaultFloorTex: null,
+      defaultCeilTex: null
+    });
   });
 
   it('cleans up tmp file when rename fails with an unhandled code', async () => {
@@ -241,7 +261,7 @@ describe('JsonFileSettingsRepository', () => {
       return originalRename(oldPath, newPath);
     };
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(false);
     expect(state.files.has(tmpPath)).toBe(false);
@@ -282,14 +302,22 @@ describe('JsonFileSettingsRepository', () => {
       return originalRename(oldPath, newPath);
     };
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(true);
     expect(state.files.has(tmpPath)).toBe(false);
     expect(state.files.has(backupPath1)).toBe(false);
-    expect(state.files.get(filePath)).toBe(
-      JSON.stringify({ version: 1, assetsDirPath: '/assets', gameExecutablePath: null }, null, 2)
-    );
+    expect(JSON.parse(state.files.get(filePath) ?? 'null')).toEqual({
+      version: 1,
+      assetsDirPath: '/assets',
+      gameExecutablePath: null,
+      defaultSky: null,
+      defaultSoundfont: null,
+      defaultBgmusic: null,
+      defaultWallTex: null,
+      defaultFloorTex: null,
+      defaultCeilTex: null
+    });
   });
 
   it('ignores backup cleanup failures and still succeeds', async () => {
@@ -323,14 +351,22 @@ describe('JsonFileSettingsRepository', () => {
       return originalUnlink(pathToUnlink);
     };
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(true);
     expect(state.files.has(tmpPath)).toBe(false);
     expect(state.files.has(backupPath)).toBe(true);
-    expect(state.files.get(filePath)).toBe(
-      JSON.stringify({ version: 1, assetsDirPath: '/assets', gameExecutablePath: null }, null, 2)
-    );
+    expect(JSON.parse(state.files.get(filePath) ?? 'null')).toEqual({
+      version: 1,
+      assetsDirPath: '/assets',
+      gameExecutablePath: null,
+      defaultSky: null,
+      defaultSoundfont: null,
+      defaultBgmusic: null,
+      defaultWallTex: null,
+      defaultFloorTex: null,
+      defaultCeilTex: null
+    });
   });
 
   it('preserves unknown keys when updating settings', async () => {
@@ -352,7 +388,7 @@ describe('JsonFileSettingsRepository', () => {
     const fs = createInMemoryFileSystem(state);
     const repository = new JsonFileSettingsRepository({ fs, userDataDirPath });
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(true);
 
@@ -399,7 +435,7 @@ describe('JsonFileSettingsRepository', () => {
       return originalRename(oldPath, newPath);
     };
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(false);
     expect(state.files.has(tmpPath)).toBe(false);
@@ -444,7 +480,7 @@ describe('JsonFileSettingsRepository', () => {
       return originalRename(oldPath, newPath);
     };
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(false);
     expect(state.files.has(tmpPath)).toBe(false);
@@ -482,7 +518,7 @@ describe('JsonFileSettingsRepository', () => {
       return originalRename(oldPath, newPath);
     };
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(false);
     expect(state.files.has(tmpPath)).toBe(false);
@@ -517,7 +553,7 @@ describe('JsonFileSettingsRepository', () => {
       return originalUnlink(pathToUnlink);
     };
 
-    const saveResult = await repository.saveSettings({ assetsDirPath: '/assets', gameExecutablePath: null });
+    const saveResult = await repository.saveSettings({ ...defaultSettings, assetsDirPath: '/assets' });
 
     expect(saveResult.ok).toBe(false);
     expect(state.files.has(tmpPath)).toBe(true);

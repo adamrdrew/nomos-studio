@@ -6,7 +6,16 @@ describe('MapValidationService', () => {
   it('returns missing-settings when game executable is not set', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: null,
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -37,7 +46,16 @@ describe('MapValidationService', () => {
   it('returns ok when exit code is 0', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -67,7 +85,16 @@ describe('MapValidationService', () => {
   it('pretty-prints JSON error report when validation fails', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -97,7 +124,16 @@ describe('MapValidationService', () => {
   it('falls back to raw output when JSON parsing fails', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -127,7 +163,16 @@ describe('MapValidationService', () => {
   it('returns runner-failed when process runner throws', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -158,7 +203,16 @@ describe('MapValidationService', () => {
   it('uses stderr when stdout is empty on validation failure', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -188,7 +242,16 @@ describe('MapValidationService', () => {
   it('returns empty report text when validator produces no output', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null

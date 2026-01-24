@@ -26,7 +26,16 @@ export type AppState = Readonly<{
 export type AppStoreListener = (state: AppState) => void;
 
 function defaultSettings(): EditorSettings {
-  return { assetsDirPath: null, gameExecutablePath: null };
+  return {
+    assetsDirPath: null,
+    gameExecutablePath: null,
+    defaultSky: null,
+    defaultSoundfont: null,
+    defaultBgmusic: null,
+    defaultWallTex: null,
+    defaultFloorTex: null,
+    defaultCeilTex: null
+  };
 }
 
 const MIN_GRID_OPACITY = 0.1;

@@ -182,4 +182,59 @@ describe('CreateNewMapService', () => {
       entities: []
     });
   });
+
+  it('applies map-level default assets when creating a new map', async () => {
+    const store = new AppStore();
+
+    store.setSettings({
+      ...store.getState().settings,
+      defaultSky: 'day.png',
+      defaultSoundfont: 'soundfont.sf2',
+      defaultBgmusic: 'track.mid'
+    });
+
+    const dialog: NewMapDialogPort = {
+      promptForNewMapPath: async () => ({ ok: true, value: '/maps/new.json' })
+    };
+
+    const history: MapEditHistoryPort = {
+      clear: () => {},
+      onMapOpened: () => {},
+      recordEdit: () => {},
+      getInfo: () => ({ canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }),
+      undo: () => ({ ok: false, error: { kind: 'map-edit-error', code: 'map-edit/not-found', message: 'nope' } }),
+      redo: () => ({ ok: false, error: { kind: 'map-edit-error', code: 'map-edit/not-found', message: 'nope' } })
+    };
+
+    const recentMaps: RecentMapsPort = {
+      bump: async (mapPath) => [mapPath]
+    };
+
+    const guard: UnsavedChangesGuardPort = {
+      runGuarded: async (action) => {
+        await action();
+        return { proceeded: true };
+      }
+    };
+
+    const service = new CreateNewMapService(store, dialog, history, recentMaps, guard);
+
+    const result = await service.createNewMap();
+
+    expect(result.ok).toBe(true);
+
+    const document = store.getState().mapDocument;
+    expect(document?.json).toEqual({
+      sky: 'day.png',
+      soundfont: 'soundfont.sf2',
+      bgmusic: 'track.mid',
+      vertices: [],
+      sectors: [],
+      walls: [],
+      doors: [],
+      lights: [],
+      particles: [],
+      entities: []
+    });
+  });
 });

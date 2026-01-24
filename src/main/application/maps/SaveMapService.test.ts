@@ -4,11 +4,22 @@ import type { FileSystem } from '../../infrastructure/settings/fileSystem';
 import type { UserNotifier } from '../ui/UserNotifier';
 import type { MapDocument } from '../../../shared/domain/models';
 
+const defaultSettings = {
+  assetsDirPath: null,
+  gameExecutablePath: null,
+  defaultSky: null,
+  defaultSoundfont: null,
+  defaultBgmusic: null,
+  defaultWallTex: null,
+  defaultFloorTex: null,
+  defaultCeilTex: null
+} as const;
+
 describe('SaveMapService', () => {
   it('returns no-document when no map is loaded', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -49,7 +60,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -100,7 +111,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -166,7 +177,7 @@ describe('SaveMapService', () => {
   it('returns write-failed when writeFile throws', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -216,7 +227,7 @@ describe('SaveMapService', () => {
         circular['self'] = circular;
 
         return {
-          settings: { assetsDirPath: null, gameExecutablePath: null },
+          settings: defaultSettings,
           assetIndex: null,
           assetIndexError: null,
           mapDocument: {
@@ -272,7 +283,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -332,7 +343,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -387,7 +398,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -463,7 +474,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -534,7 +545,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -599,7 +610,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -672,7 +683,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -749,7 +760,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -815,7 +826,7 @@ describe('SaveMapService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: defaultSettings,
         assetIndex: null,
         assetIndexError: null,
         mapDocument: {
@@ -867,7 +878,7 @@ describe('SaveMapService', () => {
     it('returns no-document when no map is loaded', async () => {
       const store: AppStore = {
         getState: () => ({
-          settings: { assetsDirPath: null, gameExecutablePath: null },
+          settings: defaultSettings,
           assetIndex: null,
           assetIndexError: null,
           mapDocument: null
@@ -912,7 +923,7 @@ describe('SaveMapService', () => {
 
       const store: AppStore = {
         getState: () => ({
-          settings: { assetsDirPath: null, gameExecutablePath: null },
+          settings: defaultSettings,
           assetIndex: null,
           assetIndexError: null,
           mapDocument: {
@@ -962,7 +973,7 @@ describe('SaveMapService', () => {
 
       const store: AppStore = {
         getState: () => ({
-          settings: { assetsDirPath: null, gameExecutablePath: null },
+          settings: defaultSettings,
           assetIndex: null,
           assetIndexError: null,
           mapDocument: {
@@ -1020,7 +1031,7 @@ describe('SaveMapService', () => {
 
       const store: AppStore = {
         getState: () => ({
-          settings: { assetsDirPath: null, gameExecutablePath: null },
+          settings: defaultSettings,
           assetIndex: null,
           assetIndexError: null,
           mapDocument: {
@@ -1080,7 +1091,7 @@ describe('SaveMapService', () => {
 
       const store: AppStore = {
         getState: () => ({
-          settings: { assetsDirPath: null, gameExecutablePath: null },
+          settings: defaultSettings,
           assetIndex: null,
           assetIndexError: null,
           mapDocument: {

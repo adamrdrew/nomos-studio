@@ -10,7 +10,16 @@ describe('SaveAndRunMapService', () => {
   it('does nothing when there is no open document (no validation or run)', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -53,7 +62,16 @@ describe('SaveAndRunMapService', () => {
   it('stops when save fails (no validation or run)', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -94,7 +112,16 @@ describe('SaveAndRunMapService', () => {
   it('shows validation report and does not run when validation fails (invalid-map)', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -158,7 +185,16 @@ describe('SaveAndRunMapService', () => {
   it('shows validation error and does not run when validator fails (runner-failed)', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -217,7 +253,16 @@ describe('SaveAndRunMapService', () => {
   it('runs engine executable with map filename when validation succeeds', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -264,7 +309,16 @@ describe('SaveAndRunMapService', () => {
   it('shows Settings Required and does not run when game executable is missing after validation succeeds', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: null,
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -319,7 +373,16 @@ describe('SaveAndRunMapService', () => {
   it('shows Settings Required and does not run when game executable is blank after validation succeeds', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '   ' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '   ',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -371,7 +434,16 @@ describe('SaveAndRunMapService', () => {
   it('shows Run Failed when process runner throws', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: '/game' },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: '/game',
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null

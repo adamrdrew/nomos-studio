@@ -6,7 +6,16 @@ describe('AssetIndexService', () => {
   it('returns missing-base-dir and stores error when assets dir is unset', async () => {
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: null, gameExecutablePath: null },
+        settings: {
+          assetsDirPath: null,
+          gameExecutablePath: null,
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -41,7 +50,16 @@ describe('AssetIndexService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: '/assets', gameExecutablePath: null },
+        settings: {
+          assetsDirPath: '/assets',
+          gameExecutablePath: null,
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
@@ -82,7 +100,16 @@ describe('AssetIndexService', () => {
 
     const store: AppStore = {
       getState: () => ({
-        settings: { assetsDirPath: '/assets', gameExecutablePath: null },
+        settings: {
+          assetsDirPath: '/assets',
+          gameExecutablePath: null,
+          defaultSky: null,
+          defaultSoundfont: null,
+          defaultBgmusic: null,
+          defaultWallTex: null,
+          defaultFloorTex: null,
+          defaultCeilTex: null
+        },
         assetIndex: null,
         assetIndexError: null,
         mapDocument: null
