@@ -1,0 +1,69 @@
+phase:
+  id: 0034
+  slug: tool-hotkeys
+  title: Tool Hotkeys
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm shortcut mapping and interaction boundaries
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Add a small hotkey-mapping module (pure functions)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Track modifier-held state for showing the overlay
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Render pill badges over Toolbox tool buttons
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Implement keydown activation for tool selection
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Verify mapping stays automatic as tools change
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Unit tests for the hotkey mapping/parsing helpers (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Update docs (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
