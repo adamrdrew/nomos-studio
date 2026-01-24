@@ -148,6 +148,11 @@ The editor UI is organized like a traditional creative tool:
 	- The active selection is outlined in red to improve focus.
 	- When the Select tool is active, a yellow hover outline previews what will be selected on click.
 - **Toolbox** (left overlay within the Map Editor): Select / Move / Door / Room / Zoom / Pan tool modes.
+	- Tool selection hotkeys (automatic; max 20 tools):
+		- Hold the primary modifier to show shortcut badges over tools (macOS: Cmd, Windows/Linux: Ctrl). Badges show the tool name and the shortcut.
+		- Tools 1–10: primary modifier + `1..9,0`.
+		- Tools 11–20: primary modifier + Shift + `1..9,0`.
+		- Shortcut assignment follows the `MAP_EDITOR_TOOLS` registry order; tools beyond 20 have no shortcut.
 	- Move mode allows dragging the currently selected entity or light to a new position.
 		- The renderer maintains a local preview while dragging.
 		- On mouse-up, the renderer commits a single main-process edit (`map-edit/move-entity` or `map-edit/move-light`) and clears the preview.

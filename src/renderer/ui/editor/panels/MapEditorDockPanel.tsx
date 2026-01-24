@@ -6,6 +6,13 @@ import { MapEditorCanvas } from '../MapEditorCanvas';
 import type { MapEditorViewportApi } from '../MapEditorCanvas';
 import { getDefaultMapEditorToolId, getMapEditorTool, MAP_EDITOR_TOOLS } from '../tools/mapEditorTools';
 import type { MapEditorToolDefinition, MapEditorToolId, MapEditorToolbarCommandId } from '../tools/mapEditorTools';
+import type { ToolHotkeyPlatform } from '../tools/mapEditorToolHotkeys';
+import {
+  formatToolHotkeyLabel,
+  getToolHotkeyDescriptorForIndex,
+  isEditableActiveElement,
+  parseToolIndexFromKeyboardEvent
+} from '../tools/mapEditorToolHotkeys';
 import { useNomosStore } from '../../../store/nomosStore';
 import type { MapSelection } from '../map/mapSelection';
 import type { MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
@@ -97,6 +104,60 @@ export function MapEditorDockPanel(): JSX.Element {
   const applyMapSelectionEffect = useNomosStore((state) => state.applyMapSelectionEffect);
 
   const viewportRef = React.useRef<MapEditorViewportApi | null>(null);
+
+  const hotkeyPlatform = React.useMemo<ToolHotkeyPlatform>(() => {
+    return navigator.platform.toLowerCase().includes('mac') ? 'mac' : 'win-linux';
+  }, []);
+
+  const [isPrimaryModifierHeld, setIsPrimaryModifierHeld] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    function updateModifierHeld(event: KeyboardEvent): void {
+      const held = hotkeyPlatform === 'mac' ? event.metaKey : event.ctrlKey;
+      setIsPrimaryModifierHeld(held);
+    }
+
+    function clearModifierHeld(): void {
+      setIsPrimaryModifierHeld(false);
+    }
+
+    window.addEventListener('keydown', updateModifierHeld);
+    window.addEventListener('keyup', updateModifierHeld);
+    window.addEventListener('blur', clearModifierHeld);
+
+    return () => {
+      window.removeEventListener('keydown', updateModifierHeld);
+      window.removeEventListener('keyup', updateModifierHeld);
+      window.removeEventListener('blur', clearModifierHeld);
+    };
+  }, [hotkeyPlatform]);
+
+  React.useEffect(() => {
+    function onKeyDown(event: KeyboardEvent): void {
+      if (isEditableActiveElement(document)) {
+        return;
+      }
+
+      const toolIndex = parseToolIndexFromKeyboardEvent(event, hotkeyPlatform, { allowNumpad: true });
+      if (toolIndex === null) {
+        return;
+      }
+
+      const toolDefinition = MAP_EDITOR_TOOLS[toolIndex];
+      if (toolDefinition === undefined) {
+        return;
+      }
+
+      event.preventDefault();
+      setToolId(toolDefinition.id);
+      window.dispatchEvent(new Event('nomos:focus-inspector'));
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [hotkeyPlatform]);
 
   const toolButtonHeightPx = 34;
 
@@ -288,21 +349,61 @@ export function MapEditorDockPanel(): JSX.Element {
             overflowY: 'auto'
           }}
         >
-          {MAP_EDITOR_TOOLS.map((toolDefinition) => (
+          {MAP_EDITOR_TOOLS.map((toolDefinition, toolIndex) => {
+            const descriptor = getToolHotkeyDescriptorForIndex(toolIndex);
+            const hotkeyLabel =
+              isPrimaryModifierHeld && descriptor !== null ? formatToolHotkeyLabel(descriptor, hotkeyPlatform) : null;
+
+            return (
             <Tooltip key={toolDefinition.id} content={toolDefinition.tooltip} placement="right">
-              <Button
-                icon={<Icon icon={toolDefinition.icon} color={Colors.WHITE} />}
-                minimal={true}
-                fill={true}
-                active={toolId === toolDefinition.id}
-                style={{ height: toolButtonHeightPx, width: '100%', justifyContent: 'center', color: Colors.WHITE }}
-                onClick={() => {
-                  setToolId(toolDefinition.id);
-                  window.dispatchEvent(new Event('nomos:focus-inspector'));
-                }}
-              />
+              <div style={{ position: 'relative', width: '100%' }}>
+                <Button
+                  icon={<Icon icon={toolDefinition.icon} color={Colors.WHITE} />}
+                  minimal={true}
+                  fill={true}
+                  active={toolId === toolDefinition.id}
+                  style={{ height: toolButtonHeightPx, width: '100%', justifyContent: 'center', color: Colors.WHITE }}
+                  onClick={() => {
+                    setToolId(toolDefinition.id);
+                    window.dispatchEvent(new Event('nomos:focus-inspector'));
+                  }}
+                />
+
+                {hotkeyLabel ? (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      padding: '3px 5px',
+                      borderRadius: 999,
+                      fontSize: 9,
+                      lineHeight: '12px',
+                      fontWeight: 600,
+                      color: Colors.WHITE,
+                      background: Colors.DARK_GRAY1,
+                      border: `1px solid ${Colors.DARK_GRAY4}`,
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1,
+                      width: 46,
+                      opacity: 0.95
+                    }}
+                  >
+                    <div style={{ fontSize: 9, lineHeight: '11px' }}>{toolDefinition.label}</div>
+                    <div style={{ fontSize: 8, lineHeight: '10px' }}>{hotkeyLabel}</div>
+                  </div>
+                ) : null}
+              </div>
             </Tooltip>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

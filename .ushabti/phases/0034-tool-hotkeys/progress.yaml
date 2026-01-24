@@ -2,68 +2,78 @@ phase:
   id: 0034
   slug: tool-hotkeys
   title: Tool Hotkeys
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Confirm shortcut mapping and interaction boundaries
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "Phase decisions and boundaries are fully captured in phase.md (modifier per platform, 20-key mapping, editable-focus guard, toolbox-only scope)."
     touched: []
 
   - id: S002
     title: Add a small hotkey-mapping module (pure functions)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added a renderer helper module for tool-index↔hotkey mapping, platform label formatting, keyboard event parsing via event.code, and editable-element detection."
+    touched:
+      - src/renderer/ui/editor/tools/mapEditorToolHotkeys.ts
 
   - id: S003
     title: Track modifier-held state for showing the overlay
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "MapEditorDockPanel now tracks whether the primary modifier is held via window keydown/keyup and clears on blur to avoid stuck overlay state."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
 
   - id: S004
     title: Render pill badges over Toolbox tool buttons
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Toolbox buttons now render a small non-interactive pill badge with the platform-idiomatic shortcut label while the primary modifier is held (only for tool indices < 20)."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
 
   - id: S005
     title: Implement keydown activation for tool selection
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "MapEditorDockPanel listens for tool hotkeys (Cmd/Ctrl + digit, Shift for the second bank), ignores events while typing in editable elements, and activates the corresponding tool from MAP_EDITOR_TOOLS." 
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
 
   - id: S006
     title: Verify mapping stays automatic as tools change
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
+    notes: "Shortcut labels and activation are derived from MAP_EDITOR_TOOLS iteration order and constrained to indices 0–19; tools beyond 20 have no badge and no number shortcut." 
     touched: []
 
   - id: S007
     title: Unit tests for the hotkey mapping/parsing helpers (L04)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added Jest unit tests covering index→descriptor mapping, label formatting, event.code parsing across platforms (including shift bank and numpad option), and editable-element guards." 
+    touched:
+      - src/renderer/ui/editor/tools/mapEditorToolHotkeys.test.ts
 
   - id: S008
     title: Update docs (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Documented toolbox hotkeys (20 max), mapping rules, modifier-held badge overlay, and platform differences in renderer UI subsystem docs." 
+    touched:
+      - docs/renderer-ui-system.md
 
   - id: S009
     title: Quality gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "User-confirmed: npm run lint passes (with a TS-eslint supported-version warning) and npm run typecheck passes; Jest is green."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - src/renderer/ui/editor/tools/mapEditorToolHotkeys.ts
+      - src/renderer/ui/editor/tools/mapEditorToolHotkeys.test.ts
+      - docs/renderer-ui-system.md
