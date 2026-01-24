@@ -1,0 +1,76 @@
+phase:
+  id: 0033
+  slug: default-assets
+  title: Default assets
+  status: planned
+
+steps:
+  - id: S001
+    title: Inventory current asset dropdown sources and naming
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Extend shared settings model (EditorSettings) for default assets
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Persist new settings fields (codec + repo) and update format docs
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Update SettingsService tests for merge semantics (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Add “Default assets” dropdowns to Settings window UI
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Save/load defaults in Settings UI
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Apply map-level defaults when creating a new map
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Apply sector texture defaults during room/sector creation
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Documentation updates (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Verification pass
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
