@@ -228,6 +228,42 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "phase0033: jest",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/npm test -- --runInBand"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "phase0033: jest (node)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/jest/bin/jest.js --runInBand --coverage"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "phase0033: lint (node)",
+			"type": "shell",
+			"command": "/bin/zsh",
+			"args": [
+				"-lc",
+				"/Users/adam/.nvm/versions/node/v20.17.0/bin/node ./node_modules/eslint/bin/eslint.js . --max-warnings=0"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
