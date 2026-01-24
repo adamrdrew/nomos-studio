@@ -68,6 +68,19 @@ describe('mapEditorToolHotkeys', () => {
       expect(parseToolIndexFromKeyboardEvent({ code: 'KeyA', shiftKey: false, metaKey: true, ctrlKey: false }, 'mac')).toBeNull();
     });
 
+    it('returns null when code looks like a digit prefix but is not a digit', () => {
+      expect(
+        parseToolIndexFromKeyboardEvent({ code: 'DigitA', shiftKey: false, metaKey: true, ctrlKey: false }, 'mac')
+      ).toBeNull();
+      expect(
+        parseToolIndexFromKeyboardEvent(
+          { code: 'NumpadA', shiftKey: false, metaKey: false, ctrlKey: true },
+          'win-linux',
+          { allowNumpad: true }
+        )
+      ).toBeNull();
+    });
+
     it('optionally supports numpad digits', () => {
       const event = { code: 'Numpad2', shiftKey: false, metaKey: false, ctrlKey: true };
       expect(parseToolIndexFromKeyboardEvent(event, 'win-linux', { allowNumpad: true })).toBe(1);
@@ -84,6 +97,10 @@ describe('mapEditorToolHotkeys', () => {
       expect(isElementEditable({ tagName: 'SELECT' } as unknown as Element)).toBe(true);
 
       expect(isElementEditable({ tagName: 'DIV', isContentEditable: true } as unknown as Element)).toBe(true);
+
+      // When the property exists but is false, the helper must fall back to tagName detection.
+      expect(isElementEditable({ tagName: 'INPUT', isContentEditable: false } as unknown as Element)).toBe(true);
+      expect(isElementEditable({ tagName: 'DIV', isContentEditable: false } as unknown as Element)).toBe(false);
 
       expect(isElementEditable({ tagName: 'BUTTON' } as unknown as Element)).toBe(false);
     });

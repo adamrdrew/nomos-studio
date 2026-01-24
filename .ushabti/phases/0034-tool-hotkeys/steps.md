@@ -83,3 +83,10 @@
 - **Intent:** Keep repo green.
 - **Work:** Run `npm test`, `npm run typecheck`, `npm run lint`.
 - **Done when:** All gates pass.
+
+## S010 — Complete L04 branch coverage for tool-hotkey helpers
+- **Intent:** Satisfy L04 by covering all meaningful conditional paths in new public helper functions.
+- **Work:** Extend `src/renderer/ui/editor/tools/mapEditorToolHotkeys.test.ts` to cover remaining branches, at minimum:
+  - `isElementEditable(...)` where `isContentEditable` exists but is `false` (should fall through to tagName logic)
+  - `parseToolIndexFromKeyboardEvent(...)` where `event.code` starts with `Digit` / `Numpad` but is not a valid digit (e.g., `DigitA`, `NumpadA`) and returns `null`
+- **Done when:** New tests pass and meaningfully exercise those branches.
