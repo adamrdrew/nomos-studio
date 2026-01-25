@@ -28,19 +28,6 @@ export function inferImageMimeType(fileName: string): string {
   return 'application/octet-stream';
 }
 
-export function createBrowserObjectUrlAdapter(): ObjectUrlAdapter {
-  return {
-    create: (bytes: Uint8Array, mimeType: string) => {
-      const bytesCopy = new Uint8Array(bytes);
-      const blob = new Blob([bytesCopy.buffer], { type: mimeType });
-      return URL.createObjectURL(blob);
-    },
-    revoke: (url: string) => {
-      URL.revokeObjectURL(url);
-    }
-  };
-}
-
 export function resolveTextureRelativePath(props: Readonly<{ assetIndex: AssetIndex | null; textureFileName: string }>): string | null {
   const trimmed = props.textureFileName.trim();
   if (trimmed.length === 0) {
@@ -66,7 +53,7 @@ export function resolveTextureRelativePath(props: Readonly<{ assetIndex: AssetIn
 }
 
 // Lifecycle expectations:
-// - Keep a single cache instance for the renderer session (or per-window) to avoid re-fetching bytes.
+// - Keep cache lifetime explicit and bounded. The current renderer usage is typically per TextureSelect instance.
 // - URLs are revoked on eviction and on clear(). If you discard a cache instance, call clear() first.
 // - UI components should cancel async work on unmount; this module does not manage React lifecycles.
 export class TextureObjectUrlCache {

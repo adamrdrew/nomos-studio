@@ -109,3 +109,15 @@
   - Settings default texture controls fill the FormGroup width.
   - Settings defaults render black-on-white while the editor remains white-on-dark.
   - Lint/typecheck/tests pass.
+
+## S015 — Laws/style compliance follow-ups (L04, L07)
+- **Intent:** Close review findings so the Phase can be approved.
+- **Work:**
+  - Address **L04** for `createBrowserObjectUrlAdapter` in `textureThumbnails.ts`:
+    - Either add a node-environment unit test that validates our integration contract by mocking `globalThis.URL.createObjectURL`/`revokeObjectURL` and `globalThis.Blob`, or
+    - Reduce the public API surface by making `createBrowserObjectUrlAdapter` non-exported (and adjust call sites), so it is no longer a public method requiring unit tests.
+  - Address **L07** by updating the “Lifecycle expectations” comment in `textureThumbnails.ts` to accurately reflect the actual cache lifetime used by the renderer (currently per `TextureSelect` instance).
+- **Done when:**
+  - `createBrowserObjectUrlAdapter` no longer violates L04.
+  - Lifecycle comments are accurate and consistent with implementation.
+  - Lint/typecheck/tests pass.

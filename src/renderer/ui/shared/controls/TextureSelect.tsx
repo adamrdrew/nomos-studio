@@ -5,14 +5,27 @@ import type { AssetIndex } from '../../../../shared/domain/models';
 
 import {
   TextureObjectUrlCache,
-  createBrowserObjectUrlAdapter,
   ensureTextureObjectUrl,
-  resolveTextureRelativePath
+  resolveTextureRelativePath,
+  type ObjectUrlAdapter
 } from '../textures/textureThumbnails';
 
 type SpecialOption = Readonly<{ value: string; label: string }>;
 
 type TextureSelectTheme = 'dark' | 'light';
+
+function createBrowserObjectUrlAdapter(): ObjectUrlAdapter {
+  return {
+    create: (bytes: Uint8Array, mimeType: string) => {
+      const bytesCopy = new Uint8Array(bytes);
+      const blob = new Blob([bytesCopy.buffer], { type: mimeType });
+      return URL.createObjectURL(blob);
+    },
+    revoke: (url: string) => {
+      URL.revokeObjectURL(url);
+    }
+  };
+}
 
 type Tile =
   | Readonly<{ kind: 'special'; value: string; label: string }>
