@@ -96,3 +96,17 @@
   - Update `docs/map-edit-command-system.md` to document `map-edit/create-light`.
   - Run `npm test`, `npm run typecheck`, `npm run lint`.
 - **Done when:** Docs match behavior and all gates pass.
+
+## S011 — Add missing MapCommandEngine branch coverage for create-light (L04)
+- **Intent:** Satisfy L04 by covering all conditional paths in the public `MapCommandEngine.apply(...)` behavior for `map-edit/create-light`.
+- **Work:**
+  - Add a unit test that calls `MapCommandEngine.apply(...)` with `kind: 'map-edit/create-light'` when `json.lights` is present but not an array (e.g., `lights: {}` or `lights: 123`).
+  - Assert the result is a failure with `error.code === 'map-edit/invalid-json'`.
+- **Done when:** The new test passes and the `lights`-present-but-invalid branch is exercised via the public `apply(...)` API.
+
+## S012 — Add missing mapDecoder branch coverage for invalid light flicker (L04)
+- **Intent:** Satisfy L04 by covering the new conditional paths in the public `decodeMapViewModel(...)` behavior for `lights[].flicker`.
+- **Work:**
+  - Add a unit test where `lights[].flicker` is present but not a string (e.g., `flicker: 123`) and assert decode fails.
+  - Add a unit test where `lights[].flicker` is a string but not one of the allowed values (e.g., `flicker: 'strobe'`) and assert decode fails.
+- **Done when:** Both tests pass and exercise the non-string and invalid-string branches via `decodeMapViewModel(...)`.

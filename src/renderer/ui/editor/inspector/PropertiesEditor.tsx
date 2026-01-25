@@ -334,6 +334,8 @@ function LightEditor(props: {
   const [radiusText, setRadiusText] = React.useState<string>(String(props.light.radius));
   const [intensityText, setIntensityText] = React.useState<string>(String(props.light.intensity));
 
+  const [flicker, setFlicker] = React.useState<MapLight['flicker']>(props.light.flicker);
+
   const [colorRText, setColorRText] = React.useState<string>(String(props.light.color.r));
   const [colorGText, setColorGText] = React.useState<string>(String(props.light.color.g));
   const [colorBText, setColorBText] = React.useState<string>(String(props.light.color.b));
@@ -348,6 +350,7 @@ function LightEditor(props: {
     setColorRText(String(props.light.color.r));
     setColorGText(String(props.light.color.g));
     setColorBText(String(props.light.color.b));
+    setFlicker(props.light.flicker);
     setError(null);
   }, [selectionKey, props.light]);
 
@@ -445,6 +448,32 @@ function LightEditor(props: {
         }}
         error={error}
       />
+
+      <FormGroup label="flicker" style={{ marginTop: 10, marginBottom: 10 }}>
+        <HTMLSelect
+          value={flicker}
+          onChange={(event) => {
+            const next = event.currentTarget.value;
+            if (next !== 'none' && next !== 'flame' && next !== 'malfunction') {
+              return;
+            }
+
+            setFlicker(next);
+
+            if (next === 'none') {
+              void commitUpdateFields(props.target, { flicker: MAP_EDIT_UNSET });
+              return;
+            }
+
+            void commitUpdateFields(props.target, { flicker: next });
+          }}
+          style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
+        >
+          <option value="none">(none)</option>
+          <option value="flame">flame</option>
+          <option value="malfunction">malfunction</option>
+        </HTMLSelect>
+      </FormGroup>
 
       <FormGroup label="color (RGB 0–255)" helperText={error ?? undefined} intent={error ? Intent.DANGER : Intent.NONE}>
         <div style={{ display: 'flex', gap: 8 }}>

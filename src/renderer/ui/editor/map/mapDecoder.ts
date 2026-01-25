@@ -382,6 +382,18 @@ function decodeLight(value: unknown, index: number): Result<MapLight, MapDecodeE
     }
   }
 
+  const flickerRaw = value['flicker'];
+  let flicker: MapLight['flicker'] = 'none';
+  if (flickerRaw !== undefined) {
+    if (typeof flickerRaw !== 'string') {
+      return err(`lights[${index}].flicker must be a string when provided`);
+    }
+    if (flickerRaw !== 'none' && flickerRaw !== 'flame' && flickerRaw !== 'malfunction') {
+      return err(`lights[${index}].flicker must be one of: none | flame | malfunction`);
+    }
+    flicker = flickerRaw;
+  }
+
   return {
     ok: true,
     value: {
@@ -390,7 +402,8 @@ function decodeLight(value: unknown, index: number): Result<MapLight, MapDecodeE
       y: y.value,
       radius: radius.value,
       intensity: intensity.value,
-      color
+      color,
+      flicker
     }
   };
 }

@@ -148,7 +148,7 @@ The editor UI is organized like a traditional creative tool:
 	- Object markers (doors/entities/lights/particles) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
 	- The active selection is outlined in red to improve focus.
 	- When the Select tool is active, a yellow hover outline previews what will be selected on click.
-- **Toolbox** (left overlay within the Map Editor): Select / Move / Door / Room / Zoom / Pan tool modes.
+- **Toolbox** (left overlay within the Map Editor): Select / Move / Door / Room / Zoom / Pan / Light tool modes.
 	- Tool selection hotkeys (automatic; max 20 tools):
 		- Hold the primary modifier to show shortcut badges over tools (macOS: Cmd, Windows/Linux: Ctrl). Badges show the tool name and the shortcut.
 		- Tools 1–10: primary modifier + `1..9,0`.
@@ -164,6 +164,13 @@ The editor UI is organized like a traditional creative tool:
 		- On a valid click, the renderer requests `map-edit/create-door` via `window.nomos.map.edit(...)`.
 		- The created door is selected on success.
 		- Doors are created without a default `tex`; the Inspector shows an explicit “(select texture)” placeholder state.
+	- Light mode allows creating a new point light by clicking.
+		- Placement validity is enforced by sector containment (nested-sector aware): the click point must be inside any sector.
+		- The cursor indicates validity:
+			- macOS: green plus when valid, X when invalid
+			- Windows/Linux: `copy` when valid, `not-allowed` when invalid
+		- On a valid click, the renderer requests `map-edit/create-light` via `window.nomos.map.edit(...)`.
+		- The created light is selected on success.
 	- Room mode allows creating room geometry (sectors/walls/vertices) from a template by clicking.
 		- The tool bar exposes template commands: Rectangle, Square, Triangle.
 		- The command bar (top toolbar) shows a small hint on the upper-right with rotate/scale shortcuts.
@@ -208,8 +215,9 @@ The editor UI is organized like a traditional creative tool:
 		- Asset icons are color-coded by file type for readability on the dark surface.
 	- Object Properties shows the selected map object and allows editing supported selection kinds.
 		- Edits are committed via `window.nomos.map.edit(...)` using the `map-edit/update-fields` atomic command.
-		- Walls, sectors, entities, and doors are editable via the Properties editor.
+		- Walls, sectors, doors, entities, particles, and lights are editable via the Properties editor.
 			- Door fields include `tex`, `starts_closed`, `required_item`, and `required_item_missing_message`.
+			- Light fields include `x`, `y`, `radius`, `intensity`, `color`, and `flicker`.
 			- Sector fields include `light`.
 				- The UI communicates `light` as a 0..1 scalar and clamps out-of-range inputs to `[0, 1]` on commit.
 			- Sector fields include `floor_tex` and `ceil_tex` selection (from textures indexed under `Images/Textures/`, using basenames).

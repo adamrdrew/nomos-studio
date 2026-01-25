@@ -109,6 +109,10 @@ export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
   | Readonly<{
+      kind: 'map-edit/create-light';
+      at: Readonly<{ x: number; y: number }>;
+    }>
+  | Readonly<{
       kind: 'map-edit/create-entity';
       at: Readonly<{ x: number; y: number }>;
       def: string;

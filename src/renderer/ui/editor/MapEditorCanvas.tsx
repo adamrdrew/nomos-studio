@@ -22,7 +22,7 @@ import type { StampRoomRequest } from '../../../shared/domain/mapRoomStamp';
 import { computePolygonBounds, normalizePolygonToAnchor, transformStampPolygon } from '../../../shared/domain/mapRoomStampTransform';
 import { hasEntityPlacementDragPayload, tryReadEntityPlacementDragPayload } from './entities/entityPlacementDragPayload';
 
-export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom';
+export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom' | 'light-create';
 
 export type MapEditorViewportApi = Readonly<{
   zoomIn: () => void;
@@ -143,6 +143,36 @@ function screenToWorld(screen: Point, view: ViewTransform): Point {
 
 function clamp01(value: number): number {
   return clamp(value, 0, 1);
+}
+
+function buildSvgCursorDataUrl(svg: string): string {
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 16 16, auto`;
+}
+
+function getLightCreateCursor(options: Readonly<{ canCreate: boolean }>): string {
+  const isMac = navigator.platform.toLowerCase().includes('mac');
+
+  if (!isMac) {
+    return options.canCreate ? 'copy' : 'not-allowed';
+  }
+
+  if (options.canCreate) {
+    // Green plus.
+    return buildSvgCursorDataUrl(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">'
+        + '<rect x="14" y="6" width="4" height="20" rx="1" fill="#20c997"/>'
+        + '<rect x="6" y="14" width="20" height="4" rx="1" fill="#20c997"/>'
+        + '</svg>'
+    );
+  }
+
+  // X.
+  return buildSvgCursorDataUrl(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">'
+      + '<path d="M9 9 L23 23" stroke="#111" stroke-width="4" stroke-linecap="round"/>'
+      + '<path d="M23 9 L9 23" stroke="#111" stroke-width="4" stroke-linecap="round"/>'
+      + '</svg>'
+  );
 }
 
 function guessMimeType(fileName: string): string {
@@ -710,6 +740,7 @@ export const MapEditorCanvas = React.forwardRef<
   const isMoveEnabled = props.interactionMode === 'move';
   const isDoorEnabled = props.interactionMode === 'door';
   const isRoomEnabled = props.interactionMode === 'room';
+  const isLightCreateEnabled = props.interactionMode === 'light-create';
 
   React.useEffect(() => {
     if (!isSelectEnabled && !isDoorEnabled) {
@@ -1231,6 +1262,58 @@ export const MapEditorCanvas = React.forwardRef<
 
       return;
     }
+
+    if (isLightCreateEnabled) {
+      if (mapDocument === null) {
+        return;
+      }
+      if (!decodedMap?.ok) {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+
+      const sectorId = pickSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
+      if (sectorId === null) {
+        return;
+      }
+
+      void (async () => {
+        const result = await window.nomos.map.edit({
+          baseRevision: mapDocument.revision,
+          command: {
+            kind: 'map-edit/create-light',
+            at: { x: authoredWorldPoint.x, y: authoredWorldPoint.y }
+          }
+        });
+
+        if (!result.ok) {
+          if (result.error.code === 'map-edit/stale-revision') {
+            await useNomosStore.getState().refreshFromMain();
+            return;
+          }
+          // eslint-disable-next-line no-console
+          console.error('[nomos] map create-light failed', result.error);
+          return;
+        }
+
+        if (result.value.kind === 'map-edit/applied') {
+          applyMapSelectionEffect(result.value.selection);
+        }
+      })();
+
+      return;
+    }
     if (isDoorEnabled) {
       if (mapDocument === null) {
         return;
@@ -1481,6 +1564,34 @@ export const MapEditorCanvas = React.forwardRef<
 
           return;
         }
+
+    if (isLightCreateEnabled) {
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      if (!decodedMap?.ok) {
+        if (containerRef.current !== null) {
+          containerRef.current.style.cursor = getLightCreateCursor({ canCreate: false });
+        }
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+
+      const sectorId = pickSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
+      if (containerRef.current !== null) {
+        containerRef.current.style.cursor = getLightCreateCursor({ canCreate: sectorId !== null });
+      }
+
+      return;
+    }
     if (isDoorEnabled) {
       const stage = event.target.getStage();
       const pointer = stage?.getPointerPosition();

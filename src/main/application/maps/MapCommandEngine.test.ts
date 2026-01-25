@@ -529,6 +529,79 @@ describe('MapCommandEngine', () => {
     });
   });
 
+  describe('create-light', () => {
+    it('creates lights array when missing, appends a light with defaults, and selects the new light', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument({ particles: [], entities: [] }), {
+        kind: 'map-edit/create-light',
+        at: { x: 10, y: 20 }
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/set', ref: { kind: 'light', index: 0 } });
+      expect(result.value.nextJson['lights']).toEqual([{ x: 10, y: 20, radius: 8, intensity: 1, color: '#ffffff' }]);
+    });
+
+    it('appends to an existing lights array and selects the appended index', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/create-light',
+        at: { x: -1.5, y: 2.25 }
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/set', ref: { kind: 'light', index: 1 } });
+
+      const lights = result.value.nextJson['lights'];
+      expect(Array.isArray(lights)).toBe(true);
+      if (!Array.isArray(lights)) {
+        throw new Error('Expected lights to be an array');
+      }
+      expect(lights.length).toBe(2);
+      expect(lights[1]).toEqual({ x: -1.5, y: 2.25, radius: 8, intensity: 1, color: '#ffffff' });
+    });
+
+    it('rejects non-finite x/y', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument(baseMapJson()), {
+        kind: 'map-edit/create-light',
+        at: { x: Number.POSITIVE_INFINITY, y: 1 }
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+
+    it('rejects when lights exists but is not an array', () => {
+      const engine = new MapCommandEngine();
+
+      const result = engine.apply(baseDocument({ lights: {}, particles: [], entities: [] }), {
+        kind: 'map-edit/create-light',
+        at: { x: 1, y: 2 }
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+  });
+
   describe('create-room', () => {
     it('still allows creating additional rooms after an adjacent join that uses the full target wall as the portal', () => {
       const engine = new MapCommandEngine();

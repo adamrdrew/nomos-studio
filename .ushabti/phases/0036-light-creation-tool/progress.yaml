@@ -2,75 +2,109 @@ phase:
   id: 0036
   slug: light-creation-tool
   title: Light Creation Tool
-  status: planned
+  status: complete
 
 steps:
   - id: S001
     title: Confirm UX decisions and schema conventions
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Decisions finalized in phase.md (tool order at end; cross-platform cursor mapping; defaults for new lights; flicker none represented by omitting key via MAP_EDIT_UNSET)."
+    touched:
+      - .ushabti/phases/0036-light-creation-tool/phase.md
+      - .ushabti/phases/0036-light-creation-tool/steps.md
 
   - id: S002
     title: Add Light tool to the toolbox registry
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added MapEditorToolId 'light' and interaction mode 'light-create'; registered Light tool at end of MAP_EDITOR_TOOLS with Blueprint icon 'lightbulb'."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/tools/mapEditorTools.ts
 
   - id: S003
     title: Implement Create Light Mode cursor feedback
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Create Light Mode now sets cursor based on sector containment using pickSectorIdAtWorldPoint; uses platform-aware cursor helper (mac: custom SVG X/green plus; win/linux: not-allowed vs copy)."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
 
   - id: S004
     title: Add a typed main-process command: map-edit/create-light
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added MapEditAtomicCommand kind 'map-edit/create-light' with {at:{x,y}} and allowed it through MapEditService command-kind checks and switches."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/application/maps/MapEditService.ts
 
   - id: S005
     title: Implement map-edit/create-light in MapCommandEngine
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "MapCommandEngine now supports 'map-edit/create-light': validates finite coords, ensures lights array, appends default light (x,y,radius,intensity,color), returns selection/set to new light ref."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
 
   - id: S006
     title: Wire canvas click to create lights
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "MapEditorCanvas now creates a light on click when in 'light-create' mode and the click is inside a sector; routes through window.nomos.map.edit with stale-revision refresh and applies selection effect."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
 
   - id: S007
     title: Extend renderer map decoding + view model to include light flicker
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added MapLightFlicker union and MapLight.flicker in view model; decodeLight now parses optional lights[].flicker (none|flame|malfunction) and defaults to 'none' when missing."
+    touched:
+      - src/renderer/ui/editor/map/mapViewModel.ts
+      - src/renderer/ui/editor/map/mapDecoder.ts
 
   - id: S008
     title: Add flicker control to the Light Properties editor
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Light properties now include a flicker dropdown (none/flame/malfunction) and commits via map-edit/update-fields; selecting none unsets via MAP_EDIT_UNSET."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
 
   - id: S009
     title: Unit tests for new command + decoding behavior
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added unit coverage for map-edit/create-light (engine + service) and light flicker decoding; updated MapViewModel test fixture for new required flicker field. Jest now passes."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - src/renderer/ui/editor/map/mapDecoder.test.ts
+      - src/renderer/ui/editor/map/mapPicking.test.ts
 
   - id: S010
     title: Update docs + run quality gates
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Updated renderer UI + map-edit command docs for Light tool and map-edit/create-light. Verified: Jest passes; tsc --noEmit passes; eslint passes (using pinned Node binary)."
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/map-edit-command-system.md
+
+  - id: S011
+    title: Add missing MapCommandEngine branch coverage for create-light (L04)
+    implemented: true
+    reviewed: true
+    notes: "Added unit test for MapCommandEngine.apply(create-light) when json.lights is present but not an array; asserts map-edit/invalid-json. Verified by running MapCommandEngine.test.ts."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+
+  - id: S012
+    title: Add missing mapDecoder branch coverage for invalid light flicker (L04)
+    implemented: true
+    reviewed: true
+    notes: "Added decodeMapViewModel tests for lights[].flicker non-string and invalid-string values; asserts decode failure. Verified by running mapDecoder.test.ts."
+    touched:
+      - src/renderer/ui/editor/map/mapDecoder.test.ts

@@ -453,7 +453,7 @@ describe('pickMapSelection', () => {
       sectors: [],
       walls: [],
       doors: [],
-      lights: [{ index: 0, x: 2, y: 3, radius: 1, intensity: 1, color: { r: 255, g: 255, b: 255 } }],
+      lights: [{ index: 0, x: 2, y: 3, radius: 1, intensity: 1, color: { r: 255, g: 255, b: 255 }, flicker: 'none' }],
       particles: [],
       entities: []
     };

@@ -251,6 +251,48 @@ describe('MapEditService', () => {
     expect(result.value.kind).toBe('map-edit/applied');
   });
 
+  it('edit accepts create-light and returns applied', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null,
+      revision: 1
+    });
+
+    let applyCalls = 0;
+    const engine: MapCommandEngine = {
+      apply: (_document: MapDocument, command: Parameters<MapCommandEngine['apply']>[1]) => {
+        applyCalls += 1;
+        expect(command.kind).toBe('map-edit/create-light');
+
+        return {
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson(), lights: [{ x: 1, y: 2, radius: 8, intensity: 1, color: '#ffffff' }] },
+            selection: { kind: 'map-edit/selection/set', ref: { kind: 'light', index: 0 } }
+          }
+        };
+      }
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngine(store, engine);
+
+    const result = service.edit({
+      baseRevision: 1,
+      command: { kind: 'map-edit/create-light', at: { x: 1, y: 2 } }
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error('Expected success');
+    }
+
+    expect(applyCalls).toBe(1);
+    expect(setCalls).toHaveLength(1);
+    expect(result.value.kind).toBe('map-edit/applied');
+  });
+
   it('edit rejects mismatched baseRevision with stale-revision and does not mutate store/engine/history', () => {
     const { store, setCalls } = createMutableStore({
       filePath: '/maps/test.json',

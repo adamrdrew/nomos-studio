@@ -44,6 +44,7 @@ Atomic commands are the building blocks for edits.
 - `map-edit/clone`
 - `map-edit/create-entity`
 - `map-edit/create-door`
+- `map-edit/create-light`
 - `map-edit/create-room`
 - `map-edit/stamp-room`
 - `map-edit/set-sector-wall-tex`
@@ -121,6 +122,26 @@ Create-entity semantics:
 	- `{ x, y, def, yaw_deg }`
 	- `yaw_deg` is set to `yawDeg` when provided, otherwise defaults to `0`.
 - Selection effect is `map-edit/selection/set` to the newly appended `{ kind: 'entity', index }`.
+
+`map-edit/create-light` appends a new light to the map `lights[]` array:
+```ts
+{
+  kind: 'map-edit/create-light';
+  at: { x: number; y: number };
+}
+```
+
+Create-light validation rules:
+- `at.x` and `at.y` must be finite numbers.
+- `lights` must be absent or an array (a missing `lights` property is created).
+
+Create-light semantics:
+- Ensures `lights` exists as an array.
+- Appends a new light record with required fields:
+  - `{ x, y, radius, intensity, color }`
+  - Defaults: `radius: 8`, `intensity: 1`, `color: "#ffffff"`
+  - Optional fields (e.g., `flicker`) are omitted by default.
+- Selection effect is `map-edit/selection/set` to the newly appended `{ kind: 'light', index }`.
 
 `map-edit/create-door` creates a new door bound to a portal wall by wall array index:
 ```ts

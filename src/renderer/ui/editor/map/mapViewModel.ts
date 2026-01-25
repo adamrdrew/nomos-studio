@@ -38,6 +38,8 @@ export type MapDoor = Readonly<{
 
 export type RgbColor = Readonly<{ r: number; g: number; b: number }>; // 0..255
 
+export type MapLightFlicker = 'none' | 'flame' | 'malfunction';
+
 export type MapLight = Readonly<{
   index: number;
   x: number;
@@ -45,6 +47,7 @@ export type MapLight = Readonly<{
   radius: number;
   intensity: number;
   color: RgbColor;
+  flicker: MapLightFlicker;
 }>;
 
 export type MapParticleEmitter = Readonly<{

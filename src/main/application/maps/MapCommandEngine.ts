@@ -246,6 +246,27 @@ export class MapCommandEngine {
     MapEditError
   > {
     switch (command.kind) {
+      case 'map-edit/create-light': {
+        const toX = command.at.x;
+        const toY = command.at.y;
+        if (!isFiniteNumber(toX) || !isFiniteNumber(toY)) {
+          return err('map-edit/invalid-json', 'create-light.at must have finite number x/y');
+        }
+
+        const createResult = this.createLightInJson(json, { x: toX, y: toY });
+        if (!createResult.ok) {
+          return createResult;
+        }
+
+        return {
+          ok: true,
+          value: {
+            nextJson: createResult.value.nextJson,
+            selection: { kind: 'map-edit/selection/set', ref: createResult.value.newRef },
+            nextSelection: createResult.value.newRef
+          }
+        };
+      }
       case 'map-edit/create-entity': {
         const toX = command.at.x;
         const toY = command.at.y;
@@ -487,6 +508,42 @@ export class MapCommandEngine {
         return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
       }
     }
+  }
+
+  private createLightInJson(
+    json: Record<string, unknown>,
+    request: Readonly<{ x: number; y: number }>
+  ): Result<Readonly<{ nextJson: Record<string, unknown>; newRef: MapEditTargetRef }>, MapEditError> {
+    const lightsValue = json['lights'];
+    let lights: unknown[];
+
+    if (lightsValue === undefined) {
+      lights = [];
+      json['lights'] = lights;
+    } else {
+      const asLights = asArray(lightsValue, 'lights');
+      if (!asLights.ok) {
+        return asLights;
+      }
+      lights = asLights.value;
+    }
+
+    const newIndex = lights.length;
+    lights.push({
+      x: request.x,
+      y: request.y,
+      radius: 8,
+      intensity: 1,
+      color: '#ffffff'
+    });
+
+    return {
+      ok: true,
+      value: {
+        nextJson: json,
+        newRef: { kind: 'light', index: newIndex }
+      }
+    };
   }
 
   private createEntityInJson(

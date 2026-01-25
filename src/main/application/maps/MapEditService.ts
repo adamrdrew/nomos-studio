@@ -117,6 +117,7 @@ export class MapEditService {
       command.kind !== 'map-edit/delete' &&
       command.kind !== 'map-edit/clone' &&
       command.kind !== 'map-edit/create-door' &&
+      command.kind !== 'map-edit/create-light' &&
       command.kind !== 'map-edit/create-entity' &&
       command.kind !== 'map-edit/create-room' &&
       command.kind !== 'map-edit/stamp-room' &&
@@ -165,6 +166,7 @@ export class MapEditService {
         selectionInput = { kind: 'map-edit/selection', ref: normalizedCommand.target };
         break;
       case 'map-edit/create-door':
+      case 'map-edit/create-light':
       case 'map-edit/create-entity':
       case 'map-edit/create-room':
       case 'map-edit/stamp-room':
@@ -223,6 +225,7 @@ export class MapEditService {
       case 'map-edit/delete':
         return { ok: true, value: { kind: 'map-edit/deleted' } };
       case 'map-edit/create-door':
+      case 'map-edit/create-light':
       case 'map-edit/create-entity':
       case 'map-edit/create-room':
       case 'map-edit/stamp-room':

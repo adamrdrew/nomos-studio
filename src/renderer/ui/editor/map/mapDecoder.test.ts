@@ -134,6 +134,65 @@ describe('decodeMapViewModel', () => {
       return;
     }
     expect(light0.color).toEqual({ r: 0x33, g: 0x66, b: 0xcc });
+    expect(light0.flicker).toBe('none');
+  });
+
+  it('parses optional lights[].flicker when set to a valid value', () => {
+    const json = {
+      vertices: [{ x: 0, y: 0 }],
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, floor_tex: 'floor.png', ceil_tex: 'ceil.png', light: 1 }],
+      walls: [{ v0: 0, v1: 0, front_sector: 1, back_sector: -1, tex: 'wall.png' }],
+      lights: [{ x: 2, y: 3, radius: 5, intensity: 0.8, color: '#3366cc', flicker: 'flame' }]
+    };
+
+    const result = decodeMapViewModel(json);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+
+    expect(result.value.lights).toHaveLength(1);
+    const light0 = result.value.lights[0];
+    expect(light0).toBeDefined();
+    if (!light0) {
+      return;
+    }
+    expect(light0.flicker).toBe('flame');
+  });
+
+  it('fails when optional lights[].flicker is present but not a string', () => {
+    const json = {
+      vertices: [{ x: 0, y: 0 }],
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, floor_tex: 'floor.png', ceil_tex: 'ceil.png', light: 1 }],
+      walls: [{ v0: 0, v1: 0, front_sector: 1, back_sector: -1, tex: 'wall.png' }],
+      lights: [{ x: 2, y: 3, radius: 5, intensity: 0.8, color: '#3366cc', flicker: 123 }]
+    };
+
+    const result = decodeMapViewModel(json);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.message).toMatch(/flicker/i);
+  });
+
+  it('fails when optional lights[].flicker is present but not one of the allowed values', () => {
+    const json = {
+      vertices: [{ x: 0, y: 0 }],
+      sectors: [{ id: 1, floor_z: 0, ceil_z: 4, floor_tex: 'floor.png', ceil_tex: 'ceil.png', light: 1 }],
+      walls: [{ v0: 0, v1: 0, front_sector: 1, back_sector: -1, tex: 'wall.png' }],
+      lights: [{ x: 2, y: 3, radius: 5, intensity: 0.8, color: '#3366cc', flicker: 'strobe' }]
+    };
+
+    const result = decodeMapViewModel(json);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error('Expected failure');
+    }
+    expect(result.error.message).toMatch(/flicker/i);
   });
 
   it('defaults optional arrays to empty and optional booleans to expected defaults', () => {
