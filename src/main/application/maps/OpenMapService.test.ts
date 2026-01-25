@@ -212,7 +212,7 @@ describe('OpenMapService', () => {
         assetIndexError: null,
         mapDocument: null,
         mapRenderMode: 'textured',
-        mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 }
+        mapGridSettings: { isGridVisible: true, gridOpacity: 0.3, isSnapToGridEnabled: true }
       }),
       subscribe: () => () => {},
       setSettings: () => {},
@@ -284,7 +284,7 @@ describe('OpenMapService', () => {
         assetIndexError: null,
         mapDocument: null,
         mapRenderMode: 'textured',
-        mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 }
+        mapGridSettings: { isGridVisible: true, gridOpacity: 0.3, isSnapToGridEnabled: true }
       }),
       subscribe: () => () => {},
       setSettings: () => {},

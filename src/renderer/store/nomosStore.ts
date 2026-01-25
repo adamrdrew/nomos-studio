@@ -104,7 +104,7 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   mapDocument: null,
   mapRenderMode: 'textured',
   mapSectorSurface: 'floor',
-  mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+  mapGridSettings: { isGridVisible: true, gridOpacity: 0.3, isSnapToGridEnabled: true },
   mapHighlightPortals: false,
   mapHighlightToggleWalls: false,
   mapDoorVisibility: 'visible',

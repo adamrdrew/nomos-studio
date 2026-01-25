@@ -31,6 +31,7 @@ export type CreateApplicationMenuTemplateOptions = Readonly<{
   onToggleMapHighlightToggleWalls: () => void;
   onToggleMapDoorVisibility: () => void;
   onToggleMapGrid: () => void;
+  onToggleMapSnapToGrid: () => void;
   onIncreaseMapGridOpacity: () => void;
   onDecreaseMapGridOpacity: () => void;
 }>;
@@ -165,6 +166,12 @@ export function createApplicationMenuTemplate(
         type: 'checkbox',
         checked: options.mapGridSettings.isGridVisible,
         click: () => options.onToggleMapGrid()
+      },
+      {
+        label: 'Snap to Grid',
+        type: 'checkbox',
+        checked: options.mapGridSettings.isSnapToGridEnabled,
+        click: () => options.onToggleMapSnapToGrid()
       },
       {
         label: 'Increase Grid Opacity',

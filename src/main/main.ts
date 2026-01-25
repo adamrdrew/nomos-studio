@@ -61,6 +61,7 @@ const setApplicationMenu = (
     onToggleMapHighlightToggleWalls: () => void;
     onToggleMapDoorVisibility: () => void;
     onToggleMapGrid: () => void;
+    onToggleMapSnapToGrid: () => void;
     onIncreaseMapGridOpacity: () => void;
     onDecreaseMapGridOpacity: () => void;
   }>
@@ -104,6 +105,7 @@ const setApplicationMenu = (
     onToggleMapHighlightToggleWalls: () => options.onToggleMapHighlightToggleWalls(),
     onToggleMapDoorVisibility: () => options.onToggleMapDoorVisibility(),
     onToggleMapGrid: () => options.onToggleMapGrid(),
+    onToggleMapSnapToGrid: () => options.onToggleMapSnapToGrid(),
     onIncreaseMapGridOpacity: () => options.onIncreaseMapGridOpacity(),
     onDecreaseMapGridOpacity: () => options.onDecreaseMapGridOpacity()
   });
@@ -502,6 +504,7 @@ app.on('ready', () => {
       onToggleMapHighlightToggleWalls: () => store.toggleMapHighlightToggleWalls(),
       onToggleMapDoorVisibility: () => store.toggleMapDoorVisibility(),
       onToggleMapGrid: () => store.setMapGridIsVisible(!store.getState().mapGridSettings.isGridVisible),
+      onToggleMapSnapToGrid: () => store.toggleMapSnapToGrid(),
       onIncreaseMapGridOpacity: () =>
         store.setMapGridOpacity(roundToTenth(store.getState().mapGridSettings.gridOpacity + GRID_OPACITY_STEP)),
       onDecreaseMapGridOpacity: () =>

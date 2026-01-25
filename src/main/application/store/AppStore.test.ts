@@ -25,7 +25,7 @@ describe('AppStore', () => {
     expect(state.mapDocument).toBeNull();
     expect(state.mapRenderMode).toBe('textured');
     expect(state.mapSectorSurface).toBe('floor');
-    expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.3 });
+    expect(state.mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.3, isSnapToGridEnabled: true });
     expect(state.mapHighlightPortals).toBe(false);
     expect(state.mapHighlightToggleWalls).toBe(false);
     expect(state.mapDoorVisibility).toBe('visible');
@@ -208,10 +208,10 @@ describe('AppStore', () => {
     const store = new AppStore();
 
     store.setMapGridOpacity(0.6);
-    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.6 });
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: true, gridOpacity: 0.6, isSnapToGridEnabled: true });
 
     store.setMapGridIsVisible(false);
-    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.6 });
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.6, isSnapToGridEnabled: true });
   });
 
   it('setMapGridOpacity clamps opacity and preserves visibility', () => {
@@ -221,19 +221,42 @@ describe('AppStore', () => {
     expect(store.getState().mapGridSettings.isGridVisible).toBe(false);
 
     store.setMapGridOpacity(0.5);
-    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.5 });
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.5, isSnapToGridEnabled: true });
 
     store.setMapGridOpacity(0.01);
-    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.1 });
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.1, isSnapToGridEnabled: true });
 
     store.setMapGridOpacity(10);
-    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.8 });
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.8, isSnapToGridEnabled: true });
 
     store.setMapGridOpacity(Number.NaN);
-    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.1 });
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.1, isSnapToGridEnabled: true });
 
     store.setMapGridOpacity(0.36);
-    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.4 });
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.4, isSnapToGridEnabled: true });
+  });
+
+  it('setMapSnapToGridIsEnabled stores the flag and preserves other grid settings', () => {
+    const store = new AppStore();
+
+    store.setMapGridIsVisible(false);
+    store.setMapGridOpacity(0.6);
+
+    store.setMapSnapToGridIsEnabled(false);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.6, isSnapToGridEnabled: false });
+
+    store.setMapSnapToGridIsEnabled(true);
+    expect(store.getState().mapGridSettings).toEqual({ isGridVisible: false, gridOpacity: 0.6, isSnapToGridEnabled: true });
+  });
+
+  it('toggleMapSnapToGrid flips the flag', () => {
+    const store = new AppStore();
+
+    expect(store.getState().mapGridSettings.isSnapToGridEnabled).toBe(true);
+    store.toggleMapSnapToGrid();
+    expect(store.getState().mapGridSettings.isSnapToGridEnabled).toBe(false);
+    store.toggleMapSnapToGrid();
+    expect(store.getState().mapGridSettings.isSnapToGridEnabled).toBe(true);
   });
 
   it('setMapHighlightPortals stores the flag', () => {

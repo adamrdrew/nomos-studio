@@ -144,6 +144,10 @@ The editor UI is organized like a traditional creative tool:
 		- To achieve this for arbitrary authored coordinates, the renderer may apply a render-only origin offset derived from decoded map bounds; this does not mutate `MapDocument.json`.
 	- The editor grid adapts its spacing to zoom so line density stays readable.
 	- Grid visibility and opacity are controlled by main-process state (`mapGridSettings`) and updated via the View menu.
+	- Snap to Grid is controlled by main-process state (`mapGridSettings.isSnapToGridEnabled`) and updated via the View menu.
+		- When enabled, placement-affecting interactions snap pointer-derived world points to the **currently displayed minor grid spacing**.
+		- Snapping uses the same zoom-dependent spacing selection as the grid rendering, and spacing is always a congruent world-unit step.
+		- Holding **Shift** temporarily disables snapping (useful when you need a non-grid placement, e.g., to reach an adjacent-room merge/magnetism position).
 	- Portal highlighting and textured-mode door visibility are controlled by main-process snapshot state via the View menu.
 	- Object markers (doors/entities/lights/particles) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
 	- Light radius circles are displayed at 0.5× the stored `radius` to better match runtime visuals.
@@ -171,12 +175,14 @@ The editor UI is organized like a traditional creative tool:
 		- The tool uses a scissors/cut-style icon in the toolbox.
 		- Clicking a wall requests `map-edit/split-wall` via `window.nomos.map.edit(...)`.
 		- The split point is deterministic: it is computed as the closest-point projection of the pointer world point onto the wall segment.
+		- When Snap to Grid is enabled, the pointer world point is snapped to the displayed grid before projection.
 		- Clicks that do not hit a wall do nothing.
 		- Portal walls and door-bound walls are intentionally rejected in this phase.
 		- On success, selection becomes the original `{ kind: 'wall', index: wallIndex }`.
 		- Hover behavior (like Select): the hovered wall is outlined in yellow, and the cursor becomes `crosshair` over a splittable wall (`not-allowed` otherwise).
 	- Light mode allows creating a new point light by clicking.
 		- Placement validity is enforced by sector containment (nested-sector aware): the click point must be inside any sector.
+		- When Snap to Grid is enabled, the click world point is snapped before validity checks and before issuing the create command.
 		- The cursor indicates validity:
 			- macOS: green plus when valid, X when invalid
 			- Windows/Linux: `copy` when valid, `not-allowed` when invalid
@@ -188,6 +194,7 @@ The editor UI is organized like a traditional creative tool:
 		- A live outline preview tracks the mouse:
 			- green when placement is valid (click would create a room)
 			- red when invalid (click does nothing)
+		- When Snap to Grid is enabled, the preview anchor (room center / stamp anchor) is snapped to the displayed grid, so preview and commit coordinates match.
 		- Validity is enforced (not advisory): rooms must be nested inside a sector or adjacent/snapped to an existing wall; intersections are rejected.
 			- Exception: if the map has no sectors and no walls, the first room may be created as a “seed” room (not nested/adjacent).
 		- On a valid click, the renderer requests `map-edit/create-room` via `window.nomos.map.edit(...)`.
@@ -209,6 +216,7 @@ The editor UI is organized like a traditional creative tool:
 		- The map canvas accepts drag payloads from the Entities panel.
 		- While dragging an entity, drop validity is enforced by native DOM drag/drop semantics:
 			- The map only **allows** dropping when the cursor world point is inside any sector.
+			- When Snap to Grid is enabled, the cursor world point is snapped before checking sector containment and before issuing `map-edit/create-entity`.
 			- Implementation uses `dragover` + `preventDefault()` (to allow a drop) and sets `dataTransfer.dropEffect` (`copy` vs `none`) to signal intent.
 			- Note: the exact OS cursor glyph can vary by platform/browser; validity is enforced regardless of cursor appearance.
 		- Drops outside any sector are blocked (no map edit is issued).

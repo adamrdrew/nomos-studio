@@ -56,7 +56,8 @@ function clampGridOpacity(opacity: number): number {
 function defaultMapGridSettings(): MapGridSettings {
   return {
     isGridVisible: true,
-    gridOpacity: 0.3
+    gridOpacity: 0.3,
+    isSnapToGridEnabled: true
   };
 }
 
@@ -144,6 +145,21 @@ export class AppStore {
       }
     };
     this.emit();
+  }
+
+  public setMapSnapToGridIsEnabled(isSnapToGridEnabled: boolean): void {
+    this.state = {
+      ...this.state,
+      mapGridSettings: {
+        ...this.state.mapGridSettings,
+        isSnapToGridEnabled
+      }
+    };
+    this.emit();
+  }
+
+  public toggleMapSnapToGrid(): void {
+    this.setMapSnapToGridIsEnabled(!this.state.mapGridSettings.isSnapToGridEnabled);
   }
 
   public setMapHighlightPortals(isEnabled: boolean): void {

@@ -85,3 +85,12 @@
   - `docs/menu-system.md` View menu list to include Snap to Grid.
   - `docs/renderer-ui-system.md` to describe snap mode behavior for the in-scope operations.
 - **Done when:** Docs accurately describe the new menu command and snapping behavior.
+
+## S014 — Shift modifier: temporarily disable snapping
+- **Intent:** Allow designers to bypass snapping momentarily (e.g., to place a room close enough for the existing room-merge “magnetism” behavior) without changing the merge logic.
+- **Work:**
+  - When **Snap to Grid** is enabled, treat **Shift** as a temporary override that disables snapping for pointer-driven placement operations.
+  - Ensure room placement (preview anchor) can be moved off-grid while Shift is held, without modifying the adjacent-room merge/magnetism code path.
+  - Add unit tests for the new helper/branching behavior.
+  - Update renderer UI docs to mention the Shift override.
+- **Done when:** With Snap enabled, holding Shift disables snapping for placement; releasing Shift restores it; tests + typecheck pass.

@@ -61,6 +61,7 @@ Current responsibilities:
 	- Highlight Toggle Walls
 	- Toggle Door Visibility
 	- Toggle Grid
+	- Snap to Grid
 	- Increase Grid Opacity
 	- Decrease Grid Opacity
 
@@ -99,6 +100,7 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	onToggleMapHighlightToggleWalls: () => void;
 	onToggleMapDoorVisibility: () => void;
 	onToggleMapGrid: () => void;
+	onToggleMapSnapToGrid: () => void;
 	onIncreaseMapGridOpacity: () => void;
 	onDecreaseMapGridOpacity: () => void;
 	mapSectorSurface: MapSectorSurface;
@@ -122,6 +124,7 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 
 ### Grid menu items reflect store state
 - The View menu includes a Toggle Grid checkbox whose checked state reflects `mapGridSettings.isGridVisible`.
+- The View menu includes a Snap to Grid checkbox whose checked state reflects `mapGridSettings.isSnapToGridEnabled`.
 - The Increase/Decrease Grid Opacity items adjust `mapGridSettings.gridOpacity` in bounded steps.
 
 ### Overlay menu items reflect store state

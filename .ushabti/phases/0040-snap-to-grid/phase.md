@@ -57,6 +57,8 @@ This Phase records a single, bounded work order: introduce the toggle + state pl
 - When Snap to Grid is OFF:
   - The above operations behave exactly as they do today (no coordinate rounding).
 
+- **Modifier override:** When Snap to Grid is ON, holding **Shift** temporarily disables snapping for pointer-driven placement operations so designers can bypass snapping (e.g., to reach room-merge “magnetism” positions) without changing the merge/magnetism code path.
+
 - **Displayed grid congruence:** the grid spacing selected for display is always a world-unit step (no drifting “virtual” grid), and snapping uses the exact same spacing currently displayed.
 - Tests:
   - Menu template tests assert the new menu item exists and checked reflects state.
@@ -71,4 +73,7 @@ This Phase records a single, bounded work order: introduce the toggle + state pl
 
 ## Assumptions
 - The snap increment is the **currently displayed minor grid world spacing**.
-- The displayed minor grid spacing is chosen from a discrete set of congruent world-unit steps (e.g., 1, 2, 4, 8, …) based on zoom, similar to the existing zoom-aware grid logic.
+- The displayed minor grid spacing is chosen from a discrete set of **integer** world-unit steps based on zoom:
+  - Candidates: `1, 2, 4, 8, 16, 32, 64, 128, 256`.
+  - Selection target: approximately **24px** between minor lines in screen space (as zoom changes).
+  - Major grid lines occur every **5** minor cells.

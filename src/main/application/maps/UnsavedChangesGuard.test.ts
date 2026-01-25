@@ -22,7 +22,7 @@ function createStore(mapDocument: MapDocument | null): AppStore {
       mapDocument,
       mapRenderMode: 'textured',
       mapSectorSurface: 'floor',
-      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3 },
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3, isSnapToGridEnabled: true },
       mapHighlightPortals: false,
       mapDoorVisibility: 'visible'
     }),

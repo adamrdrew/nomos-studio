@@ -50,4 +50,5 @@ export type MapDoorVisibility = 'visible' | 'hidden';
 export type MapGridSettings = Readonly<{
   isGridVisible: boolean;
   gridOpacity: number;
+  isSnapToGridEnabled: boolean;
 }>;

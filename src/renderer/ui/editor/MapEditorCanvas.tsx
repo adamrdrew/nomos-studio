@@ -27,6 +27,8 @@ import type { RoomMapGeometry, RoomPlacementValidity, Vec2 } from '../../../shar
 import type { StampRoomRequest } from '../../../shared/domain/mapRoomStamp';
 import { computePolygonBounds, normalizePolygonToAnchor, transformStampPolygon } from '../../../shared/domain/mapRoomStampTransform';
 import { hasEntityPlacementDragPayload, tryReadEntityPlacementDragPayload } from './entities/entityPlacementDragPayload';
+import { chooseMinorGridWorldSpacing } from './map/gridSpacing';
+import { shouldSnapToGrid, snapWorldPointToDisplayedGrid } from './map/gridSnapping';
 
 export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom' | 'light-create' | 'split';
 
@@ -320,26 +322,6 @@ function computeMapBounds(map: MapViewModel): Bounds | null {
   }
 
   return { minX, minY, maxX, maxY };
-}
-
-function chooseMinorGridWorldSpacing(viewScale: number): number {
-  const safeScale = Math.max(0.0001, viewScale);
-  const targetMinorGridScreenSpacing = 24;
-  const desiredWorldSpacing = targetMinorGridScreenSpacing / safeScale;
-
-  const candidates = [0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256];
-
-  let best = candidates[0] ?? 8;
-  let bestError = Number.POSITIVE_INFINITY;
-  for (const candidate of candidates) {
-    const error = Math.abs(candidate - desiredWorldSpacing);
-    if (error < bestError) {
-      bestError = error;
-      best = candidate;
-    }
-  }
-
-  return best;
 }
 
 export const MapEditorCanvas = React.forwardRef<
@@ -1216,6 +1198,13 @@ export const MapEditorCanvas = React.forwardRef<
         y: renderWorldPoint.y + mapOrigin.y
       };
 
+      const playerStartPoint = shouldSnapToGrid({
+        isSnapToGridEnabled: mapGridSettings.isSnapToGridEnabled,
+        isShiftKeyPressed: event.evt.shiftKey === true
+      })
+        ? snapWorldPointToDisplayedGrid(authoredWorldPoint, view.scale)
+        : authoredWorldPoint;
+
       const currentAngleDeg = readPlayerStartFromJson(mapDocument.json)?.angleDeg ?? 0;
 
       // Exit pick mode immediately after a click to avoid accidental double-sets.
@@ -1226,7 +1215,7 @@ export const MapEditorCanvas = React.forwardRef<
           baseRevision: mapDocument.revision,
           command: {
             kind: 'map-edit/set-player-start',
-            playerStart: { x: authoredWorldPoint.x, y: authoredWorldPoint.y, angleDeg: currentAngleDeg }
+            playerStart: { x: playerStartPoint.x, y: playerStartPoint.y, angleDeg: currentAngleDeg }
           }
         });
 
@@ -1386,7 +1375,14 @@ export const MapEditorCanvas = React.forwardRef<
         y: renderWorldPoint.y + mapOrigin.y
       };
 
-      const sectorId = pickSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
+      const placementWorldPoint = shouldSnapToGrid({
+        isSnapToGridEnabled: mapGridSettings.isSnapToGridEnabled,
+        isShiftKeyPressed: event.evt.shiftKey === true
+      })
+        ? snapWorldPointToDisplayedGrid(authoredWorldPoint, view.scale)
+        : authoredWorldPoint;
+
+      const sectorId = pickSectorIdAtWorldPoint(placementWorldPoint, decodedMap.value);
       if (sectorId === null) {
         return;
       }
@@ -1396,7 +1392,7 @@ export const MapEditorCanvas = React.forwardRef<
           baseRevision: mapDocument.revision,
           command: {
             kind: 'map-edit/create-light',
-            at: { x: authoredWorldPoint.x, y: authoredWorldPoint.y }
+            at: { x: placementWorldPoint.x, y: placementWorldPoint.y }
           }
         });
 
@@ -1535,7 +1531,14 @@ export const MapEditorCanvas = React.forwardRef<
         return;
       }
 
-      const splitPoint = closestPointOnSegment(authoredWorldPoint, v0, v1);
+      const splitInputPoint = shouldSnapToGrid({
+        isSnapToGridEnabled: mapGridSettings.isSnapToGridEnabled,
+        isShiftKeyPressed: event.evt.shiftKey === true
+      })
+        ? snapWorldPointToDisplayedGrid(authoredWorldPoint, view.scale)
+        : authoredWorldPoint;
+
+      const splitPoint = closestPointOnSegment(splitInputPoint, v0, v1);
       const epsilon = 1e-6;
       if (isPointNearSegmentEndpoints(splitPoint, v0, v1, epsilon)) {
         return;
@@ -1670,7 +1673,7 @@ export const MapEditorCanvas = React.forwardRef<
     setHoveredSelection(null);
   };
 
-  const onMouseUp = (): void => {
+  const onMouseUp = (event?: KonvaEventObject<MouseEvent>): void => {
     isDraggingRef.current = false;
     lastPointerRef.current = null;
 
@@ -1739,17 +1742,24 @@ export const MapEditorCanvas = React.forwardRef<
     }
 
     void (async () => {
+      const commitPoint = shouldSnapToGrid({
+        isSnapToGridEnabled: mapGridSettings.isSnapToGridEnabled,
+        isShiftKeyPressed: event?.evt.shiftKey === true
+      })
+        ? snapWorldPointToDisplayedGrid({ x: preview.x, y: preview.y }, view.scale)
+        : preview;
+
       const command =
         mapSelection.kind === 'entity'
           ? {
               kind: 'map-edit/move-entity' as const,
               target: { kind: 'entity' as const, index: mapSelection.index },
-              to: { x: preview.x, y: preview.y }
+              to: { x: commitPoint.x, y: commitPoint.y }
             }
           : {
               kind: 'map-edit/move-light' as const,
               target: { kind: 'light' as const, index: mapSelection.index },
-              to: { x: preview.x, y: preview.y }
+              to: { x: commitPoint.x, y: commitPoint.y }
             };
 
       const result = await window.nomos.map.edit({
@@ -1800,27 +1810,34 @@ export const MapEditorCanvas = React.forwardRef<
       return;
     }
 
-        if (isRoomEnabled) {
-          const stage = event.target.getStage();
-          const pointer = stage?.getPointerPosition();
-          if (pointer == null) {
-            return;
-          }
+    if (isRoomEnabled) {
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
 
-          const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
-          const authoredWorldPoint: Point = {
-            x: renderWorldPoint.x + mapOrigin.x,
-            y: renderWorldPoint.y + mapOrigin.y
-          };
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
 
-          setRoomCenter((current) =>
-            current !== null && Math.abs(current.x - authoredWorldPoint.x) < 1e-6 && Math.abs(current.y - authoredWorldPoint.y) < 1e-6
-              ? current
-              : authoredWorldPoint
-          );
+      const snappedWorldPoint = shouldSnapToGrid({
+        isSnapToGridEnabled: mapGridSettings.isSnapToGridEnabled,
+        isShiftKeyPressed: event.evt.shiftKey === true
+      })
+        ? snapWorldPointToDisplayedGrid(authoredWorldPoint, view.scale)
+        : authoredWorldPoint;
 
-          return;
-        }
+      setRoomCenter((current) =>
+        current !== null && Math.abs(current.x - snappedWorldPoint.x) < 1e-6 && Math.abs(current.y - snappedWorldPoint.y) < 1e-6
+          ? current
+          : snappedWorldPoint
+      );
+
+      return;
+    }
 
     if (isLightCreateEnabled) {
       const stage = event.target.getStage();
@@ -1977,11 +1994,23 @@ export const MapEditorCanvas = React.forwardRef<
         y: renderWorldPoint.y + mapOrigin.y
       };
 
+      const rawPreviewPoint = {
+        x: authoredWorldPoint.x + offset.x,
+        y: authoredWorldPoint.y + offset.y
+      };
+
+      const previewPoint = shouldSnapToGrid({
+        isSnapToGridEnabled: mapGridSettings.isSnapToGridEnabled,
+        isShiftKeyPressed: event.evt.shiftKey === true
+      })
+        ? snapWorldPointToDisplayedGrid(rawPreviewPoint, view.scale)
+        : rawPreviewPoint;
+
       setMovePreview({
         kind: mapSelection.kind,
         index: mapSelection.index,
-        x: authoredWorldPoint.x + offset.x,
-        y: authoredWorldPoint.y + offset.y
+        x: previewPoint.x,
+        y: previewPoint.y
       });
       return;
     }
@@ -2911,7 +2940,14 @@ export const MapEditorCanvas = React.forwardRef<
       return;
     }
 
-    const sectorId = findSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
+    const placementWorldPoint = shouldSnapToGrid({
+      isSnapToGridEnabled: mapGridSettings.isSnapToGridEnabled,
+      isShiftKeyPressed: event.shiftKey === true
+    })
+      ? snapWorldPointToDisplayedGrid(authoredWorldPoint, view.scale)
+      : authoredWorldPoint;
+
+    const sectorId = findSectorIdAtWorldPoint(placementWorldPoint, decodedMap.value);
     if (sectorId === null) {
       return;
     }
@@ -2944,7 +2980,14 @@ export const MapEditorCanvas = React.forwardRef<
       return;
     }
 
-    const sectorId = findSectorIdAtWorldPoint(authoredWorldPoint, decodedMap.value);
+    const placementWorldPoint = shouldSnapToGrid({
+      isSnapToGridEnabled: mapGridSettings.isSnapToGridEnabled,
+      isShiftKeyPressed: event.shiftKey === true
+    })
+      ? snapWorldPointToDisplayedGrid(authoredWorldPoint, view.scale)
+      : authoredWorldPoint;
+
+    const sectorId = findSectorIdAtWorldPoint(placementWorldPoint, decodedMap.value);
     if (sectorId === null) {
       return;
     }
@@ -2954,7 +2997,7 @@ export const MapEditorCanvas = React.forwardRef<
         baseRevision: mapDocument.revision,
         command: {
           kind: 'map-edit/create-entity',
-          at: { x: authoredWorldPoint.x, y: authoredWorldPoint.y },
+          at: { x: placementWorldPoint.x, y: placementWorldPoint.y },
           def: payload.defName
         }
       });
