@@ -87,6 +87,15 @@ describe('colorUtils', () => {
       expect(hsvToRgb({ h: 240, s: 1, v: 1 })).toEqual({ r: 0, g: 0, b: 255 });
     });
 
+    it('covers remaining hsv sectors (switch branches)', () => {
+      // index 1
+      expect(hsvToRgb({ h: 60, s: 1, v: 1 })).toEqual({ r: 255, g: 255, b: 0 });
+      // index 3
+      expect(hsvToRgb({ h: 180, s: 1, v: 1 })).toEqual({ r: 0, g: 255, b: 255 });
+      // index 5 (default branch)
+      expect(hsvToRgb({ h: 300, s: 1, v: 1 })).toEqual({ r: 255, g: 0, b: 255 });
+    });
+
     it('returns grayscale when s is 0', () => {
       expect(hsvToRgb({ h: 123, s: 0, v: 0.5 })).toEqual({ r: 128, g: 128, b: 128 });
     });
@@ -103,6 +112,17 @@ describe('colorUtils', () => {
       expect(roundTrip.r).toBeCloseTo(input.r, 0);
       expect(roundTrip.g).toBeCloseTo(input.g, 0);
       expect(roundTrip.b).toBeCloseTo(input.b, 0);
+    });
+  });
+
+  describe('rgbToHsv hue wrapping', () => {
+    it('wraps negative hue values into [0,360)', () => {
+      // For max=r with g<b, the raw hue is negative and should wrap up near 360.
+      const hsv = rgbToHsv({ r: 255, g: 0, b: 1 });
+      expect(hsv.h).toBeGreaterThan(359);
+      expect(hsv.h).toBeLessThanOrEqual(360);
+      expect(hsv.s).toBeGreaterThan(0.99);
+      expect(hsv.v).toBe(1);
     });
   });
 });

@@ -22,7 +22,8 @@ This Phase exists now because lights are already create/select/move/editable (Ph
   - Undo/redo must work as it does for other updates.
 
 Assumptions (recorded for Builder/Overseer):
-- The handle is positioned at `(x + radius, y)` in authored world space (i.e., on the +X side of the circle).
+- The editor displays the light radius circle at **0.5×** the stored `radius` to better match runtime visuals.
+- The handle is positioned on the displayed circle at `(x + radius * 0.5, y)` in authored world space (i.e., on the +X side of the displayed circle).
 - Handle interaction is enabled when:
   - a light is selected, and
   - the active tool/interaction mode is `select` or `move`.

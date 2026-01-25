@@ -130,3 +130,22 @@
 
 **Done when:**
 - Light radius circles in the editor appear half the previous size and the resize-handle interaction remains intuitive (dragging the handle changes the displayed radius directly).
+
+## S012 — Complete branch-coverage for `colorUtils` (L04)
+**Intent:** Ensure new public helper APIs meet the “all conditional paths” testing law.
+
+**Work:**
+- Extend unit tests to cover all `hsvToRgb` switch branches (indices 0–5) and the `s === 0` branch.
+- Add an explicit test that exercises the `rgbToHsv` negative-hue wrap (`h < 0` → `h += 360`) path.
+
+**Done when:**
+- Each conditional branch in the public helpers is exercised by tests.
+
+## S013 — Align Phase assumptions with implemented radius display scale
+**Intent:** Keep Phase documentation truthful and consistent with implementation (L07).
+
+**Work:**
+- Update the Phase 0038 doc assumptions so handle placement and radius-circle semantics match the 0.5× display scale.
+
+**Done when:**
+- [phase.md](.ushabti/phases/0038-light-control-improvements/phase.md) accurately describes the implemented behavior.
