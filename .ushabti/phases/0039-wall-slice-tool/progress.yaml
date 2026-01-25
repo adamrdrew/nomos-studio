@@ -1,0 +1,67 @@
+phase:
+  id: 0039
+  slug: wall-slice-tool
+  title: Wall Slice Tool (Split)
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm touchpoints + invariants
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S002
+    title: Extend IPC contract: map-edit/split-wall
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S003
+    title: Implement command in MapCommandEngine
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S004
+    title: Main-process unit tests for split-wall
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S005
+    title: Add Split tool definition (left tool bar)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S006
+    title: Add a razor icon for the tool
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S007
+    title: Renderer interaction: click wall → request split
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S008
+    title: Renderer pure helpers + tests (split point math)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S009
+    title: Documentation updates (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S010
+    title: Quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
