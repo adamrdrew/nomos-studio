@@ -1,0 +1,76 @@
+phase:
+  id: 0038
+  slug: light-control-improvements
+  title: Light Control Improvements
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm touchpoints and interaction rules
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Add pure helpers for radius handle geometry + hit testing
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Render the resize handle for the selected light
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Implement drag interaction to resize radius
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Unit tests for radius handle helpers
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Create a reusable gradient Color Picker control (renderer)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Integrate Color Picker into Light Object Properties
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Unit tests for color conversion helpers
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Update docs (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
