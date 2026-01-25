@@ -2,20 +2,20 @@ phase:
   id: 0039
   slug: wall-slice-tool
   title: Wall Slice Tool (Split)
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Confirm touchpoints + invariants
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Renderer: tool list/toolbar/hotkeys in src/renderer/ui/editor/tools/mapEditorTools.ts and src/renderer/ui/editor/panels/MapEditorDockPanel.tsx; wall picking via src/renderer/ui/editor/map/mapPicking.ts; edits issued via window.nomos.map.edit in src/renderer/ui/editor/MapEditorCanvas.tsx (and toolbar commands in MapEditorDockPanel.tsx) with selection effects applied through src/renderer/store/nomosStore.ts. Main: command routing/validation in src/main/application/maps/MapEditService.ts; atomic command execution in src/main/application/maps/MapCommandEngine.ts; undo/redo via src/main/application/maps/MapEditHistory.ts. Invariants: portal walls have back_sector > -1; doors bind to walls by doors[].wall_index; wall indices are used as stable identity across renderer selection, doors, and editor commands so walls[] must never be reordered (split must update in place + append)."
     touched:
       - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S002
     title: Extend IPC contract: map-edit/split-wall
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added MapEditAtomicCommand kind map-edit/split-wall with { wallIndex, at: {x,y} } in shared IPC types and updated MapEditService command allowlist + bookkeeping switches to accept it."
     touched:
       - src/shared/ipc/nomosIpc.ts
@@ -24,7 +24,7 @@ steps:
   - id: S003
     title: Implement command in MapCommandEngine
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Implemented map-edit/split-wall in MapCommandEngine: validates wall index and coords, rejects portal/door-bound walls, projects to closest point on segment, rejects endpoint-adjacent splits, adds/reuses a vertex, updates the original wall in place and appends the second segment, and returns a deterministic selection set to the original wall index."
     touched:
       - src/shared/domain/results.ts
@@ -33,7 +33,7 @@ steps:
   - id: S004
     title: Main-process unit tests for split-wall
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added MapCommandEngine unit tests covering successful split (projection + property preservation) and all rejection branches: out-of-range index, non-finite coords, portal wall, door-bound wall, and endpoint/degenerate split. Jest run confirms pass." 
     touched:
       - src/main/application/maps/MapCommandEngine.test.ts
@@ -41,26 +41,26 @@ steps:
   - id: S005
     title: Add Split tool definition (left tool bar)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added MapEditorToolId 'split' and a Split tool definition in the left tool bar, plus a new MapEditorInteractionMode 'split' so the tool can be activated end-to-end."
     touched:
       - src/renderer/ui/editor/tools/mapEditorTools.ts
       - src/renderer/ui/editor/MapEditorCanvas.tsx
       - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S006
-    title: Add a razor icon for the tool
+    title: Add a clear icon for the tool
     implemented: true
-    reviewed: false
-    notes: "Added a custom razor SVG icon (RazorIcon) and extended tool icon rendering to support a custom icon id for the Split tool (custom/razor)."
+    reviewed: true
+    notes: "Added custom tool-icon rendering support and a clear Split icon (scissors/cut)."
     touched:
-      - src/renderer/ui/editor/icons/RazorIcon.tsx
+      - src/renderer/ui/editor/icons/ScissorsIcon.tsx
       - src/renderer/ui/editor/tools/mapEditorTools.ts
       - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
       - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S007
     title: Renderer interaction: click wall → request split
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Wired Split interaction in MapEditorCanvas: on click, pick a wall hit, project pointer to closest point on the wall segment, ignore endpoint-adjacent splits (epsilon), reject portal/door-bound walls locally, and send a single window.nomos.map.edit request (map-edit/split-wall) with stale-revision refresh handling and selection effect application. Typecheck confirms pass."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -68,7 +68,7 @@ steps:
   - id: S008
     title: Renderer pure helpers + tests (split point math)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added pure segment math helpers (closestPointOnSegment, isPointNearSegmentEndpoints) with Jest tests covering interior projection, endpoint clamping, and zero-length segment guard. Refactored Split click handling to use these helpers."
     touched:
       - src/renderer/ui/editor/map/segmentMath.ts
@@ -78,7 +78,7 @@ steps:
   - id: S009
     title: Documentation updates (L09)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated map edit command documentation to include map-edit/split-wall (shape, validation rules, semantics) and updated renderer UI docs to describe the Split tool behavior and how it issues the command."
     touched:
       - docs/map-edit-command-system.md
@@ -87,7 +87,7 @@ steps:
   - id: S010
     title: Quality gates
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Ran lint, typecheck, and full Jest suite using node-based commands/tasks (npm not available in task shell). All gates pass."
     touched:
       - .ushabti/phases/0039-wall-slice-tool/progress.yaml
@@ -95,7 +95,7 @@ steps:
   - id: S011
     title: Improve Split tool icon (clarity)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Replaced the custom razor icon with a clearer custom scissors icon and updated the Split tool definition + toolbar icon rendering to use it. Removed the unused RazorIcon component file."
     touched:
       - src/renderer/ui/editor/icons/ScissorsIcon.tsx
@@ -107,7 +107,7 @@ steps:
   - id: S012
     title: Split hover highlight + cursor affordance
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Split mode now computes hovered wall using the existing picking logic, renders the same hover outline treatment as Select, and sets the cursor to crosshair over splittable walls (not-allowed elsewhere)."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
@@ -116,7 +116,7 @@ steps:
   - id: S013
     title: Docs + quality gates (post-UX tweaks)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated renderer UI docs for Split hover/cursor behavior and re-ran lint/typecheck/full Jest suite; all gates pass."
     touched:
       - docs/renderer-ui-system.md

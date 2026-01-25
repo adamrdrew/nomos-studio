@@ -71,15 +71,15 @@
 **Done when:**
 - Split appears as a tool and can be activated.
 
-## S006 — Add a razor icon for the tool
+## S006 — Add a clear icon for the tool
 **Intent:** Satisfy the UI requirement without breaking existing icon patterns.
 
 **Work:**
-- Determine whether an acceptable razor-like icon exists in the current icon set.
+- Determine whether an acceptable scissors/cut-style icon exists in the current icon set.
 - If not, add a minimal local SVG icon and extend tool button rendering to support it.
 
 **Done when:**
-- The Split tool uses a razor icon consistently across platforms.
+- The Split tool uses a clear scissors/cut icon consistently across platforms.
 
 ## S007 — Renderer interaction: click wall → request split
 **Intent:** Trigger wall splitting from user clicks.

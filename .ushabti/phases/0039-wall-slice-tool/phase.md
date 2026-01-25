@@ -1,7 +1,7 @@
 # Phase 0039 — Wall Slice Tool (Split)
 
 ## Intent
-Add a new map editor tool named **Split** (razor icon) that lets the user click a point on a wall to split that wall into two walls at the clicked point.
+Add a new map editor tool named **Split** (scissors/cut icon) that lets the user click a point on a wall to split that wall into two walls at the clicked point.
 
 This Phase exists now because wall splitting is already a proven primitive inside the maps subsystem (e.g. portal endpoint splitting for adjacent room creation), but the editor lacks a direct authoring affordance for manual topology refinement.
 
@@ -13,7 +13,7 @@ This Phase exists now because wall splitting is already a proven primitive insid
 - Add a new tool in the left tool bar:
   - **Label:** `Split`
   - **Tooltip:** `Split wall`
-  - **Icon:** a razor (see Constraints/notes for implementation options)
+  - **Icon:** scissors / cut (see Constraints/notes for implementation options)
 - The tool must be selectable via the existing tool selection mechanisms (click + hotkeys index system).
 
 #### B) Renderer: wall click → split request
@@ -22,6 +22,10 @@ This Phase exists now because wall splitting is already a proven primitive insid
   - Use the closest point on the wall segment to the pointer world point (projection onto the segment).
   - Reject/ignore clicks that do not hit a wall.
 - The renderer must not mutate map JSON directly (L03); it must use typed `window.nomos.map.edit(...)`.
+
+Additional UX affordances:
+- When Split is active, the wall to be acted on is highlighted on hover (like Select hover).
+- The cursor becomes `crosshair` when hovering over a splittable wall and `not-allowed` otherwise.
 
 #### C) Main: new atomic command to split a wall
 - Add a new `MapEditAtomicCommand`:
@@ -79,7 +83,7 @@ This Phase exists now because wall splitting is already a proven primitive insid
 ## Acceptance criteria
 
 ### Tool presence
-- Split appears in the left tool bar with label `Split`, tooltip `Split wall`, and a razor icon.
+- Split appears in the left tool bar with label `Split`, tooltip `Split wall`, and a scissors/cut icon.
 
 ### Split behavior
 - With Split active, clicking a wall splits it into two walls at the clicked point.
@@ -93,6 +97,6 @@ This Phase exists now because wall splitting is already a proven primitive insid
 - `npm run lint`, `npm run typecheck`, and `npm test` pass.
 
 ## Risks / notes
-- **Icon implementation:** Blueprint may not provide an exact razor icon; a small local SVG icon may be required.
+- **Icon implementation:** Blueprint may not provide an exact scissors/cut icon; a small local SVG icon may be required.
 - **Door/portal invariants:** Splitting portal walls may require decisions about doors and portal semantics; intentionally deferred behind command validation.
 - **User intent near endpoints:** Clicks near endpoints must not create confusing “almost zero” segments; renderer should avoid sending a command when the computed split point is too close to an endpoint.
