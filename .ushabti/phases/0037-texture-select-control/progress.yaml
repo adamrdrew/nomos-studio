@@ -2,14 +2,14 @@ phase:
   id: 0037
   slug: texture-select-control
   title: Texture Select Control
-  status: in_progress
+  status: review
 
 steps:
   - id: S001
     title: Inventory existing texture selects
     implemented: true
     reviewed: false
-    notes: "Checklist of current texture selects + semantics to preserve: (1) Settings defaults: src/renderer/renderer.tsx SettingsPanel -> Default wall/floor/ceil texture HTMLSelect; empty string UI maps to persisted null; buildSelectOptions adds '(missing)' when current not available; supports disabled state via defaultsDisabled. (2) Inspector Door texture: src/renderer/ui/editor/inspector/PropertiesEditor.tsx DoorEditor -> HTMLSelect with placeholder '(select texture)' value ''; selecting empty trims -> commitUpdateFields tex: MAP_EDIT_UNSET; shows 'No textures indexed' option when list empty. (3) Inspector Wall texture: PropertiesEditor.tsx WallEditor -> wall tex select commits immediately via map-edit/update-fields with wall tex string (no none placeholder). (4) Inspector Sector floor/ceil: PropertiesEditor.tsx SectorEditor -> floor_tex and ceil_tex selects commit immediately; ceil control hidden when Skybox is effectively on; Skybox toggle auto-assigns first available texture when turning off SKY; empty textures list shows 'No textures indexed'. (5) Inspector Sector 'Texture Walls' (paint all walls): PropertiesEditor.tsx SectorEditor -> local wallTex state select with options '(none)' value '', '(mixed)' value __nomos_mixed__, texture basenames, plus '(missing)' entry when current not in options; selection does not commit; Set button commits map-edit/set-sector-wall-tex and is disabled per existing rules.""
+    notes: "Checklist of current texture selects + semantics to preserve: (1) Settings defaults: src/renderer/renderer.tsx SettingsPanel -> Default wall/floor/ceil texture HTMLSelect; empty string UI maps to persisted null; buildSelectOptions adds '(missing)' when current not available; supports disabled state via defaultsDisabled. (2) Inspector Door texture: src/renderer/ui/editor/inspector/PropertiesEditor.tsx DoorEditor -> HTMLSelect with placeholder '(select texture)' value ''; selecting empty trims -> commitUpdateFields tex: MAP_EDIT_UNSET; shows 'No textures indexed' option when list empty. (3) Inspector Wall texture: PropertiesEditor.tsx WallEditor -> wall tex select commits immediately via map-edit/update-fields with wall tex string (no none placeholder). (4) Inspector Sector floor/ceil: PropertiesEditor.tsx SectorEditor -> floor_tex and ceil_tex selects commit immediately; ceil control hidden when Skybox is effectively on; Skybox toggle auto-assigns first available texture when turning off SKY; empty textures list shows 'No textures indexed'. (5) Inspector Sector 'Texture Walls' (paint all walls): PropertiesEditor.tsx SectorEditor -> local wallTex state select with options '(none)' value '', '(mixed)' value __nomos_mixed__, texture basenames, plus '(missing)' entry when current not in options; selection does not commit; Set button commits map-edit/set-sector-wall-tex and is disabled per existing rules."
     touched:
       - .ushabti/phases/0037-texture-select-control/progress.yaml
 
@@ -99,9 +99,9 @@ steps:
 
   - id: S011
     title: Manual verification pass (UI)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: "Manual (in-app) verification required; checklist written to .ushabti/phases/0037-texture-select-control/verification/manual-ui-checklist.md." 
+    notes: "Completed manual in-app verification on 2026-01-25; no issues found. Checklist recorded in .ushabti/phases/0037-texture-select-control/verification/manual-ui-checklist.md." 
     touched:
       - .ushabti/phases/0037-texture-select-control/verification/manual-ui-checklist.md
       - .ushabti/phases/0037-texture-select-control/progress.yaml
@@ -121,4 +121,15 @@ steps:
     reviewed: false
     notes: "Ran node-based tasks: jest (node) passed; eslint (node) passed (TypeScript version support warning only); tsc --noEmit passed. Note: tasks that invoke `npm` directly fail in this environment due to PATH, so verification used the provided absolute node tasks." 
     touched:
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
+
+  - id: S014
+    title: Texture Select UX polish (preview, width, theming)
+    implemented: true
+    reviewed: false
+    notes: "Fixed three UX issues discovered in manual use: (1) closed-state selected preview now eagerly loads the selected texture thumbnail, (2) picker now fills available width via matchTargetWidth + 100% button width, (3) added theme support so Settings can be light (black on white) while the editor remains dark. Re-ran lint/typecheck/jest after these changes (all passed; ESLint TS-version support warning only)."
+    touched:
+      - src/renderer/ui/shared/controls/TextureSelect.tsx
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - src/renderer/renderer.tsx
       - .ushabti/phases/0037-texture-select-control/progress.yaml

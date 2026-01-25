@@ -606,6 +606,7 @@ function DoorEditor(props: {
           assetIndex={props.assetIndex}
           value={tex}
           textureOptions={textureOptions}
+          theme="dark"
           allowEmpty={true}
           emptyLabel="(select texture)"
           emptyStateLabel="No textures indexed"
@@ -784,6 +785,7 @@ function WallEditor(props: {
           assetIndex={props.assetIndex}
           value={tex}
           textureOptions={textureOptions}
+          theme="dark"
           emptyStateLabel="No textures indexed"
           includeMissingValue={true}
           disabled={textureOptions.length === 0}
@@ -1178,6 +1180,7 @@ function SectorEditor(props: {
           assetIndex={props.assetIndex}
           value={floorTex}
           textureOptions={textureOptions}
+          theme="dark"
           emptyStateLabel="No textures indexed"
           includeMissingValue={true}
           disabled={textureOptions.length === 0}
@@ -1223,6 +1226,7 @@ function SectorEditor(props: {
             assetIndex={props.assetIndex}
             value={ceilTex}
             textureOptions={textureOptions}
+            theme="dark"
             emptyStateLabel="No textures indexed"
             includeMissingValue={true}
             disabled={textureOptions.length === 0}
@@ -1243,6 +1247,7 @@ function SectorEditor(props: {
               assetIndex={props.assetIndex}
               value={wallTex}
               textureOptions={textureOptions}
+              theme="dark"
               allowEmpty={textureOptions.length > 0}
               emptyLabel="(none)"
               specialOptions={

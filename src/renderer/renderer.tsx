@@ -310,6 +310,7 @@ function SettingsPanel(props: { onDone: () => void; onCancel: () => void }): JSX
             assetIndex={assetIndex}
             value={defaultWallTex}
             textureOptions={textureOptions}
+            theme="light"
             allowEmpty={true}
             emptyLabel="(none)"
             includeMissingValue={true}
@@ -323,6 +324,7 @@ function SettingsPanel(props: { onDone: () => void; onCancel: () => void }): JSX
             assetIndex={assetIndex}
             value={defaultFloorTex}
             textureOptions={textureOptions}
+            theme="light"
             allowEmpty={true}
             emptyLabel="(none)"
             includeMissingValue={true}
@@ -336,6 +338,7 @@ function SettingsPanel(props: { onDone: () => void; onCancel: () => void }): JSX
             assetIndex={assetIndex}
             value={defaultCeilTex}
             textureOptions={textureOptions}
+            theme="light"
             allowEmpty={true}
             emptyLabel="(none)"
             includeMissingValue={true}

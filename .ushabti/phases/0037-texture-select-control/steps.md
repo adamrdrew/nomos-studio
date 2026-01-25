@@ -96,3 +96,16 @@
 - **Intent:** Ensure repo stays green.
 - **Work:** Run `npm test`, `npm run typecheck`, `npm run lint`.
 - **Done when:** All commands succeed.
+
+## S014 — Texture Select UX polish (preview, width, theming)
+- **Intent:** Address initial UX regressions found in manual use after integration.
+- **Work:**
+  - Ensure the selected texture preview renders even when the control is closed.
+  - Ensure the control fills available horizontal space (especially in Settings).
+  - Support a light theme for Settings and retain dark theme for the editor.
+  - Re-run the quality gates after these UX changes.
+- **Done when:**
+  - Closed-state preview shows the selected texture thumbnail.
+  - Settings default texture controls fill the FormGroup width.
+  - Settings defaults render black-on-white while the editor remains white-on-dark.
+  - Lint/typecheck/tests pass.

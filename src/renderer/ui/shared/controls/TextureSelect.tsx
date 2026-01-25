@@ -12,6 +12,8 @@ import {
 
 type SpecialOption = Readonly<{ value: string; label: string }>;
 
+type TextureSelectTheme = 'dark' | 'light';
+
 type Tile =
   | Readonly<{ kind: 'special'; value: string; label: string }>
   | Readonly<{ kind: 'empty'; value: ''; label: string }>
@@ -61,6 +63,8 @@ function TilePreview(props: Readonly<{
   cache: TextureObjectUrlCache;
   shouldLoad: boolean;
   sizePx: number;
+  placeholderColor: string;
+  backgroundColor: string;
 }>): JSX.Element {
   const objectUrls = React.useMemo(() => createBrowserObjectUrlAdapter(), []);
   const relativePath = React.useMemo(() => {
@@ -106,7 +110,7 @@ function TilePreview(props: Readonly<{
         style={{
           width: props.sizePx,
           height: props.sizePx,
-          backgroundColor: Colors.DARK_GRAY3,
+          backgroundColor: props.placeholderColor,
           borderRadius: 4
         }}
       />
@@ -121,7 +125,7 @@ function TilePreview(props: Readonly<{
         width: props.sizePx,
         height: props.sizePx,
         objectFit: 'cover',
-        backgroundColor: Colors.DARK_GRAY3,
+        backgroundColor: props.backgroundColor,
         borderRadius: 4,
         imageRendering: 'pixelated'
       }}
@@ -137,11 +141,29 @@ function TextureTileButton(props: Readonly<{
   onSelect: () => void;
   cache: TextureObjectUrlCache;
   tileSizePx: number;
+  theme: TextureSelectTheme;
 }>): JSX.Element {
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const isVisible = useIsVisible(buttonRef as unknown as React.RefObject<HTMLElement>, props.tile.kind === 'texture');
 
-  const borderColor = props.isSelected ? Colors.BLUE4 : Colors.DARK_GRAY1;
+  const colors =
+    props.theme === 'dark'
+      ? {
+          tileBackground: Colors.DARK_GRAY2,
+          tileText: Colors.LIGHT_GRAY5,
+          tilePlaceholder: Colors.DARK_GRAY3,
+          tileBorder: Colors.DARK_GRAY1,
+          selectedBorder: Colors.BLUE4
+        }
+      : {
+          tileBackground: Colors.WHITE,
+          tileText: Colors.BLACK,
+          tilePlaceholder: Colors.LIGHT_GRAY4,
+          tileBorder: Colors.LIGHT_GRAY1,
+          selectedBorder: Colors.BLUE3
+        };
+
+  const borderColor = props.isSelected ? colors.selectedBorder : colors.tileBorder;
 
   const baseStyle: React.CSSProperties = {
     display: 'flex',
@@ -152,8 +174,8 @@ function TextureTileButton(props: Readonly<{
     padding: 8,
     borderRadius: 6,
     border: `1px solid ${borderColor}`,
-    backgroundColor: Colors.DARK_GRAY2,
-    color: Colors.LIGHT_GRAY5,
+    backgroundColor: colors.tileBackground,
+    color: colors.tileText,
     cursor: 'pointer',
     textAlign: 'center'
   };
@@ -167,13 +189,15 @@ function TextureTileButton(props: Readonly<{
           cache={props.cache}
           shouldLoad={isVisible}
           sizePx={props.tileSizePx}
+          placeholderColor={colors.tilePlaceholder}
+          backgroundColor={colors.tilePlaceholder}
         />
       ) : (
         <div
           style={{
             width: props.tileSizePx,
             height: props.tileSizePx,
-            backgroundColor: Colors.DARK_GRAY3,
+            backgroundColor: colors.tilePlaceholder,
             borderRadius: 4,
             display: 'flex',
             alignItems: 'center',
@@ -199,6 +223,7 @@ export function TextureSelect(props: Readonly<{
   textureOptions: readonly string[];
   onChange: (nextValue: string) => void;
 
+  theme?: TextureSelectTheme;
   disabled?: boolean;
 
   allowEmpty?: boolean;
@@ -216,7 +241,27 @@ export function TextureSelect(props: Readonly<{
 }>): JSX.Element {
   const tileSizePx = props.tileSizePx ?? 72;
   const maxMenuHeightPx = props.maxMenuHeightPx ?? 360;
-  const menuWidthPx = props.menuWidthPx ?? 420;
+  const menuWidthPx = props.menuWidthPx;
+
+  const theme: TextureSelectTheme = props.theme ?? 'dark';
+  const colors =
+    theme === 'dark'
+      ? {
+          buttonBackground: Colors.DARK_GRAY1,
+          buttonText: Colors.LIGHT_GRAY5,
+          buttonBorder: Colors.DARK_GRAY1,
+          menuBackground: Colors.DARK_GRAY2,
+          menuText: Colors.LIGHT_GRAY5,
+          placeholder: Colors.DARK_GRAY3
+        }
+      : {
+          buttonBackground: Colors.WHITE,
+          buttonText: Colors.BLACK,
+          buttonBorder: Colors.LIGHT_GRAY2,
+          menuBackground: Colors.WHITE,
+          menuText: Colors.BLACK,
+          placeholder: Colors.LIGHT_GRAY4
+        };
 
   const allowEmpty = props.allowEmpty ?? false;
   const emptyLabel = props.emptyLabel ?? '(none)';
@@ -296,11 +341,13 @@ export function TextureSelect(props: Readonly<{
             assetIndex={props.assetIndex}
             textureFileName={props.value}
             cache={cache}
-            shouldLoad={isOpen}
+            shouldLoad={true}
             sizePx={18}
+            placeholderColor={colors.placeholder}
+            backgroundColor={colors.placeholder}
           />
         ) : (
-          <div style={{ width: 18, height: 18, backgroundColor: Colors.DARK_GRAY3, borderRadius: 3 }} />
+          <div style={{ width: 18, height: 18, backgroundColor: colors.placeholder, borderRadius: 3 }} />
         )}
       </div>
       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedLabel}</div>
@@ -308,7 +355,13 @@ export function TextureSelect(props: Readonly<{
   );
 
   const content = (
-    <div style={{ width: menuWidthPx }}>
+    <div
+      style={{
+        width: menuWidthPx ?? '100%',
+        backgroundColor: colors.menuBackground,
+        color: colors.menuText
+      }}
+    >
       {props.textureOptions.length === 0 ? (
         <div style={{ padding: 10, opacity: 0.8, fontSize: 12 }}>{props.emptyStateLabel ?? 'No textures indexed.'}</div>
       ) : null}
@@ -339,6 +392,7 @@ export function TextureSelect(props: Readonly<{
                 isSelected={isSelected}
                 cache={cache}
                 tileSizePx={tileSizePx}
+                theme={theme}
                 onSelect={() => {
                   props.onChange(tile.value);
                   setIsOpen(false);
@@ -352,26 +406,33 @@ export function TextureSelect(props: Readonly<{
   );
 
   return (
-    <Popover
+    <div style={{ width: '100%' }}>
+      <Popover
       position={Position.BOTTOM_LEFT}
       isOpen={isOpen}
       onInteraction={(nextOpen) => setIsOpen(nextOpen)}
       minimal={true}
       content={content}
       disabled={props.disabled === true}
-    >
-      <Button
-        fill={true}
-        alignText="left"
-        disabled={props.disabled === true}
-        style={{
-          backgroundColor: Colors.DARK_GRAY1,
-          color: Colors.LIGHT_GRAY5,
-          justifyContent: 'space-between'
-        }}
-        rightIcon="caret-down"
-        text={selectedPreview}
-      />
-    </Popover>
+      fill={true}
+      matchTargetWidth={true}
+      popoverClassName={theme === 'dark' ? 'bp5-dark' : undefined}
+      >
+        <Button
+          fill={true}
+          alignText="left"
+          disabled={props.disabled === true}
+          style={{
+            width: '100%',
+            backgroundColor: colors.buttonBackground,
+            color: colors.buttonText,
+            border: `1px solid ${colors.buttonBorder}`,
+            justifyContent: 'space-between'
+          }}
+          rightIcon="caret-down"
+          text={selectedPreview}
+        />
+      </Popover>
+    </div>
   );
 }
