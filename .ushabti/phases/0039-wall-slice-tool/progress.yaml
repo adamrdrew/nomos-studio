@@ -91,3 +91,33 @@ steps:
     notes: "Ran lint, typecheck, and full Jest suite using node-based commands/tasks (npm not available in task shell). All gates pass."
     touched:
       - .ushabti/phases/0039-wall-slice-tool/progress.yaml
+
+  - id: S011
+    title: Improve Split tool icon (clarity)
+    implemented: true
+    reviewed: false
+    notes: "Replaced the custom razor icon with a clearer custom scissors icon and updated the Split tool definition + toolbar icon rendering to use it. Removed the unused RazorIcon component file."
+    touched:
+      - src/renderer/ui/editor/icons/ScissorsIcon.tsx
+      - src/renderer/ui/editor/tools/mapEditorTools.ts
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - src/renderer/ui/editor/icons/RazorIcon.tsx
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
+
+  - id: S012
+    title: Split hover highlight + cursor affordance
+    implemented: true
+    reviewed: false
+    notes: "Split mode now computes hovered wall using the existing picking logic, renders the same hover outline treatment as Select, and sets the cursor to crosshair over splittable walls (not-allowed elsewhere)."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
+
+  - id: S013
+    title: Docs + quality gates (post-UX tweaks)
+    implemented: true
+    reviewed: false
+    notes: "Updated renderer UI docs for Split hover/cursor behavior and re-ran lint/typecheck/full Jest suite; all gates pass."
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml

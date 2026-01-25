@@ -127,3 +127,34 @@
 
 **Done when:**
 - All gates pass.
+
+## S011 — Improve Split tool icon (clarity)
+**Intent:** Make the Split tool’s icon immediately understandable in the toolbox.
+
+**Work:**
+- Replace the current razor icon with a clearer “scissors/cut” style icon.
+- Prefer an existing Blueprint icon if it matches; otherwise use a small local SVG.
+
+**Done when:**
+- The Split tool icon is recognizable at toolbox size.
+
+## S012 — Split hover highlight + cursor affordance
+**Intent:** Make Split feel like Select by previewing the wall being acted on.
+
+**Work:**
+- When Split is active, compute hovered wall using existing picking logic.
+- Render a hover outline for the hovered wall (same visual treatment as Select hover).
+- Set the cursor to `crosshair` over a splittable wall and `not-allowed` elsewhere.
+
+**Done when:**
+- With Split active, the hovered wall is highlighted and cursor affordance matches validity.
+
+## S013 — Docs + quality gates (post-UX tweaks)
+**Intent:** Keep docs and gates green after UX changes.
+
+**Work:**
+- Update renderer UI docs to reflect the Split tool cursor/hover behavior (and icon if mentioned).
+- Re-run lint/typecheck/tests.
+
+**Done when:**
+- Docs match behavior and gates pass.

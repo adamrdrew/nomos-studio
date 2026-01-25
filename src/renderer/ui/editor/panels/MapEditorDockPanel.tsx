@@ -19,14 +19,14 @@ import type { MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
 import type { RoomTemplate } from '../../../../shared/domain/mapRoomCreation';
 import { decodeMapViewModel } from '../map/mapDecoder';
 import { buildRoomStampFromSector } from '../map/roomStampFromSector';
-import { RazorIcon } from '../icons/RazorIcon';
+import { ScissorsIcon } from '../icons/ScissorsIcon';
 import type { MapEditorToolIconId } from '../tools/mapEditorTools';
 
 const toaster = Toaster.create({ position: Position.TOP });
 
 function renderToolIcon(icon: MapEditorToolIconId): JSX.Element {
-  if (icon === 'custom/razor') {
-    return <RazorIcon size={16} color={Colors.WHITE} />;
+  if (icon === 'custom/scissors') {
+    return <ScissorsIcon size={16} color={Colors.WHITE} />;
   }
   return <Icon icon={icon} color={Colors.WHITE} />;
 }

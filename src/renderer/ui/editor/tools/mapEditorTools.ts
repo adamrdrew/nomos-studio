@@ -1,7 +1,10 @@
 import type { MapEditorInteractionMode } from '../MapEditorCanvas';
 import type { IconName } from '@blueprintjs/icons';
 
-export type MapEditorToolIconId = IconName | 'custom/razor';
+export type MapEditorToolIconId = IconName | 'custom/scissors';
+
+// Custom icons are rendered by MapEditorDockPanel.
+// Keep the union small and explicit so tool definitions stay honest.
 
 export type MapEditorToolId = 'select' | 'move' | 'door' | 'room' | 'zoom' | 'pan' | 'light' | 'split';
 
@@ -104,7 +107,7 @@ export const MAP_EDITOR_TOOLS: readonly MapEditorToolDefinition[] = [
     id: 'split',
     label: 'Split',
     tooltip: 'Split wall',
-    icon: 'custom/razor',
+    icon: 'custom/scissors',
     interactionMode: 'split',
     toolbarCommands: []
   }

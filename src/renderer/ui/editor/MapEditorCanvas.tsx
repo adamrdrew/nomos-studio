@@ -99,6 +99,19 @@ function canPlaceDoorAtWallIndex(map: MapViewModel, wallIndex: number): boolean 
   return !map.doors.some((door) => door.wallIndex === wallIndex);
 }
 
+function canSplitWallAtWallIndex(map: MapViewModel, wallIndex: number): boolean {
+  const wall = map.walls[wallIndex];
+  if (!wall) {
+    return false;
+  }
+  // Phase constraint: split is only supported for non-portal walls.
+  if (wall.backSector > -1) {
+    return false;
+  }
+  // Phase constraint: reject door-bound walls.
+  return !map.doors.some((door) => door.wallIndex === wallIndex);
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -760,13 +773,13 @@ export const MapEditorCanvas = React.forwardRef<
   }, [isDoorEnabled, isSelectEnabled, isSplitEnabled]);
 
   React.useEffect(() => {
-    if (isDoorEnabled || isRoomEnabled) {
+    if (isDoorEnabled || isRoomEnabled || isLightCreateEnabled || isSplitEnabled) {
       return;
     }
     if (containerRef.current !== null) {
       containerRef.current.style.cursor = '';
     }
-  }, [isDoorEnabled, isRoomEnabled]);
+  }, [isDoorEnabled, isLightCreateEnabled, isRoomEnabled, isSplitEnabled]);
 
   const [roomCenter, setRoomCenter] = React.useState<Point | null>(null);
   React.useEffect(() => {
@@ -1873,6 +1886,45 @@ export const MapEditorCanvas = React.forwardRef<
       return;
     }
 
+    if (isSplitEnabled) {
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      if (decodedMap?.ok) {
+        const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+        const authoredWorldPoint: Point = {
+          x: renderWorldPoint.x + mapOrigin.x,
+          y: renderWorldPoint.y + mapOrigin.y
+        };
+
+        const nextHovered = pickMapSelection({
+          worldPoint: authoredWorldPoint,
+          viewScale: view.scale,
+          map: decodedMap.value,
+          renderMode: mapRenderMode,
+          texturedWallPolygons
+        });
+
+        const nextHoveredWall = nextHovered?.kind === 'wall' ? nextHovered : null;
+        setHoveredSelection((current) => (areSelectionsEqual(current, nextHoveredWall) ? current : nextHoveredWall));
+
+        const canSplit = nextHoveredWall !== null && canSplitWallAtWallIndex(decodedMap.value, nextHoveredWall.index);
+        if (containerRef.current !== null) {
+          containerRef.current.style.cursor = canSplit ? 'crosshair' : 'not-allowed';
+        }
+      } else {
+        setHoveredSelection(null);
+        if (containerRef.current !== null) {
+          containerRef.current.style.cursor = 'not-allowed';
+        }
+      }
+
+      return;
+    }
+
     if (isSelectEnabled) {
       const stage = event.target.getStage();
       const pointer = stage?.getPointerPosition();
@@ -2815,7 +2867,9 @@ export const MapEditorCanvas = React.forwardRef<
     }
 
     const hoverCandidate =
-      props.interactionMode === 'select' && !areSelectionsEqual(hoveredSelection, mapSelection) ? hoveredSelection : null;
+      (props.interactionMode === 'select' || props.interactionMode === 'split') && !areSelectionsEqual(hoveredSelection, mapSelection)
+        ? hoveredSelection
+        : null;
     if (hoverCandidate !== null) {
       appendSelectionOutline(hoverCandidate, hoverStroke, hoverStrokeWidth, hoverOverlays);
     }

@@ -168,11 +168,13 @@ The editor UI is organized like a traditional creative tool:
 		- The created door is selected on success.
 		- Doors are created without a default `tex`; the Inspector shows an explicit “(select texture)” placeholder state.
 	- Split mode allows splitting a wall into two walls by clicking.
+		- The tool uses a scissors/cut-style icon in the toolbox.
 		- Clicking a wall requests `map-edit/split-wall` via `window.nomos.map.edit(...)`.
 		- The split point is deterministic: it is computed as the closest-point projection of the pointer world point onto the wall segment.
 		- Clicks that do not hit a wall do nothing.
 		- Portal walls and door-bound walls are intentionally rejected in this phase.
 		- On success, selection becomes the original `{ kind: 'wall', index: wallIndex }`.
+		- Hover behavior (like Select): the hovered wall is outlined in yellow, and the cursor becomes `crosshair` over a splittable wall (`not-allowed` otherwise).
 	- Light mode allows creating a new point light by clicking.
 		- Placement validity is enforced by sector containment (nested-sector aware): the click point must be inside any sector.
 		- The cursor indicates validity:
