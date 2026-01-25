@@ -94,6 +94,7 @@ Renderer state is intentionally small:
 	- Also stores renderer-local UI state:
 		- `mapSelection` (selected map object identity)
 		- `isPickingPlayerStart` (temporary “pick player start” interaction mode)
+		- `roomCloneBuffer` (optional buffered room stamp used by Room Clone; cleared when the map `filePath` changes)
 	- Includes snapshot fields used by UI enablement and rendering:
 		- `mapGridSettings`
 		- `mapHighlightPortals`
@@ -172,6 +173,10 @@ The editor UI is organized like a traditional creative tool:
 		- Validity is enforced (not advisory): rooms must be nested inside a sector or adjacent/snapped to an existing wall; intersections are rejected.
 			- Exception: if the map has no sectors and no walls, the first room may be created as a “seed” room (not nested/adjacent).
 		- On a valid click, the renderer requests `map-edit/create-room` via `window.nomos.map.edit(...)`.
+		- Room Clone (stamp placement):
+			- When the user selects a sector/room in Select mode and clicks **Clone** in the command bar, the renderer builds a buffered room stamp (`roomCloneBuffer`) from the selected sector’s boundary loop and switches to Room mode.
+			- While `roomCloneBuffer` is non-null, Room mode previews the buffered polygon under the cursor using the same placement validity rules (green/red).
+			- On a valid click, the renderer requests `map-edit/stamp-room` with the stamped polygon + copied sector/wall authoring properties.
 		- Texture defaults are computed in the renderer from the current settings + `assetIndex.entries`:
 			- list available textures under `Images/Textures/` (fallback `Assets/Images/Textures/`) and sort by filename
 			- if `settings.defaultWallTex/defaultFloorTex/defaultCeilTex` are all set, non-empty, and present in the available options, use them

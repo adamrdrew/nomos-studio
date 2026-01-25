@@ -9,6 +9,7 @@ import type {
   MapSectorSurface
 } from '../domain/models';
 import type { CreateRoomRequest } from '../domain/mapRoomCreation';
+import type { StampRoomRequest } from '../domain/mapRoomStamp';
 import type {
   AssetIndexError,
   MapEditError,
@@ -115,6 +116,7 @@ export type MapEditAtomicCommand =
     }>
   | Readonly<{ kind: 'map-edit/create-door'; atWallIndex: number }>
   | Readonly<{ kind: 'map-edit/create-room'; request: CreateRoomRequest }>
+  | Readonly<{ kind: 'map-edit/stamp-room'; request: StampRoomRequest }>
   | Readonly<{ kind: 'map-edit/set-sector-wall-tex'; sectorId: number; tex: string }>
   | Readonly<{
       kind: 'map-edit/set-player-start';

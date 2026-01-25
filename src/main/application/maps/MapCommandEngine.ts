@@ -1,6 +1,7 @@
 import type { MapDocument } from '../../../shared/domain/models';
 import type { MapEditError, Result } from '../../../shared/domain/results';
 import { ROOM_CREATION_DEFAULTS } from '../../../shared/domain/mapRoomCreation';
+import { computePolygonBounds } from '../../../shared/domain/mapRoomStampTransform';
 import {
   computeAdjacentPortalPlan,
   computeRoomPolygon,
@@ -338,6 +339,21 @@ export class MapCommandEngine {
             nextJson: createResult.value.nextJson,
             selection: { kind: 'map-edit/selection/set', ref: { kind: 'sector', id: createResult.value.newSectorId } },
             nextSelection: { kind: 'sector', id: createResult.value.newSectorId }
+          }
+        };
+      }
+      case 'map-edit/stamp-room': {
+        const stampResult = this.stampRoomInJson(json, command.request as unknown);
+        if (!stampResult.ok) {
+          return stampResult;
+        }
+
+        return {
+          ok: true,
+          value: {
+            nextJson: stampResult.value.nextJson,
+            selection: { kind: 'map-edit/selection/set', ref: { kind: 'sector', id: stampResult.value.newSectorId } },
+            nextSelection: { kind: 'sector', id: stampResult.value.newSectorId }
           }
         };
       }
@@ -1071,6 +1087,631 @@ export class MapCommandEngine {
       addRoomEdgeSegment(portalEdgeStart, portalEdgeEnd, targetWall.frontSectorId);
       if (portalEdgeEnd !== corner1) {
         addRoomEdgeSegment(portalEdgeEnd, corner1, -1);
+      }
+    }
+
+    return { ok: true, value: { nextJson: { ...json, vertices: nextVertices, walls: nextWalls, sectors: nextSectors }, newSectorId } };
+  }
+
+  private stampRoomInJson(
+    json: Record<string, unknown>,
+    request: unknown
+  ): Result<Readonly<{ nextJson: Record<string, unknown>; newSectorId: number }>, MapEditError> {
+    if (!isRecord(request)) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request must be an object');
+    }
+
+    const polygonRaw = request['polygon'];
+    if (!Array.isArray(polygonRaw)) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.polygon must be an array');
+    }
+
+    const polygon: { x: number; y: number }[] = [];
+    for (let i = 0; i < polygonRaw.length; i += 1) {
+      const point = asXyRecord(polygonRaw[i], `stamp-room.request.polygon[${i}]`);
+      if (!point.ok) {
+        return point;
+      }
+      polygon.push({ x: point.value['x'] as number, y: point.value['y'] as number });
+    }
+
+    if (polygon.length < 3) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.polygon must have at least 3 points');
+    }
+
+    const bounds = computePolygonBounds(polygon);
+    if (bounds === null) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.polygon bounds could not be computed');
+    }
+    const width = bounds.max.x - bounds.min.x;
+    const height = bounds.max.y - bounds.min.y;
+    if (!(width >= ROOM_CREATION_DEFAULTS.minSizeWorld) || !(height >= ROOM_CREATION_DEFAULTS.minSizeWorld)) {
+      return err('map-edit/stamp-room/invalid-size', `stamp-room.request polygon bounds must be >= ${ROOM_CREATION_DEFAULTS.minSizeWorld}`);
+    }
+
+    const wallPropsRaw = request['wallProps'];
+    if (!Array.isArray(wallPropsRaw)) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.wallProps must be an array');
+    }
+    if (wallPropsRaw.length !== polygon.length) {
+      return err(
+        'map-edit/stamp-room/invalid-request',
+        `stamp-room.request.wallProps must have exactly one entry per polygon edge (${polygon.length})`
+      );
+    }
+
+    const parseNullableTrimmedString = (value: unknown, context: string): Result<string | null, MapEditError> => {
+      if (value === undefined || value === null) {
+        return { ok: true, value: null };
+      }
+      if (typeof value !== 'string') {
+        return err('map-edit/stamp-room/invalid-request', `${context} must be a string or null`);
+      }
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return { ok: true, value: null };
+      }
+      return { ok: true, value: trimmed };
+    };
+
+    const wallProps: {
+      tex: string;
+      endLevel: boolean;
+      toggleSector: boolean;
+      toggleSectorId: number | null;
+      toggleSectorOneshot: boolean;
+      toggleSound: string | null;
+      toggleSoundFinish: string | null;
+    }[] = [];
+
+    for (let i = 0; i < wallPropsRaw.length; i += 1) {
+      const prop = wallPropsRaw[i];
+      const propRecord = asRecord(prop, `stamp-room.request.wallProps[${i}]`);
+      if (!propRecord.ok) {
+        return propRecord;
+      }
+
+      const tex = propRecord.value['tex'];
+      if (typeof tex !== 'string') {
+        return err('map-edit/stamp-room/invalid-request', `stamp-room.request.wallProps[${i}].tex must be a string`);
+      }
+
+      const endLevel = propRecord.value['endLevel'];
+      const toggleSector = propRecord.value['toggleSector'];
+      const toggleSectorId = propRecord.value['toggleSectorId'];
+      const toggleSectorOneshot = propRecord.value['toggleSectorOneshot'];
+      const toggleSound = propRecord.value['toggleSound'];
+      const toggleSoundFinish = propRecord.value['toggleSoundFinish'];
+
+      if (typeof endLevel !== 'boolean') {
+        return err(
+          'map-edit/stamp-room/invalid-request',
+          `stamp-room.request.wallProps[${i}].endLevel must be a boolean`
+        );
+      }
+      if (typeof toggleSector !== 'boolean') {
+        return err(
+          'map-edit/stamp-room/invalid-request',
+          `stamp-room.request.wallProps[${i}].toggleSector must be a boolean`
+        );
+      }
+      if (typeof toggleSectorOneshot !== 'boolean') {
+        return err(
+          'map-edit/stamp-room/invalid-request',
+          `stamp-room.request.wallProps[${i}].toggleSectorOneshot must be a boolean`
+        );
+      }
+      if (toggleSectorId !== null && toggleSectorId !== undefined && !Number.isInteger(toggleSectorId)) {
+        return err(
+          'map-edit/stamp-room/invalid-request',
+          `stamp-room.request.wallProps[${i}].toggleSectorId must be an integer or null`
+        );
+      }
+
+      const parsedToggleSound = parseNullableTrimmedString(toggleSound, `stamp-room.request.wallProps[${i}].toggleSound`);
+      if (!parsedToggleSound.ok) {
+        return parsedToggleSound;
+      }
+
+      const parsedToggleSoundFinish = parseNullableTrimmedString(
+        toggleSoundFinish,
+        `stamp-room.request.wallProps[${i}].toggleSoundFinish`
+      );
+      if (!parsedToggleSoundFinish.ok) {
+        return parsedToggleSoundFinish;
+      }
+
+      wallProps.push({
+        tex: tex,
+        endLevel,
+        toggleSector,
+        toggleSectorId: toggleSectorId === undefined ? null : (toggleSectorId as number | null),
+        toggleSectorOneshot,
+        toggleSound: parsedToggleSound.value,
+        toggleSoundFinish: parsedToggleSoundFinish.value
+      });
+    }
+
+    const sectorPropsRecord = asRecord(request['sectorProps'], 'stamp-room.request.sectorProps');
+    if (!sectorPropsRecord.ok) {
+      return sectorPropsRecord;
+    }
+
+    const floorZ = sectorPropsRecord.value['floorZ'];
+    const floorZToggledPos = sectorPropsRecord.value['floorZToggledPos'];
+    const ceilZ = sectorPropsRecord.value['ceilZ'];
+    const floorTex = sectorPropsRecord.value['floorTex'];
+    const ceilTex = sectorPropsRecord.value['ceilTex'];
+    const light = sectorPropsRecord.value['light'];
+
+    if (!isFiniteNumber(floorZ) || !isFiniteNumber(ceilZ) || !isFiniteNumber(light)) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.sectorProps floorZ/ceilZ/light must be finite numbers');
+    }
+    if (!(ceilZ > floorZ)) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.sectorProps ceilZ must be > floorZ');
+    }
+    if (typeof floorTex !== 'string' || typeof ceilTex !== 'string') {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.sectorProps.floorTex/ceilTex must be strings');
+    }
+    if (floorZToggledPos !== null && floorZToggledPos !== undefined && !Number.isInteger(floorZToggledPos)) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.sectorProps.floorZToggledPos must be an integer or null');
+    }
+
+    const placementRecord = asRecord(request['placement'], 'stamp-room.request.placement');
+    if (!placementRecord.ok) {
+      return placementRecord;
+    }
+
+    const placementKind = placementRecord.value['kind'];
+    if (
+      placementKind !== 'room-placement/nested' &&
+      placementKind !== 'room-placement/adjacent' &&
+      placementKind !== 'room-placement/seed'
+    ) {
+      return err(
+        'map-edit/stamp-room/invalid-request',
+        'stamp-room.request.placement.kind must be room-placement/nested|room-placement/adjacent|room-placement/seed'
+      );
+    }
+    const placementKindValue = placementKind as 'room-placement/nested' | 'room-placement/adjacent' | 'room-placement/seed';
+
+    const verticesRaw = asArray(json['vertices'], 'vertices');
+    if (!verticesRaw.ok) {
+      return verticesRaw;
+    }
+    const wallsRaw = asArray(json['walls'], 'walls');
+    if (!wallsRaw.ok) {
+      return wallsRaw;
+    }
+    const sectorsRaw = asArray(json['sectors'], 'sectors');
+    if (!sectorsRaw.ok) {
+      return sectorsRaw;
+    }
+
+    const parsedVertices: { x: number; y: number }[] = [];
+    for (let vertexIndex = 0; vertexIndex < verticesRaw.value.length; vertexIndex += 1) {
+      const vertex = asRecord(verticesRaw.value[vertexIndex], `vertices[${vertexIndex}]`);
+      if (!vertex.ok) {
+        return vertex;
+      }
+      const x = vertex.value['x'];
+      const y = vertex.value['y'];
+      if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
+        return err('map-edit/invalid-json', `vertices[${vertexIndex}].x/y must be finite numbers`);
+      }
+      parsedVertices.push({ x, y });
+    }
+
+    const sectorIds: number[] = [];
+    let maxSectorId = Number.NEGATIVE_INFINITY;
+    for (let sectorIndex = 0; sectorIndex < sectorsRaw.value.length; sectorIndex += 1) {
+      const sector = asRecord(sectorsRaw.value[sectorIndex], `sectors[${sectorIndex}]`);
+      if (!sector.ok) {
+        return sector;
+      }
+      const id = sector.value['id'];
+      if (!Number.isInteger(id)) {
+        return err('map-edit/invalid-json', `sectors[${sectorIndex}].id must be an integer`);
+      }
+      const sectorId = id as number;
+      sectorIds.push(sectorId);
+      maxSectorId = Math.max(maxSectorId, sectorId);
+    }
+
+    const parsedWalls: {
+      index: number;
+      v0: number;
+      v1: number;
+      frontSectorId: number;
+      backSectorId: number;
+    }[] = [];
+
+    for (let wallIndex = 0; wallIndex < wallsRaw.value.length; wallIndex += 1) {
+      const wall = asRecord(wallsRaw.value[wallIndex], `walls[${wallIndex}]`);
+      if (!wall.ok) {
+        return wall;
+      }
+      const v0 = wall.value['v0'];
+      const v1 = wall.value['v1'];
+      const frontSector = wall.value['front_sector'];
+      const backSector = wall.value['back_sector'];
+      const tex = wall.value['tex'];
+
+      if (!Number.isInteger(v0) || !Number.isInteger(v1)) {
+        return err('map-edit/invalid-json', `walls[${wallIndex}].v0/v1 must be integers`);
+      }
+      const v0Index = v0 as number;
+      const v1Index = v1 as number;
+      if (v0Index < 0 || v0Index >= parsedVertices.length || v1Index < 0 || v1Index >= parsedVertices.length) {
+        return err('map-edit/invalid-json', `walls[${wallIndex}].v0/v1 must be in range`);
+      }
+      if (!Number.isInteger(frontSector) || !Number.isInteger(backSector)) {
+        return err('map-edit/invalid-json', `walls[${wallIndex}].front_sector/back_sector must be integers`);
+      }
+      if (typeof tex !== 'string' || tex.trim().length === 0) {
+        return err('map-edit/invalid-json', `walls[${wallIndex}].tex must be a non-empty string`);
+      }
+
+      parsedWalls.push({
+        index: wallIndex,
+        v0: v0Index,
+        v1: v1Index,
+        frontSectorId: frontSector as number,
+        backSectorId: backSector as number
+      });
+    }
+
+    const geometry = {
+      vertices: parsedVertices,
+      walls: parsedWalls,
+      sectorIds
+    };
+
+    if (!Number.isFinite(maxSectorId) && placementKindValue !== 'room-placement/seed') {
+      return err('map-edit/invalid-json', 'sectors must not be empty');
+    }
+
+    const newSectorId = Number.isFinite(maxSectorId) ? maxSectorId + 1 : 0;
+
+    const nextVertices = verticesRaw.value.slice();
+    const nextWalls = wallsRaw.value.slice();
+    const nextSectors = sectorsRaw.value.slice();
+
+    const addVertex = (point: { x: number; y: number }): number => {
+      nextVertices.push({ x: point.x, y: point.y });
+      return nextVertices.length - 1;
+    };
+
+    const addWall = (wallRecord: Record<string, unknown>): void => {
+      nextWalls.push(wallRecord);
+    };
+
+    const addSector = (): void => {
+      const sectorRecord: Record<string, unknown> = {
+        id: newSectorId,
+        floor_z: floorZ,
+        ceil_z: ceilZ,
+        floor_tex: floorTex.trim(),
+        ceil_tex: ceilTex.trim(),
+        light
+      };
+      if (floorZToggledPos !== null && floorZToggledPos !== undefined) {
+        sectorRecord['floor_z_toggled_pos'] = floorZToggledPos as number;
+      }
+      nextSectors.push(sectorRecord);
+    };
+
+    const makeStampedWallRecord = (
+      args: Readonly<{ v0: number; v1: number; backSectorId: number; propsIndex: number }>
+    ): Result<Record<string, unknown>, MapEditError> => {
+      const props = wallProps[args.propsIndex];
+      if (!props) {
+        return err('map-edit/invalid-json', 'Failed to create stamped room walls (internal indexing error)');
+      }
+
+      const record: Record<string, unknown> = {
+        v0: args.v0,
+        v1: args.v1,
+        front_sector: newSectorId,
+        back_sector: args.backSectorId,
+        tex: props.tex
+      };
+
+      if (props.endLevel) {
+        record['end_level'] = true;
+      }
+
+      if (props.toggleSector) {
+        record['toggle_sector'] = true;
+      }
+
+      if (props.toggleSectorId !== null) {
+        record['toggle_sector_id'] = props.toggleSectorId;
+      }
+
+      if (props.toggleSectorOneshot) {
+        record['toggle_sector_oneshot'] = true;
+      }
+
+      if (props.toggleSound !== null) {
+        record['toggle_sound'] = props.toggleSound;
+      }
+
+      if (props.toggleSoundFinish !== null) {
+        record['toggle_sound_finish'] = props.toggleSoundFinish;
+      }
+
+      return {
+        ok: true,
+        value: record
+      };
+    };
+
+    if (placementKindValue === 'room-placement/seed') {
+      if (wallsRaw.value.length !== 0 || sectorsRaw.value.length !== 0) {
+        return err(
+          'map-edit/stamp-room/invalid-request',
+          'stamp-room.request.placement.kind=room-placement/seed is only allowed when the map has no sectors/walls'
+        );
+      }
+
+      addSector();
+
+      const roomVertexIndices = polygon.map((p) => addVertex(p));
+      for (let edgeIndex = 0; edgeIndex < roomVertexIndices.length; edgeIndex += 1) {
+        const v0 = roomVertexIndices[edgeIndex];
+        const v1 = roomVertexIndices[(edgeIndex + 1) % roomVertexIndices.length];
+        if (v0 === undefined || v1 === undefined) {
+          return err('map-edit/invalid-json', 'Failed to create seed room walls (internal indexing error)');
+        }
+        const wallRecord = makeStampedWallRecord({ v0, v1, backSectorId: -1, propsIndex: edgeIndex });
+        if (!wallRecord.ok) {
+          return wallRecord;
+        }
+        addWall(wallRecord.value);
+      }
+
+      return { ok: true, value: { nextJson: { ...json, vertices: nextVertices, walls: nextWalls, sectors: nextSectors }, newSectorId } };
+    }
+
+    if (placementKindValue === 'room-placement/nested') {
+      const enclosingSectorId = placementRecord.value['enclosingSectorId'];
+      if (!Number.isInteger(enclosingSectorId)) {
+        return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.placement.enclosingSectorId must be an integer');
+      }
+      const enclosingSectorIdValue = enclosingSectorId as number;
+
+      const enclosing = findEnclosingSectorIdForPolygon(geometry, polygon);
+      if (enclosing === null || enclosing !== enclosingSectorIdValue) {
+        return err('map-edit/stamp-room/not-inside-any-sector', 'Requested nested room is not fully inside the enclosing sector');
+      }
+
+      if (doesPolygonIntersectWalls({ geometry, polygon })) {
+        return err('map-edit/stamp-room/intersects-walls', 'Requested nested room intersects existing walls');
+      }
+
+      addSector();
+
+      const roomVertexIndices = polygon.map((p) => addVertex(p));
+      for (let edgeIndex = 0; edgeIndex < roomVertexIndices.length; edgeIndex += 1) {
+        const v0 = roomVertexIndices[edgeIndex];
+        const v1 = roomVertexIndices[(edgeIndex + 1) % roomVertexIndices.length];
+        if (v0 === undefined || v1 === undefined) {
+          return err('map-edit/invalid-json', 'Failed to create nested room walls (internal indexing error)');
+        }
+        const wallRecord = makeStampedWallRecord({ v0, v1, backSectorId: enclosingSectorIdValue, propsIndex: edgeIndex });
+        if (!wallRecord.ok) {
+          return wallRecord;
+        }
+        addWall(wallRecord.value);
+      }
+
+      return { ok: true, value: { nextJson: { ...json, vertices: nextVertices, walls: nextWalls, sectors: nextSectors }, newSectorId } };
+    }
+
+    // Adjacent placement
+    const targetWallIndex = placementRecord.value['targetWallIndex'];
+    const snapDistancePx = placementRecord.value['snapDistancePx'];
+    if (!Number.isInteger(targetWallIndex)) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.placement.targetWallIndex must be a non-negative integer');
+    }
+    const targetWallIndexValue = targetWallIndex as number;
+    if (targetWallIndexValue < 0) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.placement.targetWallIndex must be a non-negative integer');
+    }
+    if (!isFiniteNumber(snapDistancePx) || snapDistancePx < 0) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room.request.placement.snapDistancePx must be a finite non-negative number');
+    }
+    if (snapDistancePx > ROOM_CREATION_DEFAULTS.snapThresholdPx) {
+      return err(
+        'map-edit/stamp-room/adjacent-too-far',
+        `Adjacent snap distance exceeded threshold (${snapDistancePx} > ${ROOM_CREATION_DEFAULTS.snapThresholdPx})`
+      );
+    }
+
+    const targetWall = parsedWalls[targetWallIndexValue];
+    if (!targetWall) {
+      return err('map-edit/stamp-room/no-snap-target', `No wall exists at targetWallIndex ${targetWallIndexValue}`);
+    }
+    if (targetWall.backSectorId > -1) {
+      return err('map-edit/stamp-room/no-snap-target', 'Target wall must be a solid wall (back_sector must be -1)');
+    }
+
+    const doorsRaw = json['doors'];
+    if (doorsRaw !== undefined) {
+      const doors = asArray(doorsRaw, 'doors');
+      if (!doors.ok) {
+        return doors;
+      }
+      for (const candidate of doors.value) {
+        if (!isRecord(candidate)) {
+          continue;
+        }
+        if (candidate['wall_index'] === targetWallIndexValue) {
+          return err('map-edit/stamp-room/no-snap-target', `Cannot join to wall_index ${targetWallIndexValue} because a door is already bound to it.`);
+        }
+      }
+    }
+
+    const enclosing = findEnclosingSectorIdForPolygon(geometry, polygon);
+    if (enclosing !== null) {
+      return err('map-edit/stamp-room/invalid-request', 'Adjacent room request is actually nested inside an existing sector');
+    }
+
+    const plan = computeAdjacentPortalPlan({ geometry, polygon, targetWallIndex: targetWallIndexValue });
+    if (plan.kind === 'room-adjacent-portal-plan-error') {
+      return err(
+        plan.reason === 'invalid-wall-index'
+          ? 'map-edit/stamp-room/no-snap-target'
+          : 'map-edit/stamp-room/non-collinear',
+        `Adjacent portal planning failed (${plan.reason}).`
+      );
+    }
+
+    const snappedPolygon = plan.snappedPolygon;
+
+    if (snappedPolygon.length !== polygon.length) {
+      return err('map-edit/stamp-room/invalid-request', 'stamp-room adjacent planning produced a mismatched polygon vertex count');
+    }
+
+    if (
+      doesPolygonIntersectWalls({
+        geometry,
+        polygon: snappedPolygon,
+        ignoredWallIndices: new Set([targetWallIndexValue]),
+        allowEndpointTouch: true
+      })
+    ) {
+      return err('map-edit/stamp-room/intersects-walls', 'Requested adjacent room intersects existing walls');
+    }
+
+    addSector();
+
+    // Split existing wall at portal endpoints; keep the original wall index as the portal segment.
+    const targetWallRecord = asRecord(nextWalls[targetWallIndexValue], `walls[${targetWallIndexValue}]`);
+    if (!targetWallRecord.ok) {
+      return targetWallRecord;
+    }
+
+    const originalV0 = targetWall.v0;
+    const originalV1 = targetWall.v1;
+    const originalV0Point = parsedVertices[originalV0];
+    const originalV1Point = parsedVertices[originalV1];
+    if (!originalV0Point || !originalV1Point) {
+      return err('map-edit/invalid-json', `walls[${targetWallIndex}] has invalid v0/v1`);
+    }
+
+    const epsilon = 1e-6;
+    const isSamePoint = (a: Readonly<{ x: number; y: number }>, b: Readonly<{ x: number; y: number }>): boolean => {
+      return Math.abs(a.x - b.x) <= epsilon && Math.abs(a.y - b.y) <= epsilon;
+    };
+
+    // Add portal endpoints as shared vertices used by both the existing wall split and the new room portal wall.
+    // Reuse existing wall endpoints when the portal aligns exactly, to avoid degenerate segments.
+    const portalAIndex =
+      isSamePoint(plan.portalA, originalV0Point) ? originalV0 : isSamePoint(plan.portalA, originalV1Point) ? originalV1 : addVertex(plan.portalA);
+    const portalBIndex =
+      isSamePoint(plan.portalB, originalV0Point) ? originalV0 : isSamePoint(plan.portalB, originalV1Point) ? originalV1 : addVertex(plan.portalB);
+
+    const axis: 'x' | 'y' = plan.orientation === 'horizontal' ? 'x' : 'y';
+    const increasing = originalV0Point[axis] <= originalV1Point[axis];
+    const portalStartIndex = increasing ? portalAIndex : portalBIndex;
+    const portalEndIndex = increasing ? portalBIndex : portalAIndex;
+
+    const baseWall: Record<string, unknown> = { ...targetWallRecord.value };
+
+    const addSplitSegment = (v0: number, v1: number): void => {
+      if (v0 === v1) {
+        return;
+      }
+      addWall({ ...baseWall, v0, v1, back_sector: -1 });
+    };
+
+    // Before segment
+    if (originalV0 !== portalStartIndex) {
+      addSplitSegment(originalV0, portalStartIndex);
+    }
+    // After segment
+    if (portalEndIndex !== originalV1) {
+      addSplitSegment(portalEndIndex, originalV1);
+    }
+
+    // Update the original wall in place to become the portal segment.
+    nextWalls[targetWallIndexValue] = { ...baseWall, v0: portalStartIndex, v1: portalEndIndex, back_sector: newSectorId };
+
+    // Add new room vertices for corners. If a corner coincides with a portal endpoint, reuse that vertex index.
+    const roomCornerVertexIndices = snappedPolygon.map((p) => {
+      if (isSamePoint(p, plan.portalA)) {
+        return portalAIndex;
+      }
+      if (isSamePoint(p, plan.portalB)) {
+        return portalBIndex;
+      }
+      return addVertex(p);
+    });
+
+    // Add room walls; split the chosen edge to include the portal segment sharing endpoints.
+    for (let edgeIndex = 0; edgeIndex < roomCornerVertexIndices.length; edgeIndex += 1) {
+      const corner0 = roomCornerVertexIndices[edgeIndex];
+      const corner1 = roomCornerVertexIndices[(edgeIndex + 1) % roomCornerVertexIndices.length];
+
+      if (corner0 === undefined || corner1 === undefined) {
+        return err('map-edit/invalid-json', 'Failed to create adjacent room walls (internal indexing error)');
+      }
+
+      if (edgeIndex !== plan.polygonEdgeIndex) {
+        const wallRecord = makeStampedWallRecord({ v0: corner0, v1: corner1, backSectorId: -1, propsIndex: edgeIndex });
+        if (!wallRecord.ok) {
+          return wallRecord;
+        }
+        addWall(wallRecord.value);
+        continue;
+      }
+
+      const c0 = nextVertices[corner0] as unknown;
+      const c1 = nextVertices[corner1] as unknown;
+      const c0Rec = asXyRecord(c0, `vertices[${corner0}]`);
+      if (!c0Rec.ok) {
+        return c0Rec;
+      }
+      const c1Rec = asXyRecord(c1, `vertices[${corner1}]`);
+      if (!c1Rec.ok) {
+        return c1Rec;
+      }
+
+      const c0p = { x: c0Rec.value['x'] as number, y: c0Rec.value['y'] as number };
+      const c1p = { x: c1Rec.value['x'] as number, y: c1Rec.value['y'] as number };
+      const edgeIncreasing = c0p[axis] <= c1p[axis];
+      const portalEdgeStart = edgeIncreasing ? portalAIndex : portalBIndex;
+      const portalEdgeEnd = edgeIncreasing ? portalBIndex : portalAIndex;
+
+      const addRoomEdgeSegment = (v0: number, v1: number, backSector: number): Result<null, MapEditError> => {
+        if (v0 === v1) {
+          return { ok: true, value: null };
+        }
+        const wallRecord = makeStampedWallRecord({ v0, v1, backSectorId: backSector, propsIndex: edgeIndex });
+        if (!wallRecord.ok) {
+          return wallRecord;
+        }
+        addWall(wallRecord.value);
+        return { ok: true, value: null };
+      };
+
+      if (corner0 !== portalEdgeStart) {
+        const before = addRoomEdgeSegment(corner0, portalEdgeStart, -1);
+        if (!before.ok) {
+          return before;
+        }
+      }
+      const portal = addRoomEdgeSegment(portalEdgeStart, portalEdgeEnd, targetWall.frontSectorId);
+      if (!portal.ok) {
+        return portal;
+      }
+      if (portalEdgeEnd !== corner1) {
+        const after = addRoomEdgeSegment(portalEdgeEnd, corner1, -1);
+        if (!after.ok) {
+          return after;
+        }
       }
     }
 

@@ -264,6 +264,34 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "phase0035: jest MapCommandEngine.stamp-room",
+			"type": "shell",
+			"command": "/Users/adam/.nvm/versions/node/v20.17.0/bin/node",
+			"args": [
+				"./node_modules/jest/bin/jest.js",
+				"src/main/application/maps/MapCommandEngine.test.ts",
+				"--runInBand",
+				"--colors=false"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "phase0035: jest MapCommandEngine.stamp-room",
+			"type": "shell",
+			"command": "/Users/adam/.nvm/versions/node/v20.17.0/bin/node",
+			"args": [
+				"./node_modules/jest/bin/jest.js",
+				"src/main/application/maps/MapCommandEngine.test.ts",
+				"--runInBand",
+				"--colors=false"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
 		}
 	]
 }

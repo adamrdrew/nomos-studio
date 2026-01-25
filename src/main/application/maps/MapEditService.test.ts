@@ -1189,6 +1189,56 @@ describe('MapEditService', () => {
     expect(setCalls).toHaveLength(0);
   });
 
+  it('edit accepts map-edit/stamp-room and does not return unsupported-target', () => {
+    const { store, setCalls } = createMutableStore({
+      filePath: '/maps/test.json',
+      json: { ...baseMapJson() },
+      dirty: false,
+      lastValidation: null,
+      revision: 1
+    });
+
+    const engine: MapCommandEngine = {
+      apply: () =>
+        ({
+          ok: true as const,
+          value: {
+            nextJson: { ...baseMapJson() },
+            selection: { kind: 'map-edit/selection/keep' }
+          }
+        })
+    } as unknown as MapCommandEngine;
+
+    const service = createServiceWithEngine(store, engine);
+
+    const result = service.edit({
+      kind: 'map-edit/stamp-room',
+      request: {
+        polygon: [
+          { x: 2, y: 2 },
+          { x: 8, y: 2 },
+          { x: 8, y: 8 },
+          { x: 2, y: 8 }
+        ],
+        wallProps: [
+          { tex: '', endLevel: false, toggleSector: false, toggleSectorId: null, toggleSectorOneshot: false, toggleSound: null, toggleSoundFinish: null },
+          { tex: '', endLevel: false, toggleSector: false, toggleSectorId: null, toggleSectorOneshot: false, toggleSound: null, toggleSoundFinish: null },
+          { tex: '', endLevel: false, toggleSector: false, toggleSectorId: null, toggleSectorOneshot: false, toggleSound: null, toggleSoundFinish: null },
+          { tex: '', endLevel: false, toggleSector: false, toggleSectorId: null, toggleSectorOneshot: false, toggleSound: null, toggleSoundFinish: null }
+        ],
+        sectorProps: { floorZ: 0, floorZToggledPos: null, ceilZ: 4, floorTex: '', ceilTex: '', light: 1 },
+        placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+      }
+    } as unknown as Parameters<MapEditService['edit']>[0]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+    }
+    expect(result.value.kind).toBe('map-edit/applied');
+    expect(setCalls.length).toBeGreaterThan(0);
+  });
+
   it('edit records selectionBefore keep when transaction selection is omitted', () => {
     const { store, setCalls } = createMutableStore({
       filePath: '/maps/test.json',

@@ -89,6 +89,15 @@
     - capture sector + wall properties into the buffer
 - **Done when:** Buffer can be populated reliably for supported sectors.
 
+## S008A — Renderer: Room tool can preview a buffered stamp (no commit yet)
+- **Intent:** Make tool switching verifiable without depending on the full stamp placement edit.
+- **Work:**
+  - Extend the Room tool preview pipeline to accept an optional buffered stamp polygon source.
+  - Render the stamp polygon outline under the cursor (translated so its anchor is under the cursor).
+  - Reuse the existing validity coloring (green/red) using the same `computeRoomPlacementValidity(...)` path.
+  - Do not issue any map edit on click yet (preview-only).
+- **Done when:** With a non-null buffer, Room mode shows a translated preview with correct green/red validity.
+
 ## S009 — Renderer: command bar Clone action switches to Room tool with stamp preview
 - **Intent:** Complete the user flow described in DoD.
 - **Work:**
@@ -121,4 +130,80 @@
 ## S012 — Quality gates
 - **Intent:** Keep repo green.
 - **Work:** Run `npm test`, `npm run typecheck`, `npm run lint`.
+- **Done when:** All gates pass.
+
+## S013 — Bugfix: boundary extraction ignores internal same-sector walls
+- **Intent:** Reduce spurious clone failures when a sector contains walls that are not part of the boundary loop.
+- **Work:**
+  - Update sector boundary directed-edge construction to ignore walls where `frontSectorId === sectorId && backSectorId === sectorId`.
+  - Add unit test coverage demonstrating that a simple boundary loop can still be extracted even when a same-sector internal wall exists.
+- **Done when:** Clone no longer fails on sectors with internal same-sector walls; tests cover both the new branch and existing failure reasons.
+
+## S014 — Bugfix: add a clear escape hatch from stamp mode
+- **Intent:** Ensure the Room tool never gets “stuck” in stamp mode, and template placement remains usable.
+- **Work:**
+  - Clear `roomCloneBuffer` when selecting a room template (rectangle/square/triangle).
+  - Clear `roomCloneBuffer` on successful stamp-room placement.
+  - Add `Escape` key behavior in Room mode: when a clone buffer is active, pressing Escape clears the buffer (cancel stamp).
+- **Done when:** User can always exit stamp mode (template selection or Escape) and place template rooms normally.
+
+## S015 — Quality gates (post-bugfix)
+- **Intent:** Keep repo green after bugfixes.
+- **Work:** Run Jest + typecheck + lint.
+- **Done when:** All gates pass.
+
+## S016 — Bugfix: boundary extraction prefers frontSector edges to avoid portal twin walls
+- **Intent:** Fix clone failing with “open-loop” on valid rooms when portal walls exist in both directions (one wall record per sector).
+- **Work:**
+  - Update sector boundary edge construction to **prefer** `frontSectorId === sectorId` edges.
+  - Only consider `backSectorId === sectorId` edges if the sector has **no** `frontSectorId === sectorId` edges (legacy/odd maps).
+  - Add unit test coverage for a portal pair (two wall records, `A->B` and `B->A`) ensuring sector A’s loop extraction does not double-count.
+- **Done when:** Cloning a connected room no longer fails with `open-loop`, and tests cover the new branch behavior.
+
+## S017 — Quality gates (post-open-loop fix)
+- **Intent:** Keep repo green after open-loop bugfix.
+- **Work:** Run Jest + typecheck + lint.
+- **Done when:** All gates pass.
+
+## S018 — Bugfix: stamp-room accepts existing empty texture fields and logs actionable errors
+- **Intent:** Fix real-world clone placement failures where existing maps may use empty strings for wall/sector textures, and make failures diagnosable.
+- **Work:**
+  - Relax `map-edit/stamp-room` request validation to accept texture fields that are strings (including empty), mirroring existing map JSON allowances.
+    - `wallProps[i].tex` must be a string (empty allowed).
+    - `sectorProps.floorTex` / `sectorProps.ceilTex` must be strings (empty allowed).
+  - Update renderer stamp-room failure logging to print `code` and `message` (and stringify the full error) so Electron log forwarding does not collapse objects to `[object Object]`.
+  - Add unit test coverage proving stamp-room succeeds with empty texture strings.
+- **Done when:** Clone stamp placement no longer fails due to empty texture strings, and tests cover the new validation branch.
+
+## S019 — Quality gates (post-stamp-room fix)
+- **Intent:** Keep repo green after stamp-room bugfix.
+- **Work:** Run Jest + typecheck + lint.
+- **Done when:** All gates pass.
+
+## S020 — Bugfix: MapEditService accepts and routes map-edit/stamp-room
+- **Intent:** Fix runtime failures where the renderer issues `map-edit/stamp-room` but the main-process service rejects it as unsupported.
+- **Work:**
+  - Update `MapEditService.edit(...)` command-kind allowlist to include `map-edit/stamp-room`.
+  - Ensure selection bookkeeping treats `map-edit/stamp-room` like other “applied” commands.
+  - Add/extend unit tests proving `MapEditService` no longer returns `map-edit/unsupported-target` for `map-edit/stamp-room`.
+- **Done when:** Clone placement reaches the command engine and does not fail with `unsupported-target`.
+
+## S021 — Quality gates (post-MapEditService wiring)
+- **Intent:** Keep repo green after wiring fix.
+- **Work:** Run Jest + typecheck + lint.
+- **Done when:** All gates pass.
+
+## S022 — Bugfix: stamp-room emits schema-compatible wall fields (omit null/default optionals)
+- **Intent:** Fix external map validation failures by ensuring stamped wall records match the on-disk schema expectations (optional fields omitted rather than written as null/defaults).
+- **Work:**
+  - Update stamp-room wall record construction so optional wall fields are only included when meaningful:
+    - Omit `toggle_sector_id` when null.
+    - Omit `toggle_sound` / `toggle_sound_finish` when null.
+    - Omit `end_level`, `toggle_sector`, `toggle_sector_oneshot` when false (optional).
+  - Add unit test coverage asserting that, for a default wall props payload, the resulting wall JSON does not include these keys.
+- **Done when:** Stamped rooms no longer break external validation due to optional/null wall fields, and tests cover the new branch.
+
+## S023 — Quality gates (post-schema compatibility fix)
+- **Intent:** Keep repo green after the schema compatibility fix.
+- **Work:** Run Jest + typecheck + lint.
 - **Done when:** All gates pass.

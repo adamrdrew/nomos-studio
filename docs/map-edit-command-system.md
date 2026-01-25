@@ -45,6 +45,7 @@ Atomic commands are the building blocks for edits.
 - `map-edit/create-entity`
 - `map-edit/create-door`
 - `map-edit/create-room`
+- `map-edit/stamp-room`
 - `map-edit/set-sector-wall-tex`
 - `map-edit/set-player-start`
 - `map-edit/update-fields`
@@ -203,6 +204,50 @@ Adjacent portal wiring:
   - Splits (“cuts”) the target wall and creates a matching portal segment on the new room edge.
   - Preserves wall index stability: existing `walls[]` entries are never reordered; split segments are appended.
   - Reuses shared portal endpoint vertex indices on both sides.
+- Selection effect is `map-edit/selection/set` to the newly created `{ kind: 'sector', id }`.
+
+`map-edit/stamp-room` places a room from an explicit world-space polygon “stamp” (used by Room Clone):
+```ts
+{
+  kind: 'map-edit/stamp-room';
+  request: {
+    polygon: ReadonlyArray<{ x: number; y: number }>;
+    wallProps: ReadonlyArray<{
+      tex: string;
+      endLevel: boolean;
+      toggleSector: boolean;
+      toggleSectorId: number | null;
+      toggleSectorOneshot: boolean;
+      toggleSound: string | null;
+      toggleSoundFinish: string | null;
+    }>;
+    sectorProps: {
+      floorZ: number;
+      floorZToggledPos: number | null;
+      ceilZ: number;
+      floorTex: string;
+      ceilTex: string;
+      light: number;
+    };
+    placement:
+      | { kind: 'room-placement/nested'; enclosingSectorId: number }
+      | { kind: 'room-placement/adjacent'; targetWallIndex: number; snapDistancePx: number }
+      | { kind: 'room-placement/seed' };
+  };
+}
+```
+
+Stamp-room validation rules (high level):
+- `polygon` must be a non-empty loop with finite coordinates and meet the configured min-size constraint.
+- `wallProps.length` must match the polygon edge count.
+- `sectorProps` fields must be the correct primitive types and use finite numbers where required.
+- `placement` must be valid against the current JSON (nested/adjacent/seed) using the same invariants as create-room.
+
+Stamp-room semantics:
+- Allocates a new sector id and newly appends vertices/walls for the stamped polygon.
+- Copies `sectorProps` onto the new sector (without copying identity/topology).
+- Copies each `wallProps[i]` onto the newly created wall aligned to the polygon edge $i$.
+- Adjacent placement computes the portal plan, snaps the polygon edge to the target wall, performs wall cutting, and preserves wall index stability (existing `walls[]` entries are never reordered).
 - Selection effect is `map-edit/selection/set` to the newly created `{ kind: 'sector', id }`.
 
 `map-edit/set-player-start` sets the optional map-root `player_start` object:

@@ -2,6 +2,7 @@ import { MapCommandEngine } from './MapCommandEngine';
 
 import type { MapDocument } from '../../../shared/domain/models';
 import type { CreateRoomRequest } from '../../../shared/domain/mapRoomCreation';
+import type { StampRoomRequest } from '../../../shared/domain/mapRoomStamp';
 import type { MapEditCommand } from '../../../shared/ipc/nomosIpc';
 
 function baseMapJson(): Record<string, unknown> {
@@ -54,6 +55,29 @@ function baseCreateRoomDefaults(): Record<string, unknown> {
     ceilTex: 'CEIL.PNG',
     floorZ: 0,
     ceilZ: 4,
+    light: 1
+  };
+}
+
+function baseStampWallProps(tex: string): StampRoomRequest['wallProps'][number] {
+  return {
+    tex,
+    endLevel: false,
+    toggleSector: false,
+    toggleSectorId: null,
+    toggleSectorOneshot: false,
+    toggleSound: null,
+    toggleSoundFinish: null
+  };
+}
+
+function baseStampSectorProps(): StampRoomRequest['sectorProps'] {
+  return {
+    floorZ: 0,
+    floorZToggledPos: null,
+    ceilZ: 4,
+    floorTex: 'FLOOR.PNG',
+    ceilTex: 'CEIL.PNG',
     light: 1
   };
 }
@@ -990,6 +1014,426 @@ describe('MapCommandEngine', () => {
       }
       expect(result.error.code).toBe('map-edit/create-room/invalid-request');
       expect(json).toEqual(before);
+    });
+  });
+
+  describe('stamp-room', () => {
+    it('creates a nested concave stamped room, copies properties, and selects the new sector', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const polygon = [
+        { x: 2, y: 2 },
+        { x: 8, y: 2 },
+        { x: 8, y: 4 },
+        { x: 4, y: 4 },
+        { x: 4, y: 8 },
+        { x: 2, y: 8 }
+      ];
+
+      const wallProps: StampRoomRequest['wallProps'] = ['A.PNG', 'B.PNG', 'C.PNG', 'D.PNG', 'E.PNG', 'F.PNG'].map((tex, index) => {
+        const base = baseStampWallProps(tex);
+        if (index !== 0) {
+          return base;
+        }
+        return {
+          ...base,
+          endLevel: true,
+          toggleSector: true,
+          toggleSectorId: 123,
+          toggleSectorOneshot: true,
+          toggleSound: 'sound.wav',
+          toggleSoundFinish: 'finish.wav'
+        };
+      });
+
+      const request: StampRoomRequest = {
+        polygon,
+        wallProps,
+        sectorProps: {
+          ...baseStampSectorProps(),
+          floorZToggledPos: 7
+        },
+        placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+      };
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      expect(result.value.selection.kind).toBe('map-edit/selection/set');
+      if (result.value.selection.kind !== 'map-edit/selection/set') {
+        throw new Error('Expected selection/set');
+      }
+      expect(result.value.selection.ref).toEqual({ kind: 'sector', id: 2 });
+
+      const next = result.value.nextJson;
+      expect((next['sectors'] as unknown[]).length).toBe(2);
+      const sectors = next['sectors'] as Record<string, unknown>[];
+      const newSector = sectors.find((s) => s['id'] === 2);
+      if (!newSector) {
+        throw new Error('Expected sector id=2');
+      }
+      expect(newSector['floor_z']).toBe(0);
+      expect(newSector['ceil_z']).toBe(4);
+      expect(newSector['floor_tex']).toBe('FLOOR.PNG');
+      expect(newSector['ceil_tex']).toBe('CEIL.PNG');
+      expect(newSector['light']).toBe(1);
+      expect(newSector['floor_z_toggled_pos']).toBe(7);
+
+      const walls = next['walls'] as Record<string, unknown>[];
+      expect(walls.length).toBe(4 + polygon.length);
+      const newWalls = walls.slice(4);
+      for (let i = 0; i < newWalls.length; i += 1) {
+        const w = newWalls[i];
+        if (!w) {
+          throw new Error(`Expected wall at index ${i}`);
+        }
+        expect(w['front_sector']).toBe(2);
+        expect(w['back_sector']).toBe(1);
+        expect(w['tex']).toBe(wallProps[i]?.tex);
+      }
+
+      const w0 = newWalls[0];
+      if (!w0) {
+        throw new Error('Expected first new wall');
+      }
+      expect(w0['end_level']).toBe(true);
+      expect(w0['toggle_sector']).toBe(true);
+      expect(w0['toggle_sector_id']).toBe(123);
+      expect(w0['toggle_sector_oneshot']).toBe(true);
+      expect(w0['toggle_sound']).toBe('sound.wav');
+      expect(w0['toggle_sound_finish']).toBe('finish.wav');
+    });
+
+    it('creates an adjacent stamped room joined by a portal without reordering existing walls', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+      const originalWalls = (json['walls'] as unknown[]).map((w) => ({ ...(w as Record<string, unknown>) }));
+
+      const polygon = [
+        { x: 2, y: 0 },
+        { x: 8, y: 0 },
+        { x: 8, y: -2 },
+        { x: 2, y: -2 }
+      ];
+
+      const wallProps: StampRoomRequest['wallProps'] = ['TOP.PNG', 'RIGHT.PNG', 'BOTTOM.PNG', 'LEFT.PNG'].map((tex) => baseStampWallProps(tex));
+
+      const request: StampRoomRequest = {
+        polygon,
+        wallProps,
+        sectorProps: baseStampSectorProps(),
+        placement: { kind: 'room-placement/adjacent', targetWallIndex: 0, snapDistancePx: 10 }
+      };
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      const nextWalls = result.value.nextJson['walls'] as unknown[];
+      expect(nextWalls.length).toBeGreaterThanOrEqual(8);
+
+      expect(nextWalls[1]).toEqual(originalWalls[1]);
+      expect(nextWalls[2]).toEqual(originalWalls[2]);
+      expect(nextWalls[3]).toEqual(originalWalls[3]);
+
+      const wall0 = nextWalls[0] as Record<string, unknown>;
+      expect(wall0['front_sector']).toBe(1);
+      expect(wall0['back_sector']).toBe(2);
+
+      const roomPortalCount = nextWalls.filter((w) => {
+        if (typeof w !== 'object' || w === null) {
+          return false;
+        }
+        const rec = w as Record<string, unknown>;
+        return rec['front_sector'] === 2 && rec['back_sector'] === 1;
+      }).length;
+      expect(roomPortalCount).toBeGreaterThanOrEqual(1);
+
+      const roomPortalWall = nextWalls.find((w) => {
+        if (typeof w !== 'object' || w === null) {
+          return false;
+        }
+        const rec = w as Record<string, unknown>;
+        return rec['front_sector'] === 2 && rec['back_sector'] === 1;
+      }) as Record<string, unknown> | undefined;
+      expect(roomPortalWall?.['tex']).toBe('TOP.PNG');
+    });
+
+    it('accepts empty texture strings in the stamp payload (for compatibility with existing authored maps)', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const polygon = [
+        { x: 2, y: 2 },
+        { x: 8, y: 2 },
+        { x: 8, y: 8 },
+        { x: 2, y: 8 }
+      ];
+
+      const wallProps: StampRoomRequest['wallProps'] = polygon.map(() => ({
+        ...baseStampWallProps('WALL.PNG'),
+        tex: ''
+      }));
+
+      const request: StampRoomRequest = {
+        polygon,
+        wallProps,
+        sectorProps: {
+          ...baseStampSectorProps(),
+          floorTex: '',
+          ceilTex: ''
+        },
+        placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+      };
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+    });
+
+    it('omits optional wall fields when their values are default/null', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const polygon = [
+        { x: 2, y: 2 },
+        { x: 8, y: 2 },
+        { x: 8, y: 8 },
+        { x: 2, y: 8 }
+      ];
+
+      const wallProps: StampRoomRequest['wallProps'] = ['A.PNG', 'B.PNG', 'C.PNG', 'D.PNG'].map((tex) => baseStampWallProps(tex));
+
+      const request: StampRoomRequest = {
+        polygon,
+        wallProps,
+        sectorProps: baseStampSectorProps(),
+        placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+      };
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error(`Expected success, got: ${result.error.code} ${result.error.message ?? ''}`);
+      }
+
+      const walls = result.value.nextJson['walls'] as Record<string, unknown>[];
+      const newWalls = walls.slice(4);
+      expect(newWalls).toHaveLength(4);
+
+      const first = newWalls[0];
+      if (!first) {
+        throw new Error('Expected first new wall');
+      }
+
+      expect(first['tex']).toBe('A.PNG');
+      expect(first['end_level']).toBeUndefined();
+      expect(first['toggle_sector']).toBeUndefined();
+      expect(first['toggle_sector_id']).toBeUndefined();
+      expect(first['toggle_sector_oneshot']).toBeUndefined();
+      expect(first['toggle_sound']).toBeUndefined();
+      expect(first['toggle_sound_finish']).toBeUndefined();
+    });
+
+    it('rejects malformed payload when wallProps count does not match polygon edge count', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request: {
+          polygon: [
+            { x: 2, y: 2 },
+            { x: 8, y: 2 },
+            { x: 8, y: 8 },
+            { x: 2, y: 8 }
+          ],
+          wallProps: [baseStampWallProps('A.PNG'), baseStampWallProps('B.PNG'), baseStampWallProps('C.PNG')],
+          sectorProps: baseStampSectorProps(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+        }
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/stamp-room/invalid-request');
+    });
+
+    it('rejects nested placement when the stamped room intersects existing walls', () => {
+      const engine = new MapCommandEngine();
+      const json: Record<string, unknown> = {
+        vertices: [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+          { x: 10, y: 10 },
+          { x: 0, y: 10 },
+          { x: 5, y: 0 },
+          { x: 5, y: 10 }
+        ],
+        sectors: [
+          {
+            id: 1,
+            floor_z: 0,
+            ceil_z: 4,
+            floor_tex: 'FLOOR.PNG',
+            ceil_tex: 'CEIL.PNG',
+            light: 1
+          }
+        ],
+        walls: [
+          { v0: 0, v1: 1, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 1, v1: 2, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 2, v1: 3, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 3, v1: 0, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' },
+          { v0: 4, v1: 5, front_sector: 999, back_sector: -1, tex: 'WALL.PNG' }
+        ]
+      };
+
+      const polygon = [
+        { x: 4, y: 2 },
+        { x: 6, y: 2 },
+        { x: 6, y: 8 },
+        { x: 4, y: 8 }
+      ];
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request: {
+          polygon,
+          wallProps: polygon.map((_, i) => baseStampWallProps(`W${i}.PNG`)),
+          sectorProps: baseStampSectorProps(),
+          placement: { kind: 'room-placement/nested', enclosingSectorId: 1 }
+        }
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/stamp-room/intersects-walls');
+      }
+    });
+
+    it('rejects adjacent placement when snapDistancePx exceeds threshold', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const polygon = [
+        { x: 2, y: 0 },
+        { x: 8, y: 0 },
+        { x: 8, y: -2 },
+        { x: 2, y: -2 }
+      ];
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request: {
+          polygon,
+          wallProps: polygon.map((_, i) => baseStampWallProps(`W${i}.PNG`)),
+          sectorProps: baseStampSectorProps(),
+          placement: { kind: 'room-placement/adjacent', targetWallIndex: 0, snapDistancePx: 13 }
+        }
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/stamp-room/adjacent-too-far');
+      }
+    });
+
+    it('rejects adjacent placement when target wall does not exist', () => {
+      const engine = new MapCommandEngine();
+      const json = baseMapJsonForRoomCreation();
+
+      const polygon = [
+        { x: 2, y: 0 },
+        { x: 8, y: 0 },
+        { x: 8, y: -2 },
+        { x: 2, y: -2 }
+      ];
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request: {
+          polygon,
+          wallProps: polygon.map((_, i) => baseStampWallProps(`W${i}.PNG`)),
+          sectorProps: baseStampSectorProps(),
+          placement: { kind: 'room-placement/adjacent', targetWallIndex: 999, snapDistancePx: 10 }
+        }
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/stamp-room/no-snap-target');
+      }
+    });
+
+    it('rejects adjacent placement when target wall is non-collinear with room edges', () => {
+      const engine = new MapCommandEngine();
+      const json: Record<string, unknown> = {
+        vertices: [
+          { x: 0, y: 0 },
+          { x: 10, y: 10 },
+          { x: 10, y: 0 }
+        ],
+        sectors: [
+          {
+            id: 1,
+            floor_z: 0,
+            ceil_z: 4,
+            floor_tex: 'FLOOR.PNG',
+            ceil_tex: 'CEIL.PNG',
+            light: 1
+          }
+        ],
+        walls: [{ v0: 0, v1: 1, front_sector: 1, back_sector: -1, tex: 'WALL.PNG' }]
+      };
+
+      const polygon = [
+        { x: 2, y: 0 },
+        { x: 8, y: 0 },
+        { x: 8, y: -2 },
+        { x: 2, y: -2 }
+      ];
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/stamp-room',
+        request: {
+          polygon,
+          wallProps: polygon.map((_, i) => baseStampWallProps(`W${i}.PNG`)),
+          sectorProps: baseStampSectorProps(),
+          placement: { kind: 'room-placement/adjacent', targetWallIndex: 0, snapDistancePx: 10 }
+        }
+      } as unknown as MapEditCommand);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('map-edit/stamp-room/non-collinear');
+      }
     });
   });
 

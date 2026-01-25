@@ -2,89 +2,236 @@ phase:
   id: 0035
   slug: room-clone
   title: Room Clone
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Confirm UX decisions and scope boundaries
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Confirmed existing Select toolbar Clone is currently disabled for sector/wall selections (toMapEditTargetRef returns null); Phase 0035 sector-only Clone-to-buffer behavior is additive and keeps existing clone behavior for entity/light/particle/door unchanged."
+    touched:
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S002
     title: Define a typed “room stamp” payload (geometry + properties)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added shared types for RoomStamp and StampRoomRequest (polygon + aligned wall props + sector props + placement plan) in preparation for IPC command wiring."
+    touched:
+      - src/shared/domain/mapRoomStamp.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S003
     title: Add pure helpers for sector boundary extraction and wall ordering
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added shared pure helper extractSingleSectorBoundaryLoop (polygon + ordered wall indices, with explicit failure reasons) and unit tests for rectangle/concave/backSector-only/ambiguous cases."
+    touched:
+      - src/shared/domain/mapSectorBoundary.ts
+      - src/shared/domain/mapSectorBoundary.test.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S004
     title: Add pure helpers for stamp transforms (preview/placement)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented pure stamp transform helpers (bbox-center anchor, scale + quarter-turn rotation + translation) with unit tests." 
+    touched:
+      - src/shared/domain/mapRoomStampTransform.ts
+      - src/shared/domain/mapRoomStampTransform.test.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S005
     title: Extend shared IPC command types with map-edit/stamp-room
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added map-edit/stamp-room to MapEditAtomicCommand and introduced stamp-room error codes in MapEditError." 
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/shared/domain/results.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S006
     title: Implement map-edit/stamp-room in MapCommandEngine
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented map-edit/stamp-room in MapCommandEngine with request validation (polygon + wallProps + sectorProps + placement), nested/adjacent/seed placement semantics aligned to create-room, portal wall splitting, property copying, and selection set to the new sector."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S007
     title: Unit tests for MapCommandEngine stamp-room
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added MapCommandEngine stamp-room test coverage for nested concave placement, adjacent portal placement preserving wall order, and key failure modes (invalid request, intersects-walls, adjacent-too-far, no-snap-target, non-collinear). Verified passing in focused Jest run."
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S008
     title: Renderer clone buffer state and extraction from selection
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added renderer-local roomCloneBuffer state and wired Select tool Clone so sector selections populate a RoomStamp buffer by decoding the current map and extracting the selected sector's boundary loop + aligned properties. Buffer clears on map filePath change."
+    touched:
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/store/nomosStore.test.ts
+      - src/renderer/ui/editor/map/roomStampFromSector.ts
+      - src/renderer/ui/editor/map/roomStampFromSector.test.ts
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S008A
+    title: Renderer Room tool can preview a buffered stamp (no commit yet)
+    implemented: true
+    reviewed: false
+    notes: "Room tool preview now uses roomCloneBuffer polygon (when present) and renders it under the cursor using shared stamp normalization/transform; validity coloring is driven solely by computeRoomPlacementValidity. No edit is issued because request remains null."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S009
     title: Renderer Clone action switches to Room tool with stamp preview
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Sector selection Clone now populates roomCloneBuffer and switches active tool to Room so the buffered stamp preview is visible immediately; failures show a toaster warning and keep existing clone behavior for non-sector selections."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S010
     title: Room tool supports stamping a buffered polygon
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Room tool now supports a buffered stamp source: it previews the transformed stamp polygon with the same validity pipeline and commits on valid click by issuing map-edit/stamp-room (including placement plan and snapped polygon for adjacent placement)."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S011
     title: Docs update (renderer UI + map edit command system)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated docs to cover Room Clone workflow (renderer clone buffer -> Room tool stamp placement) and documented the map-edit/stamp-room command contract, validations, and semantics."
+    touched:
+      - docs/renderer-ui-system.md
+      - docs/map-edit-command-system.md
+      - .ushabti/phases/0035-room-clone/progress.yaml
 
   - id: S012
     title: Quality gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Verified repo gates: Jest, TypeScript typecheck, and ESLint all pass in the Node-based tasks."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - docs/renderer-ui-system.md
+      - docs/map-edit-command-system.md
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S013
+    title: Bugfix: boundary extraction ignores internal same-sector walls
+    implemented: true
+    reviewed: false
+    notes: "Updated sector boundary edge construction to skip internal walls where both sides reference the same sector, and added a unit test proving loop extraction still succeeds when such an internal wall exists."
+    touched:
+      - src/shared/domain/mapSectorBoundary.ts
+      - src/shared/domain/mapSectorBoundary.test.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S014
+    title: Bugfix: add a clear escape hatch from stamp mode
+    implemented: true
+    reviewed: false
+    notes: "Added multiple exits from stamp mode: selecting a template clears the clone buffer, successful stamp-room placement clears the buffer, and Escape cancels stamp mode while in Room tool."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S015
+    title: Quality gates (post-bugfix)
+    implemented: true
+    reviewed: false
+    notes: "Re-ran Jest, TypeScript typecheck, and ESLint after bugfixes; all passing. (In this workspace, Node-based tasks are used because plain npm is not on PATH.)"
+    touched:
+      - src/shared/domain/mapSectorBoundary.ts
+      - src/shared/domain/mapSectorBoundary.test.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S016
+    title: Bugfix: boundary extraction prefers frontSector edges to avoid portal twin walls
+    implemented: true
+    reviewed: false
+    notes: "Updated sector boundary edge construction to prefer frontSectorId edges and only fall back to backSectorId edges when no front edges exist; added unit test coverage for portal twin wall pairs to prevent open-loop failures during clone."
+    touched:
+      - src/shared/domain/mapSectorBoundary.ts
+      - src/shared/domain/mapSectorBoundary.test.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S017
+    title: Quality gates (post-open-loop fix)
+    implemented: true
+    reviewed: false
+    notes: "Verified Jest, TypeScript typecheck, and ESLint pass after the open-loop fix (using Node-based tasks in this workspace)."
+    touched:
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S018
+    title: Bugfix: stamp-room accepts existing empty texture fields and logs actionable errors
+    implemented: true
+    reviewed: false
+    notes: "Relaxed stamp-room validation to accept empty texture strings (wallProps tex and sector floor/ceil textures) for compatibility with existing maps; improved renderer logging to print code/message + JSON; added unit test coverage for empty textures." 
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S019
+    title: Quality gates (post-stamp-room fix)
+    implemented: true
+    reviewed: false
+    notes: "Verified Jest, TypeScript typecheck, and ESLint pass after the stamp-room validation/logging fix." 
+    touched:
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S020
+    title: Bugfix: MapEditService accepts and routes map-edit/stamp-room
+    implemented: true
+    reviewed: false
+    notes: "Added map-edit/stamp-room to MapEditService command allowlist and applied-command handling so renderer stamp-room edits are routed instead of rejected; added unit test coverage to prevent regression."
+    touched:
+      - src/main/application/maps/MapEditService.ts
+      - src/main/application/maps/MapEditService.test.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S021
+    title: Quality gates (post-MapEditService wiring)
+    implemented: true
+    reviewed: false
+    notes: "Verified Jest, TypeScript typecheck, and ESLint pass after MapEditService wiring fix."
+    touched:
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S022
+    title: Bugfix: stamp-room emits schema-compatible wall fields (omit null/default optionals)
+    implemented: true
+    reviewed: false
+    notes: "Updated stamped wall record construction to omit optional fields when false/null (toggle ids/sounds, end_level, toggle flags) so emitted JSON matches optional-on-disk semantics; added unit test coverage verifying keys are absent for default props."
+    touched:
+      - src/main/application/maps/MapCommandEngine.ts
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0035-room-clone/progress.yaml
+
+  - id: S023
+    title: Quality gates (post-schema compatibility fix)
+    implemented: true
+    reviewed: false
+    notes: "Verified Jest, TypeScript typecheck, and ESLint pass after schema compatibility changes."
+    touched:
+      - .ushabti/phases/0035-room-clone/progress.yaml

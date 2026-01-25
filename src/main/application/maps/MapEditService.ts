@@ -119,6 +119,7 @@ export class MapEditService {
       command.kind !== 'map-edit/create-door' &&
       command.kind !== 'map-edit/create-entity' &&
       command.kind !== 'map-edit/create-room' &&
+      command.kind !== 'map-edit/stamp-room' &&
       command.kind !== 'map-edit/set-sector-wall-tex' &&
       command.kind !== 'map-edit/set-player-start' &&
       command.kind !== 'map-edit/update-fields' &&
@@ -166,6 +167,7 @@ export class MapEditService {
       case 'map-edit/create-door':
       case 'map-edit/create-entity':
       case 'map-edit/create-room':
+      case 'map-edit/stamp-room':
       case 'map-edit/set-sector-wall-tex':
       case 'map-edit/set-player-start':
       case 'map-edit/update-fields':
@@ -223,6 +225,7 @@ export class MapEditService {
       case 'map-edit/create-door':
       case 'map-edit/create-entity':
       case 'map-edit/create-room':
+      case 'map-edit/stamp-room':
       case 'map-edit/set-sector-wall-tex':
       case 'map-edit/set-player-start':
       case 'map-edit/update-fields':

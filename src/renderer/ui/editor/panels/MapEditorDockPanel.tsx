@@ -17,6 +17,8 @@ import { useNomosStore } from '../../../store/nomosStore';
 import type { MapSelection } from '../map/mapSelection';
 import type { MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
 import type { RoomTemplate } from '../../../../shared/domain/mapRoomCreation';
+import { decodeMapViewModel } from '../map/mapDecoder';
+import { buildRoomStampFromSector } from '../map/roomStampFromSector';
 
 const toaster = Toaster.create({ position: Position.TOP });
 
@@ -102,6 +104,8 @@ export function MapEditorDockPanel(): JSX.Element {
   const selection = useNomosStore((state) => state.mapSelection);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
   const applyMapSelectionEffect = useNomosStore((state) => state.applyMapSelectionEffect);
+  const setRoomCloneBuffer = useNomosStore((state) => state.setRoomCloneBuffer);
+  const clearRoomCloneBuffer = useNomosStore((state) => state.clearRoomCloneBuffer);
 
   const viewportRef = React.useRef<MapEditorViewportApi | null>(null);
 
@@ -163,9 +167,21 @@ export function MapEditorDockPanel(): JSX.Element {
 
   const isToolBarCommandEnabled = React.useCallback(
     (commandId: MapEditorToolbarCommandId): boolean => {
-      if (commandId === 'select/delete' || commandId === 'select/clone') {
+      if (commandId === 'select/delete') {
         if (mapDocument === null || selection === null) {
           return false;
+        }
+
+        return toMapEditTargetRef(selection) !== null;
+      }
+
+      if (commandId === 'select/clone') {
+        if (mapDocument === null || selection === null) {
+          return false;
+        }
+
+        if (selection.kind === 'sector') {
+          return true;
         }
 
         return toMapEditTargetRef(selection) !== null;
@@ -179,14 +195,17 @@ export function MapEditorDockPanel(): JSX.Element {
   const onToolBarCommand = (commandId: MapEditorToolbarCommandId): void => {
     switch (commandId) {
       case 'room/rectangle': {
+        clearRoomCloneBuffer();
         setRoomTemplate('rectangle');
         return;
       }
       case 'room/square': {
+        clearRoomCloneBuffer();
         setRoomTemplate('square');
         return;
       }
       case 'room/triangle': {
+        clearRoomCloneBuffer();
         setRoomTemplate('triangle');
         return;
       }
@@ -260,6 +279,32 @@ export function MapEditorDockPanel(): JSX.Element {
         if (selection === null) {
           return;
         }
+
+        if (selection.kind === 'sector') {
+          const decoded = decodeMapViewModel(mapDocument.json);
+          if (!decoded.ok) {
+            // eslint-disable-next-line no-console
+            console.error('[nomos] map decode failed (clone sector)', decoded.error);
+            toaster.show({ message: 'Unable to clone this room (map decode failed).', intent: Intent.WARNING });
+            return;
+          }
+
+          const stamp = buildRoomStampFromSector(decoded.value, selection.id);
+          if (!stamp.ok) {
+            // eslint-disable-next-line no-console
+            console.error('[nomos] room stamp extraction failed (clone sector)', stamp.error);
+            toaster.show({
+              message: `Unable to clone this room (${stamp.error.reason}).`,
+              intent: Intent.WARNING
+            });
+            return;
+          }
+
+          setRoomCloneBuffer(stamp.value);
+          setToolId('room');
+          return;
+        }
+
         const target = toMapEditTargetRef(selection);
         if (target === null) {
           return;

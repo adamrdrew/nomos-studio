@@ -16,8 +16,10 @@ import type { WallStripPolygon } from './map/wallStripGeometry';
 import { resolveSectorSurfaceTexture } from './map/resolveSectorSurfaceTexture';
 import { ROOM_CREATION_DEFAULTS } from '../../../shared/domain/mapRoomCreation';
 import type { CreateRoomRequest, RoomTemplate } from '../../../shared/domain/mapRoomCreation';
-import { computeRoomPlacementValidity, computeRoomPolygon } from '../../../shared/domain/mapRoomGeometry';
+import { computeAdjacentPortalPlan, computeRoomPlacementValidity, computeRoomPolygon } from '../../../shared/domain/mapRoomGeometry';
 import type { RoomMapGeometry, RoomPlacementValidity, Vec2 } from '../../../shared/domain/mapRoomGeometry';
+import type { StampRoomRequest } from '../../../shared/domain/mapRoomStamp';
+import { computePolygonBounds, normalizePolygonToAnchor, transformStampPolygon } from '../../../shared/domain/mapRoomStampTransform';
 import { hasEntityPlacementDragPayload, tryReadEntityPlacementDragPayload } from './entities/entityPlacementDragPayload';
 
 export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom';
@@ -315,6 +317,7 @@ export const MapEditorCanvas = React.forwardRef<
   const assetIndex = useNomosStore((state) => state.assetIndex);
   const settings = useNomosStore((state) => state.settings);
   const isPickingPlayerStart = useNomosStore((state) => state.isPickingPlayerStart);
+  const roomCloneBuffer = useNomosStore((state) => state.roomCloneBuffer);
   const setIsPickingPlayerStart = useNomosStore((state) => state.setIsPickingPlayerStart);
   const setMapSelection = useNomosStore((state) => state.setMapSelection);
   const applyMapSelectionEffect = useNomosStore((state) => state.applyMapSelectionEffect);
@@ -746,6 +749,11 @@ export const MapEditorCanvas = React.forwardRef<
       return;
     }
 
+    // In stamp mode, roomSize is driven by the stamp bounds.
+    if (roomCloneBuffer !== null) {
+      return;
+    }
+
     const template = props.roomTemplate;
     if (template === undefined) {
       return;
@@ -753,7 +761,39 @@ export const MapEditorCanvas = React.forwardRef<
 
     setRoomSize(getDefaultRoomSizeForTemplate(template));
     setRoomRotationQuarterTurns(0);
-  }, [isPickingPlayerStart, isRoomEnabled, props.roomTemplate]);
+  }, [isPickingPlayerStart, isRoomEnabled, props.roomTemplate, roomCloneBuffer]);
+
+  React.useEffect(() => {
+    if (!isRoomEnabled) {
+      return;
+    }
+    if (roomCloneBuffer === null) {
+      return;
+    }
+
+    const normalized = normalizePolygonToAnchor(roomCloneBuffer.polygon);
+    if (normalized === null) {
+      return;
+    }
+
+    const bounds = computePolygonBounds(normalized.localPolygon);
+    if (bounds === null) {
+      return;
+    }
+
+    const baseWidth = bounds.max.x - bounds.min.x;
+    const baseHeight = bounds.max.y - bounds.min.y;
+    if (!Number.isFinite(baseWidth) || !Number.isFinite(baseHeight)) {
+      return;
+    }
+
+    // Initialize size to match the stamp bounds (scale=1).
+    setRoomSize({
+      width: Math.max(ROOM_CREATION_DEFAULTS.minSizeWorld, baseWidth),
+      height: Math.max(ROOM_CREATION_DEFAULTS.minSizeWorld, baseHeight)
+    });
+    setRoomRotationQuarterTurns(0);
+  }, [isRoomEnabled, roomCloneBuffer]);
 
   React.useEffect(() => {
     if (!isRoomEnabled) {
@@ -770,14 +810,16 @@ export const MapEditorCanvas = React.forwardRef<
         }
       }
 
-      const isMac = navigator.platform.toLowerCase().includes('mac');
-      const isPrimary = isMac ? event.metaKey : event.ctrlKey;
-      if (!isPrimary) {
+      if (event.key === 'Escape' && roomCloneBuffer !== null) {
+        event.preventDefault();
+        event.stopPropagation();
+        useNomosStore.getState().clearRoomCloneBuffer();
         return;
       }
 
-      const template = props.roomTemplate;
-      if (template === undefined) {
+      const isMac = navigator.platform.toLowerCase().includes('mac');
+      const isPrimary = isMac ? event.metaKey : event.ctrlKey;
+      if (!isPrimary) {
         return;
       }
 
@@ -813,6 +855,21 @@ export const MapEditorCanvas = React.forwardRef<
         let width = current.width;
         let height = current.height;
 
+        if (roomCloneBuffer !== null) {
+          const affectsWidth = (axis === 'horizontal' && !isOddRotation) || (axis === 'vertical' && isOddRotation);
+          if (affectsWidth) {
+            width = Math.max(ROOM_CREATION_DEFAULTS.minSizeWorld, width + delta);
+          } else {
+            height = Math.max(ROOM_CREATION_DEFAULTS.minSizeWorld, height + delta);
+          }
+          return { width, height };
+        }
+
+        const template = props.roomTemplate;
+        if (template === undefined) {
+          return current;
+        }
+
         if (template === 'square') {
           const next = Math.max(ROOM_CREATION_DEFAULTS.minSizeWorld, width + delta);
           return { width: next, height: next };
@@ -831,13 +888,16 @@ export const MapEditorCanvas = React.forwardRef<
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isRoomEnabled, props.roomTemplate, roomRotationQuarterTurns]);
+  }, [isRoomEnabled, props.roomTemplate, roomCloneBuffer, roomRotationQuarterTurns]);
 
   const roomPreview = React.useMemo<
     | Readonly<{
         polygon: readonly Vec2[];
         validity: RoomPlacementValidity;
-        request: CreateRoomRequest | null;
+        commit:
+          | Readonly<{ kind: 'room-commit/create-room'; request: CreateRoomRequest }>
+          | Readonly<{ kind: 'room-commit/stamp-room'; request: StampRoomRequest }>
+          | null;
       }>
     | null
   >(() => {
@@ -850,6 +910,77 @@ export const MapEditorCanvas = React.forwardRef<
     if (decodedMap === null || !decodedMap.ok) {
       return null;
     }
+
+    const geometry = toRoomMapGeometry(decodedMap.value);
+
+    if (roomCloneBuffer !== null) {
+      const normalized = normalizePolygonToAnchor(roomCloneBuffer.polygon);
+      if (normalized === null) {
+        return null;
+      }
+
+      const bounds = computePolygonBounds(normalized.localPolygon);
+      if (bounds === null) {
+        return null;
+      }
+
+      const baseWidth = bounds.max.x - bounds.min.x;
+      const baseHeight = bounds.max.y - bounds.min.y;
+      if (!Number.isFinite(baseWidth) || !Number.isFinite(baseHeight) || baseWidth <= 0 || baseHeight <= 0) {
+        return null;
+      }
+
+      const scaleX = roomSize.width / baseWidth;
+      const scaleY = roomSize.height / baseHeight;
+
+      const candidatePolygon = transformStampPolygon({
+        localPolygon: normalized.localPolygon,
+        at: roomCenter,
+        rotationQuarterTurns: roomRotationQuarterTurns,
+        scale: { x: scaleX, y: scaleY }
+      });
+
+      const validity = computeRoomPlacementValidity({
+        geometry,
+        polygon: candidatePolygon,
+        viewScale: view.scale,
+        snapThresholdPx: ROOM_CREATION_DEFAULTS.snapThresholdPx,
+        minSizeWorld: ROOM_CREATION_DEFAULTS.minSizeWorld
+      });
+
+      const previewPolygon =
+        validity.ok && validity.kind === 'room-valid/adjacent'
+          ? (() => {
+              const plan = computeAdjacentPortalPlan({
+                geometry,
+                polygon: candidatePolygon,
+                targetWallIndex: validity.targetWallIndex
+              });
+              return plan.kind === 'room-adjacent-portal-plan' ? plan.snappedPolygon : candidatePolygon;
+            })()
+          : candidatePolygon;
+
+      if (!validity.ok) {
+        return { polygon: previewPolygon, validity, commit: null };
+      }
+
+      const placement =
+        validity.kind === 'room-valid/seed'
+          ? ({ kind: 'room-placement/seed' } as const)
+          : validity.kind === 'room-valid/nested'
+            ? ({ kind: 'room-placement/nested', enclosingSectorId: validity.enclosingSectorId } as const)
+            : ({ kind: 'room-placement/adjacent', targetWallIndex: validity.targetWallIndex, snapDistancePx: validity.snapDistancePx } as const);
+
+      const request: StampRoomRequest = {
+        polygon: previewPolygon,
+        wallProps: roomCloneBuffer.wallProps,
+        sectorProps: roomCloneBuffer.sectorProps,
+        placement
+      };
+
+      return { polygon: previewPolygon, validity, commit: { kind: 'room-commit/stamp-room', request } };
+    }
+
     if (props.roomTemplate === undefined) {
       return null;
     }
@@ -860,36 +991,44 @@ export const MapEditorCanvas = React.forwardRef<
         ? { width: roomSize.width, height: roomSize.width }
         : { width: roomSize.width, height: roomSize.height };
 
-
-    const polygon = computeRoomPolygon({
+    const candidatePolygon = computeRoomPolygon({
       template,
       center: roomCenter,
       size,
       rotationQuarterTurns: roomRotationQuarterTurns
     });
 
-    const geometry = toRoomMapGeometry(decodedMap.value);
-
     const validity = computeRoomPlacementValidity({
       geometry,
-      polygon,
+      polygon: candidatePolygon,
       viewScale: view.scale,
       snapThresholdPx: ROOM_CREATION_DEFAULTS.snapThresholdPx,
       minSizeWorld: ROOM_CREATION_DEFAULTS.minSizeWorld
     });
 
+    const previewPolygon =
+      validity.ok && validity.kind === 'room-valid/adjacent'
+        ? (() => {
+            const plan = computeAdjacentPortalPlan({
+              geometry,
+              polygon: candidatePolygon,
+              targetWallIndex: validity.targetWallIndex
+            });
+            return plan.kind === 'room-adjacent-portal-plan' ? plan.snappedPolygon : candidatePolygon;
+          })()
+        : candidatePolygon;
 
     const textures = pickDefaultRoomTextures({ assetIndex, settings });
     if (textures === null) {
       return {
-        polygon,
+        polygon: previewPolygon,
         validity: { ok: false, kind: 'room-invalid', reason: 'ambiguous' },
-        request: null
+        commit: null
       };
     }
 
     if (!validity.ok) {
-      return { polygon, validity, request: null };
+      return { polygon: previewPolygon, validity, commit: null };
     }
 
     const placement =
@@ -915,15 +1054,27 @@ export const MapEditorCanvas = React.forwardRef<
       placement
     };
 
-    return { polygon, validity, request };
-  }, [assetIndex, decodedMap, isRoomEnabled, props.roomTemplate, roomCenter, roomRotationQuarterTurns, roomSize.height, roomSize.width, settings, view.scale]);
+    return { polygon: previewPolygon, validity, commit: { kind: 'room-commit/create-room', request } };
+  }, [
+    assetIndex,
+    decodedMap,
+    isRoomEnabled,
+    props.roomTemplate,
+    roomCenter,
+    roomCloneBuffer,
+    roomRotationQuarterTurns,
+    roomSize.height,
+    roomSize.width,
+    settings,
+    view.scale
+  ]);
 
   React.useEffect(() => {
     if (!isRoomEnabled) {
       return;
     }
 
-    const canCreate = roomPreview !== null && roomPreview.validity.ok && roomPreview.request !== null;
+    const canCreate = roomPreview !== null && roomPreview.validity.ok && roomPreview.commit !== null;
     if (containerRef.current !== null) {
       containerRef.current.style.cursor = canCreate ? 'crosshair' : 'not-allowed';
     }
@@ -1020,18 +1171,43 @@ export const MapEditorCanvas = React.forwardRef<
       if (mapDocument === null) {
         return;
       }
-      if (roomPreview === null || !roomPreview.validity.ok || roomPreview.request === null) {
+      if (roomPreview === null || !roomPreview.validity.ok || roomPreview.commit === null) {
         return;
       }
 
-      const request = roomPreview.request;
+      const commit = roomPreview.commit;
 
       void (async () => {
+        if (commit.kind === 'room-commit/create-room') {
+          const result = await window.nomos.map.edit({
+            baseRevision: mapDocument.revision,
+            command: {
+              kind: 'map-edit/create-room',
+              request: commit.request
+            }
+          });
+
+          if (!result.ok) {
+            if (result.error.code === 'map-edit/stale-revision') {
+              await useNomosStore.getState().refreshFromMain();
+              return;
+            }
+            // eslint-disable-next-line no-console
+            console.error('[nomos] map create-room failed', result.error);
+            return;
+          }
+
+          if (result.value.kind === 'map-edit/applied') {
+            applyMapSelectionEffect(result.value.selection);
+          }
+          return;
+        }
+
         const result = await window.nomos.map.edit({
           baseRevision: mapDocument.revision,
           command: {
-            kind: 'map-edit/create-room',
-            request
+            kind: 'map-edit/stamp-room',
+            request: commit.request
           }
         });
 
@@ -1041,12 +1217,15 @@ export const MapEditorCanvas = React.forwardRef<
             return;
           }
           // eslint-disable-next-line no-console
-          console.error('[nomos] map create-room failed', result.error);
+          console.error(
+            `[nomos] map stamp-room failed code=${result.error.code} message=${result.error.message} details=${JSON.stringify(result.error)}`
+          );
           return;
         }
 
         if (result.value.kind === 'map-edit/applied') {
           applyMapSelectionEffect(result.value.selection);
+          useNomosStore.getState().clearRoomCloneBuffer();
         }
       })();
 
@@ -1558,7 +1737,7 @@ export const MapEditorCanvas = React.forwardRef<
       }
 
       if (points.length >= 6) {
-        const stroke = roomPreview.validity.ok && roomPreview.request !== null ? Colors.GREEN5 : Colors.RED5;
+        const stroke = roomPreview.validity.ok ? Colors.GREEN5 : Colors.RED5;
         roomPreviewOverlays.push(
           <Line
             key="room-preview"

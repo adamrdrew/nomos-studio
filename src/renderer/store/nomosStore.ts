@@ -9,6 +9,7 @@ import type {
   MapRenderMode,
   MapSectorSurface
 } from '../../shared/domain/models';
+import type { RoomStamp } from '../../shared/domain/mapRoomStamp';
 import type { MapEditHistoryInfo, MapEditSelectionEffect, MapEditTargetRef } from '../../shared/ipc/nomosIpc';
 import type { MapSelection } from '../ui/editor/map/mapSelection';
 
@@ -26,10 +27,13 @@ export type NomosStoreState = {
   mapHistory: MapEditHistoryInfo;
   mapSelection: MapSelection | null;
   isPickingPlayerStart: boolean;
+  roomCloneBuffer: RoomStamp | null;
   refreshFromMain: () => Promise<void>;
   setMapSelection: (selection: MapSelection | null) => void;
   applyMapSelectionEffect: (effect: MapEditSelectionEffect) => void;
   setIsPickingPlayerStart: (value: boolean) => void;
+  setRoomCloneBuffer: (buffer: RoomStamp | null) => void;
+  clearRoomCloneBuffer: () => void;
 };
 
 function toMapSelection(ref: MapEditTargetRef): MapSelection {
@@ -107,24 +111,32 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 },
   mapSelection: null,
   isPickingPlayerStart: false,
+  roomCloneBuffer: null,
   refreshFromMain: async () => {
     const snapshotResult = await window.nomos.state.getSnapshot();
     if (!snapshotResult.ok) {
       return;
     }
 
-    set({
-      settings: snapshotResult.value.settings,
-      assetIndex: snapshotResult.value.assetIndex,
-      recentMapPaths: snapshotResult.value.recentMapPaths,
-      mapDocument: snapshotResult.value.mapDocument,
-      mapRenderMode: snapshotResult.value.mapRenderMode,
-      mapSectorSurface: snapshotResult.value.mapSectorSurface,
-      mapGridSettings: snapshotResult.value.mapGridSettings,
-      mapHighlightPortals: snapshotResult.value.mapHighlightPortals,
-      mapHighlightToggleWalls: snapshotResult.value.mapHighlightToggleWalls,
-      mapDoorVisibility: snapshotResult.value.mapDoorVisibility,
-      mapHistory: snapshotResult.value.mapHistory
+    set((state) => {
+      const prevPath = state.mapDocument?.filePath ?? null;
+      const nextPath = snapshotResult.value.mapDocument?.filePath ?? null;
+      const shouldClearCloneBuffer = prevPath !== nextPath;
+
+      return {
+        settings: snapshotResult.value.settings,
+        assetIndex: snapshotResult.value.assetIndex,
+        recentMapPaths: snapshotResult.value.recentMapPaths,
+        mapDocument: snapshotResult.value.mapDocument,
+        mapRenderMode: snapshotResult.value.mapRenderMode,
+        mapSectorSurface: snapshotResult.value.mapSectorSurface,
+        mapGridSettings: snapshotResult.value.mapGridSettings,
+        mapHighlightPortals: snapshotResult.value.mapHighlightPortals,
+        mapHighlightToggleWalls: snapshotResult.value.mapHighlightToggleWalls,
+        mapDoorVisibility: snapshotResult.value.mapDoorVisibility,
+        mapHistory: snapshotResult.value.mapHistory,
+        roomCloneBuffer: shouldClearCloneBuffer ? null : state.roomCloneBuffer
+      };
     });
   },
   setMapSelection: (selection) => {
@@ -154,5 +166,11 @@ export const useNomosStore = create<NomosStoreState>((set) => ({
   },
   setIsPickingPlayerStart: (value) => {
     set({ isPickingPlayerStart: value });
+  },
+  setRoomCloneBuffer: (buffer) => {
+    set({ roomCloneBuffer: buffer });
+  },
+  clearRoomCloneBuffer: () => {
+    set({ roomCloneBuffer: null });
   }
 }));
