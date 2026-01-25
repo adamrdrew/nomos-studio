@@ -1,7 +1,9 @@
 import type { MapEditorInteractionMode } from '../MapEditorCanvas';
 import type { IconName } from '@blueprintjs/icons';
 
-export type MapEditorToolId = 'select' | 'move' | 'door' | 'room' | 'zoom' | 'pan' | 'light';
+export type MapEditorToolIconId = IconName | 'custom/razor';
+
+export type MapEditorToolId = 'select' | 'move' | 'door' | 'room' | 'zoom' | 'pan' | 'light' | 'split';
 
 export type MapEditorToolbarCommandId =
   | 'select/delete'
@@ -24,7 +26,7 @@ export type MapEditorToolDefinition = Readonly<{
   id: MapEditorToolId;
   label: string;
   tooltip: string;
-  icon: IconName;
+  icon: MapEditorToolIconId;
   interactionMode: MapEditorInteractionMode;
   toolbarCommands: readonly MapEditorToolbarCommandDefinition[];
 }>;
@@ -96,6 +98,14 @@ export const MAP_EDITOR_TOOLS: readonly MapEditorToolDefinition[] = [
     tooltip: 'Light',
     icon: 'lightbulb',
     interactionMode: 'light-create',
+    toolbarCommands: []
+  },
+  {
+    id: 'split',
+    label: 'Split',
+    tooltip: 'Split wall',
+    icon: 'custom/razor',
+    interactionMode: 'split',
     toolbarCommands: []
   }
 ] as const;

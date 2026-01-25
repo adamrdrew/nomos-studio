@@ -151,7 +151,7 @@ The editor UI is organized like a traditional creative tool:
 		- Dragging the handle previews the new radius locally, and commits a single `map-edit/update-fields` edit on mouse-up.
 	- The active selection is outlined in red to improve focus.
 	- When the Select tool is active, a yellow hover outline previews what will be selected on click.
-- **Toolbox** (left overlay within the Map Editor): Select / Move / Door / Room / Zoom / Pan / Light tool modes.
+- **Toolbox** (left overlay within the Map Editor): Select / Move / Split / Door / Room / Zoom / Pan / Light tool modes.
 	- Tool selection hotkeys (automatic; max 20 tools):
 		- Hold the primary modifier to show shortcut badges over tools (macOS: Cmd, Windows/Linux: Ctrl). Badges show the tool name and the shortcut.
 		- Tools 1–10: primary modifier + `1..9,0`.
@@ -167,6 +167,12 @@ The editor UI is organized like a traditional creative tool:
 		- On a valid click, the renderer requests `map-edit/create-door` via `window.nomos.map.edit(...)`.
 		- The created door is selected on success.
 		- Doors are created without a default `tex`; the Inspector shows an explicit “(select texture)” placeholder state.
+	- Split mode allows splitting a wall into two walls by clicking.
+		- Clicking a wall requests `map-edit/split-wall` via `window.nomos.map.edit(...)`.
+		- The split point is deterministic: it is computed as the closest-point projection of the pointer world point onto the wall segment.
+		- Clicks that do not hit a wall do nothing.
+		- Portal walls and door-bound walls are intentionally rejected in this phase.
+		- On success, selection becomes the original `{ kind: 'wall', index: wallIndex }`.
 	- Light mode allows creating a new point light by clicking.
 		- Placement validity is enforced by sector containment (nested-sector aware): the click point must be inside any sector.
 		- The cursor indicates validity:

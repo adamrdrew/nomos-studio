@@ -19,8 +19,17 @@ import type { MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
 import type { RoomTemplate } from '../../../../shared/domain/mapRoomCreation';
 import { decodeMapViewModel } from '../map/mapDecoder';
 import { buildRoomStampFromSector } from '../map/roomStampFromSector';
+import { RazorIcon } from '../icons/RazorIcon';
+import type { MapEditorToolIconId } from '../tools/mapEditorTools';
 
 const toaster = Toaster.create({ position: Position.TOP });
+
+function renderToolIcon(icon: MapEditorToolIconId): JSX.Element {
+  if (icon === 'custom/razor') {
+    return <RazorIcon size={16} color={Colors.WHITE} />;
+  }
+  return <Icon icon={icon} color={Colors.WHITE} />;
+}
 
 function MapEditorToolBar(props: {
   activeTool: MapEditorToolDefinition;
@@ -403,7 +412,7 @@ export function MapEditorDockPanel(): JSX.Element {
             <Tooltip key={toolDefinition.id} content={toolDefinition.tooltip} placement="right">
               <div style={{ position: 'relative', width: '100%' }}>
                 <Button
-                  icon={<Icon icon={toolDefinition.icon} color={Colors.WHITE} />}
+                  icon={renderToolIcon(toolDefinition.icon)}
                   minimal={true}
                   fill={true}
                   active={toolId === toolDefinition.id}

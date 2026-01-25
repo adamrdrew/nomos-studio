@@ -21,6 +21,31 @@ function baseMapJsonForDoorCreation(args: { walls: unknown; doors?: unknown }): 
   };
 }
 
+function baseMapJsonForWallSplit(args?: { backSector?: number; doors?: unknown }): Record<string, unknown> {
+  return {
+    vertices: [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 }
+    ],
+    walls: [
+      {
+        v0: 0,
+        v1: 1,
+        front_sector: 0,
+        back_sector: args?.backSector ?? -1,
+        tex: 'WALL.PNG',
+        toggle_sector: false,
+        toggle_sector_id: null,
+        toggle_sector_oneshot: false,
+        toggle_sound: null,
+        toggle_sound_finish: null,
+        end_level: false
+      }
+    ],
+    ...(args?.doors === undefined ? {} : { doors: args.doors })
+  };
+}
+
 function baseMapJsonForRoomCreation(): Record<string, unknown> {
   return {
     vertices: [
@@ -106,6 +131,138 @@ describe('MapCommandEngine', () => {
       throw new Error('Expected failure');
     }
     expect(result.error.code).toBe('map-edit/invalid-json');
+  });
+
+  describe('map-edit/split-wall', () => {
+    it('splits a wall at the closest point on the segment and preserves wall properties', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForWallSplit();
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/split-wall',
+        wallIndex: 0,
+        at: { x: 5, y: 3 }
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) {
+        throw new Error('Expected success');
+      }
+
+      expect(result.value.selection).toEqual({ kind: 'map-edit/selection/set', ref: { kind: 'wall', index: 0 } });
+
+      const nextJson = result.value.nextJson;
+      expect(Array.isArray(nextJson['vertices'])).toBe(true);
+      expect(Array.isArray(nextJson['walls'])).toBe(true);
+
+      const vertices = nextJson['vertices'] as Array<{ x: number; y: number }>;
+      const walls = nextJson['walls'] as Array<Record<string, unknown>>;
+
+      // One new vertex at (5, 0) and one new wall segment appended.
+      expect(vertices).toHaveLength(3);
+      expect(vertices[2]).toEqual({ x: 5, y: 0 });
+
+      expect(walls).toHaveLength(2);
+
+      // Original wall index is updated in place to become v0 -> split.
+      expect(walls[0]).toMatchObject({ v0: 0, v1: 2, front_sector: 0, back_sector: -1, tex: 'WALL.PNG' });
+      // Appended segment is split -> v1.
+      expect(walls[1]).toMatchObject({ v0: 2, v1: 1, front_sector: 0, back_sector: -1, tex: 'WALL.PNG' });
+
+      // Ensure a representative property is preserved across both segments.
+      expect(walls[0]?.['toggle_sector']).toBe(false);
+      expect(walls[1]?.['toggle_sector']).toBe(false);
+    });
+
+    it('returns not-found when wallIndex is out of range', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForWallSplit();
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/split-wall',
+        wallIndex: 99,
+        at: { x: 5, y: 0 }
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/not-found');
+    });
+
+    it('returns invalid-json when at.x/at.y are not finite', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForWallSplit();
+      const command: MapEditCommand = {
+        kind: 'map-edit/split-wall',
+        wallIndex: 0,
+        at: { x: Number.NaN, y: 0 }
+      };
+
+      const result = engine.apply(baseDocument(json), command);
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/invalid-json');
+    });
+
+    it('rejects portal walls (back_sector > -1)', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForWallSplit({ backSector: 0 });
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/split-wall',
+        wallIndex: 0,
+        at: { x: 5, y: 0 }
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/split-wall/invalid-request');
+    });
+
+    it('rejects door-bound walls (doors[].wall_index matches)', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForWallSplit({
+        doors: [{ id: 'door-1', wall_index: 0, tex: 'door.png', starts_closed: false }]
+      });
+
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/split-wall',
+        wallIndex: 0,
+        at: { x: 5, y: 0 }
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/split-wall/invalid-request');
+    });
+
+    it('rejects splits too close to endpoints to avoid degenerate segments', () => {
+      const engine = new MapCommandEngine();
+
+      const json = baseMapJsonForWallSplit();
+      const result = engine.apply(baseDocument(json), {
+        kind: 'map-edit/split-wall',
+        wallIndex: 0,
+        at: { x: 0, y: 0 }
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        throw new Error('Expected failure');
+      }
+      expect(result.error.code).toBe('map-edit/split-wall/invalid-request');
+    });
   });
 
   it('returns invalid-json when document json is an object but is not cloneable', () => {

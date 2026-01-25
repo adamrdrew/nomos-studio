@@ -14,6 +14,7 @@ import {
   computeLightRadiusHandleWorldPoint,
   isWorldPointOnLightRadiusHandle
 } from './map/lightRadiusHandle';
+import { closestPointOnSegment, isPointNearSegmentEndpoints } from './map/segmentMath';
 import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
@@ -27,7 +28,7 @@ import type { StampRoomRequest } from '../../../shared/domain/mapRoomStamp';
 import { computePolygonBounds, normalizePolygonToAnchor, transformStampPolygon } from '../../../shared/domain/mapRoomStampTransform';
 import { hasEntityPlacementDragPayload, tryReadEntityPlacementDragPayload } from './entities/entityPlacementDragPayload';
 
-export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom' | 'light-create';
+export type MapEditorInteractionMode = 'select' | 'move' | 'door' | 'room' | 'pan' | 'zoom' | 'light-create' | 'split';
 
 export type MapEditorViewportApi = Readonly<{
   zoomIn: () => void;
@@ -750,12 +751,13 @@ export const MapEditorCanvas = React.forwardRef<
   const isDoorEnabled = props.interactionMode === 'door';
   const isRoomEnabled = props.interactionMode === 'room';
   const isLightCreateEnabled = props.interactionMode === 'light-create';
+  const isSplitEnabled = props.interactionMode === 'split';
 
   React.useEffect(() => {
-    if (!isSelectEnabled && !isDoorEnabled) {
+    if (!isSelectEnabled && !isDoorEnabled && !isSplitEnabled) {
       setHoveredSelection(null);
     }
-  }, [isDoorEnabled, isSelectEnabled]);
+  }, [isDoorEnabled, isSelectEnabled, isSplitEnabled]);
 
   React.useEffect(() => {
     if (isDoorEnabled || isRoomEnabled) {
@@ -1456,6 +1458,91 @@ export const MapEditorCanvas = React.forwardRef<
           }
           // eslint-disable-next-line no-console
           console.error('[nomos] map create-door failed', result.error);
+          return;
+        }
+
+        if (result.value.kind === 'map-edit/applied') {
+          applyMapSelectionEffect(result.value.selection);
+        }
+      })();
+
+      return;
+    }
+
+    if (isSplitEnabled) {
+      if (mapDocument === null) {
+        return;
+      }
+      if (!decodedMap?.ok) {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+
+      const hit = pickMapSelection({
+        worldPoint: authoredWorldPoint,
+        viewScale: view.scale,
+        map: decodedMap.value,
+        renderMode: mapRenderMode,
+        texturedWallPolygons
+      });
+
+      if (hit?.kind !== 'wall') {
+        return;
+      }
+
+      // Fast path: most maps keep walls[index] aligned, but fall back to find-by-index.
+      const direct = decodedMap.value.walls[hit.index];
+      const wall = direct && direct.index === hit.index ? direct : decodedMap.value.walls.find((candidate) => candidate.index === hit.index);
+      if (!wall) {
+        return;
+      }
+
+      // Avoid triggering requests we know the main process will reject.
+      if (wall.backSector > -1) {
+        return;
+      }
+      if (decodedMap.value.doors.some((door) => door.wallIndex === hit.index)) {
+        return;
+      }
+
+      const v0 = decodedMap.value.vertices[wall.v0];
+      const v1 = decodedMap.value.vertices[wall.v1];
+      if (!v0 || !v1) {
+        return;
+      }
+
+      const splitPoint = closestPointOnSegment(authoredWorldPoint, v0, v1);
+      const epsilon = 1e-6;
+      if (isPointNearSegmentEndpoints(splitPoint, v0, v1, epsilon)) {
+        return;
+      }
+
+      void (async () => {
+        const result = await window.nomos.map.edit({
+          baseRevision: mapDocument.revision,
+          command: {
+            kind: 'map-edit/split-wall',
+            wallIndex: hit.index,
+            at: { x: splitPoint.x, y: splitPoint.y }
+          }
+        });
+
+        if (!result.ok) {
+          if (result.error.code === 'map-edit/stale-revision') {
+            await useNomosStore.getState().refreshFromMain();
+            return;
+          }
           return;
         }
 

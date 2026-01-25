@@ -109,6 +109,11 @@ export type MapEditAtomicCommand =
   | Readonly<{ kind: 'map-edit/delete'; target: MapEditTargetRef }>
   | Readonly<{ kind: 'map-edit/clone'; target: MapEditTargetRef }>
   | Readonly<{
+      kind: 'map-edit/split-wall';
+      wallIndex: number;
+      at: Readonly<{ x: number; y: number }>;
+    }>
+  | Readonly<{
       kind: 'map-edit/create-light';
       at: Readonly<{ x: number; y: number }>;
     }>

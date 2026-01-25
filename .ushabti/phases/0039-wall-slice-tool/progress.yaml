@@ -2,66 +2,92 @@ phase:
   id: 0039
   slug: wall-slice-tool
   title: Wall Slice Tool (Split)
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Confirm touchpoints + invariants
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Renderer: tool list/toolbar/hotkeys in src/renderer/ui/editor/tools/mapEditorTools.ts and src/renderer/ui/editor/panels/MapEditorDockPanel.tsx; wall picking via src/renderer/ui/editor/map/mapPicking.ts; edits issued via window.nomos.map.edit in src/renderer/ui/editor/MapEditorCanvas.tsx (and toolbar commands in MapEditorDockPanel.tsx) with selection effects applied through src/renderer/store/nomosStore.ts. Main: command routing/validation in src/main/application/maps/MapEditService.ts; atomic command execution in src/main/application/maps/MapCommandEngine.ts; undo/redo via src/main/application/maps/MapEditHistory.ts. Invariants: portal walls have back_sector > -1; doors bind to walls by doors[].wall_index; wall indices are used as stable identity across renderer selection, doors, and editor commands so walls[] must never be reordered (split must update in place + append)."
+    touched:
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S002
     title: Extend IPC contract: map-edit/split-wall
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added MapEditAtomicCommand kind map-edit/split-wall with { wallIndex, at: {x,y} } in shared IPC types and updated MapEditService command allowlist + bookkeeping switches to accept it."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/application/maps/MapEditService.ts
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S003
     title: Implement command in MapCommandEngine
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented map-edit/split-wall in MapCommandEngine: validates wall index and coords, rejects portal/door-bound walls, projects to closest point on segment, rejects endpoint-adjacent splits, adds/reuses a vertex, updates the original wall in place and appends the second segment, and returns a deterministic selection set to the original wall index."
+    touched:
+      - src/shared/domain/results.ts
+      - src/main/application/maps/MapCommandEngine.ts
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S004
     title: Main-process unit tests for split-wall
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added MapCommandEngine unit tests covering successful split (projection + property preservation) and all rejection branches: out-of-range index, non-finite coords, portal wall, door-bound wall, and endpoint/degenerate split. Jest run confirms pass." 
+    touched:
+      - src/main/application/maps/MapCommandEngine.test.ts
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S005
     title: Add Split tool definition (left tool bar)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added MapEditorToolId 'split' and a Split tool definition in the left tool bar, plus a new MapEditorInteractionMode 'split' so the tool can be activated end-to-end."
+    touched:
+      - src/renderer/ui/editor/tools/mapEditorTools.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S006
     title: Add a razor icon for the tool
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added a custom razor SVG icon (RazorIcon) and extended tool icon rendering to support a custom icon id for the Split tool (custom/razor)."
+    touched:
+      - src/renderer/ui/editor/icons/RazorIcon.tsx
+      - src/renderer/ui/editor/tools/mapEditorTools.ts
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S007
     title: Renderer interaction: click wall → request split
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Wired Split interaction in MapEditorCanvas: on click, pick a wall hit, project pointer to closest point on the wall segment, ignore endpoint-adjacent splits (epsilon), reject portal/door-bound walls locally, and send a single window.nomos.map.edit request (map-edit/split-wall) with stale-revision refresh handling and selection effect application. Typecheck confirms pass."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S008
     title: Renderer pure helpers + tests (split point math)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added pure segment math helpers (closestPointOnSegment, isPointNearSegmentEndpoints) with Jest tests covering interior projection, endpoint clamping, and zero-length segment guard. Refactored Split click handling to use these helpers."
+    touched:
+      - src/renderer/ui/editor/map/segmentMath.ts
+      - src/renderer/ui/editor/map/segmentMath.test.ts
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S009
     title: Documentation updates (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated map edit command documentation to include map-edit/split-wall (shape, validation rules, semantics) and updated renderer UI docs to describe the Split tool behavior and how it issues the command."
+    touched:
+      - docs/map-edit-command-system.md
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml
   - id: S010
     title: Quality gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Ran lint, typecheck, and full Jest suite using node-based commands/tasks (npm not available in task shell). All gates pass."
+    touched:
+      - .ushabti/phases/0039-wall-slice-tool/progress.yaml

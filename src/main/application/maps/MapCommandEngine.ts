@@ -150,6 +150,30 @@ function targetEquals(a: MapEditTargetRef | null, b: MapEditTargetRef | null): b
   }
 }
 
+type Vec2 = Readonly<{ x: number; y: number }>;
+
+function closestPointOnSegment(point: Vec2, a: Vec2, b: Vec2): Vec2 {
+  const abX = b.x - a.x;
+  const abY = b.y - a.y;
+  const apX = point.x - a.x;
+  const apY = point.y - a.y;
+
+  const abLen2 = abX * abX + abY * abY;
+  if (abLen2 === 0) {
+    return a;
+  }
+
+  const tUnclamped = (apX * abX + apY * abY) / abLen2;
+  const t = Math.max(0, Math.min(1, tUnclamped));
+  return { x: a.x + t * abX, y: a.y + t * abY };
+}
+
+function distanceSquared(a: Vec2, b: Vec2): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy;
+}
+
 export type MapCommandEngineApplyResult = Readonly<{
   nextJson: Record<string, unknown>;
   selection: MapEditSelectionEffect;
@@ -246,6 +270,33 @@ export class MapCommandEngine {
     MapEditError
   > {
     switch (command.kind) {
+      case 'map-edit/split-wall': {
+        const wallIndex = command.wallIndex;
+        if (!Number.isFinite(wallIndex) || !Number.isInteger(wallIndex) || wallIndex < 0) {
+          return err('map-edit/not-found', 'split-wall.wallIndex must be a non-negative integer');
+        }
+
+        const atX = command.at.x;
+        const atY = command.at.y;
+        if (!isFiniteNumber(atX) || !isFiniteNumber(atY)) {
+          return err('map-edit/invalid-json', 'split-wall.at must have finite number x/y');
+        }
+
+        const splitResult = this.splitWallInJson(json, { wallIndex, at: { x: atX, y: atY } });
+        if (!splitResult.ok) {
+          return splitResult;
+        }
+
+        const newRef: MapEditTargetRef = { kind: 'wall', index: wallIndex };
+        return {
+          ok: true,
+          value: {
+            nextJson: splitResult.value,
+            selection: { kind: 'map-edit/selection/set', ref: newRef },
+            nextSelection: newRef
+          }
+        };
+      }
       case 'map-edit/create-light': {
         const toX = command.at.x;
         const toY = command.at.y;
@@ -508,6 +559,120 @@ export class MapCommandEngine {
         return err('map-edit/unsupported-target', `Unsupported map edit command kind: ${String(unknownKind)}`);
       }
     }
+  }
+
+  private splitWallInJson(
+    json: Record<string, unknown>,
+    request: Readonly<{ wallIndex: number; at: Vec2 }>
+  ): Result<Record<string, unknown>, MapEditError> {
+    const vertices = asArray(json['vertices'], 'vertices');
+    if (!vertices.ok) {
+      return vertices;
+    }
+
+    const walls = asArray(json['walls'], 'walls');
+    if (!walls.ok) {
+      return walls;
+    }
+
+    const wallValue = walls.value[request.wallIndex];
+    if (wallValue === undefined) {
+      return err('map-edit/not-found', `walls[${request.wallIndex}] not found`);
+    }
+
+    const wallRecord = asRecord(wallValue, `walls[${request.wallIndex}]`);
+    if (!wallRecord.ok) {
+      return wallRecord;
+    }
+
+    const v0Raw = wallRecord.value['v0'];
+    const v1Raw = wallRecord.value['v1'];
+    if (typeof v0Raw !== 'number' || !Number.isFinite(v0Raw) || !Number.isInteger(v0Raw)) {
+      return err('map-edit/invalid-json', `walls[${request.wallIndex}] must have integer v0/v1`);
+    }
+    if (typeof v1Raw !== 'number' || !Number.isFinite(v1Raw) || !Number.isInteger(v1Raw)) {
+      return err('map-edit/invalid-json', `walls[${request.wallIndex}] must have integer v0/v1`);
+    }
+
+    const v0 = v0Raw;
+    const v1 = v1Raw;
+
+    const backSector = wallRecord.value['back_sector'];
+    if (typeof backSector === 'number' && Number.isFinite(backSector) && backSector > -1) {
+      return err('map-edit/split-wall/invalid-request', 'Cannot split a portal wall.');
+    }
+
+    const doorsValue = json['doors'];
+    if (doorsValue !== undefined) {
+      const doors = asArray(doorsValue, 'doors');
+      if (!doors.ok) {
+        return doors;
+      }
+      for (let doorIndex = 0; doorIndex < doors.value.length; doorIndex += 1) {
+        const door = doors.value[doorIndex];
+        if (!isRecord(door)) {
+          continue;
+        }
+        const wallIndex = door['wall_index'];
+        if (typeof wallIndex === 'number' && Number.isFinite(wallIndex) && Number.isInteger(wallIndex) && wallIndex === request.wallIndex) {
+          return err('map-edit/split-wall/invalid-request', 'Cannot split a door-bound wall.');
+        }
+      }
+    }
+
+    const v0Value = vertices.value[v0];
+    const v1Value = vertices.value[v1];
+    const v0Rec = asXyRecord(v0Value, `vertices[${v0}]`);
+    if (!v0Rec.ok) {
+      return v0Rec;
+    }
+    const v1Rec = asXyRecord(v1Value, `vertices[${v1}]`);
+    if (!v1Rec.ok) {
+      return v1Rec;
+    }
+
+    const a: Vec2 = { x: v0Rec.value['x'] as number, y: v0Rec.value['y'] as number };
+    const b: Vec2 = { x: v1Rec.value['x'] as number, y: v1Rec.value['y'] as number };
+    const splitPoint = closestPointOnSegment(request.at, a, b);
+
+    const epsilon = 1e-6;
+    const epsilon2 = epsilon * epsilon;
+    if (distanceSquared(splitPoint, a) <= epsilon2 || distanceSquared(splitPoint, b) <= epsilon2) {
+      return err('map-edit/split-wall/invalid-request', 'Split point is too close to a wall endpoint.');
+    }
+
+    const baseWall: Record<string, unknown> = { ...wallRecord.value };
+
+    const findExistingVertexIndex = (candidate: Vec2): number | null => {
+      for (let vertexIndex = 0; vertexIndex < vertices.value.length; vertexIndex += 1) {
+        const vertex = vertices.value[vertexIndex];
+        if (!isRecord(vertex)) {
+          continue;
+        }
+        const x = vertex['x'];
+        const y = vertex['y'];
+        if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
+          continue;
+        }
+        const d2 = distanceSquared(candidate, { x, y });
+        if (d2 <= epsilon2) {
+          return vertexIndex;
+        }
+      }
+      return null;
+    };
+
+    const existingVertexIndex = findExistingVertexIndex(splitPoint);
+    const splitVertexIndex = existingVertexIndex ?? vertices.value.length;
+    if (existingVertexIndex === null) {
+      vertices.value.push({ x: splitPoint.x, y: splitPoint.y });
+    }
+
+    // Update existing wall in place and append the second segment; preserve all other wall props.
+    walls.value[request.wallIndex] = { ...baseWall, v0, v1: splitVertexIndex };
+    walls.value.push({ ...baseWall, v0: splitVertexIndex, v1 });
+
+    return { ok: true, value: json };
   }
 
   private createLightInJson(

@@ -63,6 +63,7 @@ export type MapEditError =
         | 'map-edit/not-found'
         | 'map-edit/not-a-portal'
         | 'map-edit/door-already-exists'
+        | 'map-edit/split-wall/invalid-request'
         | 'map-edit/create-room/invalid-request'
         | 'map-edit/create-room/invalid-size'
         | 'map-edit/create-room/intersects-walls'

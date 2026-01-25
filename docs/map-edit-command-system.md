@@ -42,6 +42,7 @@ Atomic commands are the building blocks for edits.
 
 - `map-edit/delete`
 - `map-edit/clone`
+- `map-edit/split-wall`
 - `map-edit/create-entity`
 - `map-edit/create-door`
 - `map-edit/create-light`
@@ -164,6 +165,31 @@ Create-door semantics:
   - `starts_closed: true`
   - no default `tex` (texture is intentionally unset)
 - Selection effect is `map-edit/selection/set` to the newly created `{ kind: 'door', id }`.
+
+`map-edit/split-wall` splits a wall into two walls by wall array index:
+```ts
+{
+  kind: 'map-edit/split-wall';
+  wallIndex: number;
+  at: { x: number; y: number };
+}
+```
+
+Split-wall validation rules:
+- `wallIndex` must be an in-range integer.
+- `at.x` and `at.y` must be finite numbers.
+- The map must have valid `vertices[]` and `walls[]` arrays.
+- The target wall must have integer `v0`/`v1` vertex indices.
+- Portal walls are rejected (`walls[wallIndex].back_sector > -1`).
+- Door-bound walls are rejected (`doors[].wall_index === wallIndex`).
+- The computed split point must not be within a small epsilon of either endpoint (to avoid degenerate zero-length segments).
+
+Split-wall semantics:
+- Computes a deterministic split point as the closest-point projection of `at` onto the target wall segment.
+- Adds (or reuses) a vertex at the split point.
+- Updates the existing wall in place to become one segment and appends a new wall for the other segment.
+- Preserves wall index stability (no reordering of `walls[]`) and preserves wall properties by copying from the original wall record.
+- Selection effect is `map-edit/selection/set` to `{ kind: 'wall', index: wallIndex }`.
 
 `map-edit/create-room` creates room geometry (new `vertices`/`walls`/`sectors`) as a single atomic edit:
 ```ts
