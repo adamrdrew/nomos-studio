@@ -299,3 +299,54 @@ describe('useNomosStore roomCloneBuffer', () => {
     expect(useNomosStore.getState().roomCloneBuffer).toBeNull();
   });
 });
+
+describe('useNomosStore refreshFromMain', () => {
+  afterEach(() => {
+    useNomosStore.setState({ mapDocument: null, roomCloneBuffer: null, mapGridSettings: { isGridVisible: true, gridOpacity: 0.3, isSnapToGridEnabled: true } });
+
+    const w = (globalThis as unknown as { window?: unknown }).window as { nomos?: unknown } | undefined;
+    if (w && 'nomos' in w) {
+      delete w.nomos;
+    }
+  });
+
+  it('refreshFromMain applies mapGridSettings.isSnapToGridEnabled from the main snapshot', async () => {
+    const snapshot: AppStateSnapshot = {
+      settings: {
+        assetsDirPath: null,
+        gameExecutablePath: null,
+        defaultSky: null,
+        defaultSoundfont: null,
+        defaultBgmusic: null,
+        defaultWallTex: null,
+        defaultFloorTex: null,
+        defaultCeilTex: null
+      },
+      assetIndex: null,
+      recentMapPaths: [],
+      mapDocument: null,
+      mapRenderMode: 'textured',
+      mapSectorSurface: 'floor',
+      mapGridSettings: { isGridVisible: true, gridOpacity: 0.3, isSnapToGridEnabled: false },
+      mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
+      mapDoorVisibility: 'visible',
+      mapHistory: { canUndo: false, canRedo: false, undoDepth: 0, redoDepth: 0 }
+    };
+
+    const getSnapshot = jest.fn<Promise<Result<AppStateSnapshot, unknown>>, []>();
+    (globalThis as unknown as { window: { nomos: { state: { getSnapshot: () => ReturnType<typeof getSnapshot> } } } }).window = {
+      nomos: { state: { getSnapshot } }
+    };
+
+    getSnapshot.mockResolvedValueOnce({ ok: true, value: snapshot });
+    await useNomosStore.getState().refreshFromMain();
+
+    expect(useNomosStore.getState().mapGridSettings.isSnapToGridEnabled).toBe(false);
+
+    getSnapshot.mockResolvedValueOnce({ ok: true, value: { ...snapshot, mapGridSettings: { ...snapshot.mapGridSettings, isSnapToGridEnabled: true } } });
+    await useNomosStore.getState().refreshFromMain();
+
+    expect(useNomosStore.getState().mapGridSettings.isSnapToGridEnabled).toBe(true);
+  });
+});

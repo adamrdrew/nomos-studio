@@ -24,13 +24,13 @@ This Phase records a single, bounded work order: introduce the toggle + state pl
   - Light placement — click uses snapped world point for validity + `map-edit/create-light`.
   - Moving entities/lights (Move tool) — snapped end position is used when committing move edits.
   - Player start placement (pick mode) — snapped world point is used when committing `map-edit/set-player-start`.
-  - Wall slicing (wall slice tool) — any pointer-derived cut points are snapped before issuing edits.
+  - Wall slicing (Split tool) — pointer-derived input points are snapped before issuing edits.
 - Unit tests covering new public APIs and all conditional paths per laws.
 - Update subsystem docs impacted by the new behavior and menu item.
 
 ### Out of scope
 - Adding a user-configurable grid size / snapping increment UI.
-- Snapping for other edit flows not listed above (e.g., player-start pick, door placement, wall slice tool) unless they already share the same placement pipeline being modified.
+- Snapping for other edit flows not listed above (e.g., door placement) unless they already share the same placement pipeline being modified.
 - Persisting snap-to-grid preference across app restarts (unless existing grid view state is already persisted; at present it appears snapshot-only).
 
 ## Constraints
@@ -53,7 +53,7 @@ This Phase records a single, bounded work order: introduce the toggle + state pl
   - Entity drop placement and Light placement commit coordinates that are snapped to the grid.
   - Move tool commits snapped `{x,y}` positions for entities and lights.
   - Player start pick commits snapped `{x,y}`.
-  - Wall slice tool uses snapped cut points.
+  - Split tool (wall slicing) uses snapped input points.
 - When Snap to Grid is OFF:
   - The above operations behave exactly as they do today (no coordinate rounding).
 

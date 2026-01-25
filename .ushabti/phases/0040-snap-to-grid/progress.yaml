@@ -2,20 +2,20 @@ phase:
   id: 0040
   slug: snap-to-grid
   title: Snap to Grid
-  status: review
+  status: complete
 
 steps:
   - id: S001
     title: Confirm displayed-grid snap increment rules
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Recorded explicit zoom-based grid spacing rules (integer world-unit steps, ~24px target, major every 5)."
     touched:
       - .ushabti/phases/0040-snap-to-grid/phase.md
   - id: S002
     title: Extend shared grid settings type
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added MapGridSettings.isSnapToGridEnabled and updated defaults/fixtures to compile."
     touched:
       - src/shared/domain/models.ts
@@ -29,7 +29,7 @@ steps:
   - id: S003
     title: Add main-store state + mutators
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added AppStore set/toggle APIs for snap-to-grid (default on) and unit tests covering both branches."
     touched:
       - src/main/application/store/AppStore.ts
@@ -37,7 +37,7 @@ steps:
   - id: S004
     title: Add menu wiring: View → Snap to Grid
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added View → Snap to Grid checkbox item (checked via mapGridSettings) and wired toggle callback through main menu installation."
     touched:
       - src/main/infrastructure/menu/createApplicationMenuTemplate.ts
@@ -46,13 +46,13 @@ steps:
   - id: S005
     title: Surface snap state in the renderer snapshot
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Verified existing state snapshot flow already forwards mapGridSettings (including isSnapToGridEnabled) into renderer nomosStore without new IPC."
     touched: []
   - id: S006
     title: Align grid display spacing + snap spacing (renderer)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extracted chooseMinorGridWorldSpacing into a reusable helper (discrete world-unit steps) and updated MapEditorCanvas grid rendering to use it; added unit tests."
     touched:
       - src/renderer/ui/editor/map/gridSpacing.ts
@@ -61,7 +61,7 @@ steps:
   - id: S007
     title: Implement reusable snapping helper (renderer)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added pure grid snapping helpers (snap to fixed increment and to displayed grid via viewScale) with unit tests, including invalid-spacing branch coverage."
     touched:
       - src/renderer/ui/editor/map/gridSnapping.ts
@@ -69,35 +69,35 @@ steps:
   - id: S008
     title: Apply snapping to room creation + room clone placement
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Room tool now snaps the pointer-derived authored world point (driving roomCenter) to the displayed grid when snap is enabled, so both preview polygons and committed create-room/stamp-room use the same snapped anchor."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
   - id: S009
     title: Apply snapping to wall splitting
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Split-wall now snaps the pointer-derived world point to the displayed grid (when enabled) before projecting to the wall segment, and issues the split at the resulting point."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
   - id: S010
     title: Apply snapping to entity + light placement
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Light create and entity drag/drop now snap pointer-derived world points to the displayed grid (when enabled) and use the snapped point for sector validity and command payloads."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
   - id: S011
     title: Apply snapping to move tool + player start + wall slice
     implemented: true
-    reviewed: false
-    notes: "Move tool now snaps preview and committed positions when enabled; player-start pick commits snapped coordinates. No separate wall-slice tool/command exists in the current codebase to apply snapping to."
+    reviewed: true
+    notes: "Move tool now snaps preview and committed positions when enabled; player-start pick commits snapped coordinates. Wall slicing is implemented by the existing Split tool, and its pointer-derived input point is snapped before issuing map-edit/split-wall."
     touched:
       - src/renderer/ui/editor/MapEditorCanvas.tsx
   - id: S012
     title: Tests (menu/store/renderer)
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Extended View menu template tests for Snap to Grid existence/order/checked state and callback wiring. Added unit tests for grid spacing chooser + snapping helpers (snap on/off behavior covered via invalid-spacing + explicit toggles at call sites)."
     touched:
       - src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
@@ -106,7 +106,7 @@ steps:
   - id: S013
     title: Documentation updates
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Updated menu system and renderer UI subsystem docs to include View → Snap to Grid and describe how snapping affects placement-affecting interactions using displayed grid spacing."
     touched:
       - docs/menu-system.md
@@ -115,7 +115,7 @@ steps:
   - id: S014
     title: Shift modifier: temporarily disable snapping
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added Shift override so holding Shift temporarily disables snapping even when Snap to Grid is enabled; implemented via shouldSnapToGrid helper and applied to pointer-driven placement; updated docs and added unit tests."
     touched:
       - src/renderer/ui/editor/map/gridSnapping.ts
@@ -125,3 +125,20 @@ steps:
       - .ushabti/phases/0040-snap-to-grid/phase.md
       - .ushabti/phases/0040-snap-to-grid/steps.md
       - .ushabti/phases/0040-snap-to-grid/progress.yaml
+
+  - id: S015
+    title: Phase spec/tracker consistency (wall slice vs Split)
+    implemented: true
+    reviewed: true
+    notes: "Fixed Phase 0040 spec/tracker inconsistencies: removed contradictory out-of-scope examples and clarified that wall slicing is the Split tool; corrected S011 note accordingly."
+    touched:
+      - .ushabti/phases/0040-snap-to-grid/phase.md
+      - .ushabti/phases/0040-snap-to-grid/progress.yaml
+
+  - id: S016
+    title: Renderer snapshot flow test (snap-to-grid flag)
+    implemented: true
+    reviewed: true
+    notes: "Added renderer test asserting refreshFromMain() copies mapGridSettings.isSnapToGridEnabled from the main snapshot (including false->true update)."
+    touched:
+      - src/renderer/store/nomosStore.test.ts

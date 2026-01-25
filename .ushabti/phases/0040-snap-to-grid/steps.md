@@ -94,3 +94,18 @@
   - Add unit tests for the new helper/branching behavior.
   - Update renderer UI docs to mention the Shift override.
 - **Done when:** With Snap enabled, holding Shift disables snapping for placement; releasing Shift restores it; tests + typecheck pass.
+
+## S015 — Phase spec/tracker consistency (wall slice vs Split)
+- **Intent:** Keep Phase 0040 artifacts truthful and internally consistent (no contradictory scope statements).
+- **Work:**
+  - Update `phase.md` so **Out of scope** does not cite flows that are explicitly **in scope** (e.g., player-start pick and wall slice/Split).
+  - Clarify naming so “wall slice tool” is explicitly the existing **Split** tool (scissors) in this codebase.
+  - Update `progress.yaml` notes for S011 to reflect that Split (wall slice) exists and is covered by snapping.
+- **Done when:** `phase.md` + `progress.yaml` have no contradictions about wall slice/Split and scope.
+
+## S016 — Renderer snapshot flow test (snap-to-grid flag)
+- **Intent:** Satisfy Phase acceptance criteria that renderer tests cover snapshot values flowing into renderer state.
+- **Work:**
+  - Update `src/renderer/store/nomosStore.test.ts` to assert `refreshFromMain()` copies `mapGridSettings.isSnapToGridEnabled` from the main snapshot into the renderer store.
+  - Include at least one case where the snapshot has `isSnapToGridEnabled: false` so the test proves the value is not just the default.
+- **Done when:** Jest passes and the test explicitly asserts the stored `mapGridSettings.isSnapToGridEnabled` value after refresh.
