@@ -1,0 +1,85 @@
+phase:
+  id: 0040
+  slug: snap-to-grid
+  title: Snap to Grid
+  status: planned
+
+steps:
+  - id: S001
+    title: Confirm displayed-grid snap increment rules
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S002
+    title: Extend shared grid settings type
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S003
+    title: Add main-store state + mutators
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S004
+    title: Add menu wiring: View → Snap to Grid
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S005
+    title: Surface snap state in the renderer snapshot
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S006
+    title: Align grid display spacing + snap spacing (renderer)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S007
+    title: Implement reusable snapping helper (renderer)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S008
+    title: Apply snapping to room creation + room clone placement
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S009
+    title: Apply snapping to wall splitting
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S010
+    title: Apply snapping to entity + light placement
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S011
+    title: Apply snapping to move tool + player start + wall slice
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S012
+    title: Tests (menu/store/renderer)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+  - id: S013
+    title: Documentation updates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
