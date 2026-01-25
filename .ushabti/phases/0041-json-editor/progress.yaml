@@ -1,0 +1,90 @@
+phase:
+  id: 0041
+  slug: json-editor
+  title: JSON Editor
+  status: planned
+
+steps:
+  - id: S001
+    title: Select Monaco integration approach
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Add typed IPC for JSON text read
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Add typed IPC for JSON text write (safe write)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Update Asset Browser double-click routing
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Introduce renderer editor-tab state model
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Implement scrollable tab bar UI
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Implement JSON editor panel using Monaco
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Dirty tracking and title coloring
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Route menu Save to active editor
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Route Save & Run to save-all + run
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Update docs
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S012
+    title: Test pass + regression checks
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
