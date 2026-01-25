@@ -207,3 +207,13 @@
 - **Intent:** Keep repo green after the schema compatibility fix.
 - **Work:** Run Jest + typecheck + lint.
 - **Done when:** All gates pass.
+
+## S024 — Add missing unit test coverage for room stamp transform helpers (L04)
+- **Intent:** Satisfy L04 for the public helper functions in `mapRoomStampTransform`.
+- **Work:**
+  - Extend `src/shared/domain/mapRoomStampTransform.test.ts` to cover:
+    - `computePolygonBounds(...)` null cases (empty polygon; non-finite coords)
+    - `computePolygonAnchor(...)` null case (empty polygon) and normal case
+    - `transformStampPolygon(...)` quarter-turn branches for `rotationQuarterTurns: 0 | 1 | 2 | 3` (at minimum)
+      - Include at least one non-trivial scale + translation assertion for each rotation.
+- **Done when:** Tests cover all meaningful conditional paths driven by `rotationQuarterTurns` and null/edge cases for bounds/anchor.
