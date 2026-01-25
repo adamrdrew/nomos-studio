@@ -1,0 +1,97 @@
+phase:
+  id: 0037
+  slug: texture-select-control
+  title: Texture Select Control
+  status: planned
+
+steps:
+  - id: S001
+    title: Inventory existing texture selects
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S002
+    title: Centralize texture option extraction (pure helper)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S003
+    title: Add unit tests for the new helper (L04)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S004
+    title: Implement texture thumbnail loader utility
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S005
+    title: Build the Texture Select control (grid dropdown)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S006
+    title: Integrate into Inspector: Door texture
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S007
+    title: Integrate into Inspector: Wall texture
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S008
+    title: Integrate into Inspector: Sector floor/ceil textures
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S009
+    title: Integrate into Inspector: “Texture Walls” (paint all walls)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S010
+    title: Integrate into Settings: default wall/floor/ceiling texture
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S011
+    title: Manual verification pass (UI)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S012
+    title: Documentation update (L09)
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
+
+  - id: S013
+    title: Quality gates
+    implemented: false
+    reviewed: false
+    notes: ""
+    touched: []
