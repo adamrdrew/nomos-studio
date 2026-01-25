@@ -146,6 +146,9 @@ The editor UI is organized like a traditional creative tool:
 	- Grid visibility and opacity are controlled by main-process state (`mapGridSettings`) and updated via the View menu.
 	- Portal highlighting and textured-mode door visibility are controlled by main-process snapshot state via the View menu.
 	- Object markers (doors/entities/lights/particles) are sized in screen pixels and do not grow with zoom; light radius remains world-space.
+	- Light radius circles are displayed at 0.5× the stored `radius` to better match runtime visuals.
+	- When a light is selected and the active tool is Select or Move, a draggable radius handle dot is shown on the light’s radius circle (at `(x + radius * 0.5, y)` in world space).
+		- Dragging the handle previews the new radius locally, and commits a single `map-edit/update-fields` edit on mouse-up.
 	- The active selection is outlined in red to improve focus.
 	- When the Select tool is active, a yellow hover outline previews what will be selected on click.
 - **Toolbox** (left overlay within the Map Editor): Select / Move / Door / Room / Zoom / Pan / Light tool modes.
@@ -218,7 +221,9 @@ The editor UI is organized like a traditional creative tool:
 		- Walls, sectors, doors, entities, particles, and lights are editable via the Properties editor.
 			- Texture fields use a shared **Texture Select** control that opens a scrollable thumbnail grid (textures are loaded from assets via preload IPC).
 			- Door fields include `tex`, `starts_closed`, `required_item`, and `required_item_missing_message`.
-			- Light fields include `x`, `y`, `radius`, `intensity`, `color`, and `flicker`.
+				- Light fields include `x`, `y`, `radius`, `intensity`, `color`, and `flicker`.
+					- Light `color` is edited via a gradient-based color picker control.
+					- Light `color` is stored and committed as a hex string `#RRGGBB`.
 			- Sector fields include `light`.
 				- The UI communicates `light` as a 0..1 scalar and clamps out-of-range inputs to `[0, 1]` on commit.
 			- Sector fields include `floor_tex` and `ceil_tex` selection (from textures indexed under `Images/Textures/`, using basenames).

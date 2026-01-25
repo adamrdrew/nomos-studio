@@ -119,3 +119,14 @@
 
 **Done when:**
 - All gates pass.
+
+## S011 — Match editor light radius visuals to runtime
+**Intent:** Reduce mismatch between editor radius circles and runtime lights.
+
+**Work:**
+- Scale the rendered light radius circle (and resize handle position) to 0.5× of the stored light radius.
+- Ensure radius-handle dragging still commits the correct stored `radius` value (i.e., convert between displayed radius and stored radius on drag).
+- Update renderer UI docs so handle placement and behavior match implementation.
+
+**Done when:**
+- Light radius circles in the editor appear half the previous size and the resize-handle interaction remains intuitive (dragging the handle changes the displayed radius directly).

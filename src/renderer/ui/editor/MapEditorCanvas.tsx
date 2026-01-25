@@ -9,6 +9,11 @@ import { decodeMapViewModel } from './map/mapDecoder';
 import { pickMapSelection } from './map/mapPicking';
 import { pickDefaultRoomTextures } from './map/pickDefaultRoomTextures';
 import { buildSectorLoop, pickSectorIdAtWorldPoint } from './map/sectorContainment';
+import {
+  computeLightRadiusFromWorldPoint,
+  computeLightRadiusHandleWorldPoint,
+  isWorldPointOnLightRadiusHandle
+} from './map/lightRadiusHandle';
 import { computeTexturedWallStripPolygons } from './map/wallStripGeometry';
 import type { MapSelection } from './map/mapSelection';
 import type { MapViewModel } from './map/mapViewModel';
@@ -51,6 +56,10 @@ const TEXTURE_TILE_WORLD_UNITS = 4;
 // Textured wall strip thickness is defined in world units so it scales proportionally with zoom.
 // Derive from the texture tile world size to keep wall-to-texture proportions stable.
 const TEXTURED_WALL_THICKNESS_WORLD = TEXTURE_TILE_WORLD_UNITS * 0.1;
+
+// The runtime light visuals appear smaller than the raw map radius.
+// Scale the editor radius circle + handle to match runtime perception.
+const LIGHT_RADIUS_DISPLAY_SCALE = 0.5;
 
 function toRoomMapGeometry(map: MapViewModel): RoomMapGeometry {
   return {
@@ -1120,6 +1129,15 @@ export const MapEditorCanvas = React.forwardRef<
     movePreviewRef.current = movePreview;
   }, [movePreview]);
 
+  const [lightRadiusPreview, setLightRadiusPreview] = React.useState<Readonly<{ index: number; radius: number }> | null>(null);
+  const lightRadiusPreviewRef = React.useRef<Readonly<{ index: number; radius: number }> | null>(null);
+  React.useEffect(() => {
+    lightRadiusPreviewRef.current = lightRadiusPreview;
+  }, [lightRadiusPreview]);
+
+  const isLightRadiusDraggingRef = React.useRef<boolean>(false);
+  const lightRadiusDragStartRef = React.useRef<Readonly<{ index: number; center: Point; startRadius: number }> | null>(null);
+
   const isMoveDraggingRef = React.useRef<boolean>(false);
   const moveDragOffsetRef = React.useRef<Point | null>(null);
 
@@ -1128,6 +1146,10 @@ export const MapEditorCanvas = React.forwardRef<
       isMoveDraggingRef.current = false;
       moveDragOffsetRef.current = null;
       setMovePreview(null);
+
+      isLightRadiusDraggingRef.current = false;
+      lightRadiusDragStartRef.current = null;
+      setLightRadiusPreview(null);
     }
   }, [isMoveEnabled]);
 
@@ -1136,6 +1158,10 @@ export const MapEditorCanvas = React.forwardRef<
       isMoveDraggingRef.current = false;
       moveDragOffsetRef.current = null;
       setMovePreview(null);
+
+      isLightRadiusDraggingRef.current = false;
+      lightRadiusDragStartRef.current = null;
+      setLightRadiusPreview(null);
       return;
     }
 
@@ -1151,6 +1177,10 @@ export const MapEditorCanvas = React.forwardRef<
     isMoveDraggingRef.current = false;
     moveDragOffsetRef.current = null;
     setMovePreview(null);
+
+    isLightRadiusDraggingRef.current = false;
+    lightRadiusDragStartRef.current = null;
+    setLightRadiusPreview(null);
   }, [mapDocument?.revision, mapFilePath]);
 
   const onMouseDown = (event: KonvaEventObject<MouseEvent>): void => {
@@ -1196,6 +1226,64 @@ export const MapEditorCanvas = React.forwardRef<
       })();
 
       return;
+    }
+
+    // Selected-light radius resize handle drag has priority over select/move/pan.
+    if ((isSelectEnabled || isMoveEnabled) && mapSelection?.kind === 'light') {
+      if (!decodedMap?.ok) {
+        return;
+      }
+
+      const selectedLight = decodedMap.value.lights[mapSelection.index];
+      if (!selectedLight) {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+
+      const activePreview = movePreviewRef.current;
+      const centerX =
+        activePreview !== null && activePreview.kind === 'light' && activePreview.index === mapSelection.index
+          ? activePreview.x
+          : selectedLight.x;
+      const centerY =
+        activePreview !== null && activePreview.kind === 'light' && activePreview.index === mapSelection.index
+          ? activePreview.y
+          : selectedLight.y;
+
+      const radiusPreview = lightRadiusPreviewRef.current;
+      const currentStoredRadius = radiusPreview !== null && radiusPreview.index === mapSelection.index ? radiusPreview.radius : selectedLight.radius;
+      const currentDisplayedRadius = (Number.isFinite(currentStoredRadius) ? currentStoredRadius : 0) * LIGHT_RADIUS_DISPLAY_SCALE;
+
+      const handleHitRadiusPx = 10;
+      const isOnHandle = isWorldPointOnLightRadiusHandle({
+        center: { x: centerX, y: centerY },
+        radius: currentDisplayedRadius,
+        worldPoint: authoredWorldPoint,
+        viewScale: view.scale,
+        hitRadiusPx: handleHitRadiusPx
+      });
+
+      if (isOnHandle && (props.interactionMode === 'select' || props.interactionMode === 'move')) {
+        isLightRadiusDraggingRef.current = true;
+        lightRadiusDragStartRef.current = {
+          index: mapSelection.index,
+          center: { x: centerX, y: centerY },
+          startRadius: Math.max(0, Number.isFinite(currentStoredRadius) ? currentStoredRadius : 0)
+        };
+        setLightRadiusPreview({ index: mapSelection.index, radius: Math.max(0, Number.isFinite(currentStoredRadius) ? currentStoredRadius : 0) });
+        return;
+      }
     }
 
     if (isRoomEnabled) {
@@ -1486,6 +1574,49 @@ export const MapEditorCanvas = React.forwardRef<
     isDraggingRef.current = false;
     lastPointerRef.current = null;
 
+    if (isLightRadiusDraggingRef.current) {
+      isLightRadiusDraggingRef.current = false;
+
+      const dragStart = lightRadiusDragStartRef.current;
+      lightRadiusDragStartRef.current = null;
+
+      const preview = lightRadiusPreviewRef.current;
+      setLightRadiusPreview(null);
+
+      if (mapDocument === null || dragStart === null || preview === null || preview.index !== dragStart.index) {
+        return;
+      }
+
+      const nextRadius = Math.max(0, Number.isFinite(preview.radius) ? preview.radius : 0);
+      const startRadius = Math.max(0, Number.isFinite(dragStart.startRadius) ? dragStart.startRadius : 0);
+      const eps = 1e-6;
+      if (Math.abs(nextRadius - startRadius) <= eps) {
+        return;
+      }
+
+      void (async () => {
+        const result = await window.nomos.map.edit({
+          baseRevision: mapDocument.revision,
+          command: {
+            kind: 'map-edit/update-fields',
+            target: { kind: 'light', index: dragStart.index },
+            set: { radius: nextRadius }
+          }
+        });
+
+        if (!result.ok) {
+          if (result.error.code === 'map-edit/stale-revision') {
+            await useNomosStore.getState().refreshFromMain();
+            return;
+          }
+          // eslint-disable-next-line no-console
+          console.error('[nomos] map update-fields (light radius) failed', result.error);
+        }
+      })();
+
+      return;
+    }
+
     if (!isMoveDraggingRef.current) {
       return;
     }
@@ -1543,6 +1674,32 @@ export const MapEditorCanvas = React.forwardRef<
   };
 
   const onMouseMove = (event: KonvaEventObject<MouseEvent>): void => {
+    if (isLightRadiusDraggingRef.current) {
+      const dragStart = lightRadiusDragStartRef.current;
+      if (dragStart === null) {
+        isLightRadiusDraggingRef.current = false;
+        setLightRadiusPreview(null);
+        return;
+      }
+
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition();
+      if (pointer == null) {
+        return;
+      }
+
+      const renderWorldPoint = screenToWorld({ x: pointer.x, y: pointer.y }, view);
+      const authoredWorldPoint: Point = {
+        x: renderWorldPoint.x + mapOrigin.x,
+        y: renderWorldPoint.y + mapOrigin.y
+      };
+
+      const nextRadius = computeLightRadiusFromWorldPoint({ center: dragStart.center, worldPoint: authoredWorldPoint });
+      const nextStoredRadius = LIGHT_RADIUS_DISPLAY_SCALE > 0 ? nextRadius / LIGHT_RADIUS_DISPLAY_SCALE : 0;
+      setLightRadiusPreview({ index: dragStart.index, radius: Math.max(0, Number.isFinite(nextStoredRadius) ? nextStoredRadius : 0) });
+      return;
+    }
+
         if (isRoomEnabled) {
           const stage = event.target.getStage();
           const pointer = stage?.getPointerPosition();
@@ -1831,6 +1988,7 @@ export const MapEditorCanvas = React.forwardRef<
   const selectionOverlays: JSX.Element[] = [];
   const lightRadiusCircles: JSX.Element[] = [];
   const lightMarkers: JSX.Element[] = [];
+  const lightRadiusHandles: JSX.Element[] = [];
   const particleMarkers: JSX.Element[] = [];
   const entityMarkers: JSX.Element[] = [];
   const playerStartOverlays: JSX.Element[] = [];
@@ -1868,6 +2026,8 @@ export const MapEditorCanvas = React.forwardRef<
     const safeScale = Math.max(0.0001, view.scale);
     const doorMarkerSizeWorld = doorMarkerSizePx / safeScale;
     const lightMarkerRadiusWorld = lightMarkerRadiusPx / safeScale;
+    const lightRadiusHandleRadiusPx = 5;
+    const lightRadiusHandleRadiusWorld = lightRadiusHandleRadiusPx / safeScale;
     const particleMarkerSizeWorld = particleMarkerSizePx / safeScale;
     const entityMarkerSizeWorld = entityMarkerSizePx / safeScale;
 
@@ -2466,6 +2626,10 @@ export const MapEditorCanvas = React.forwardRef<
       const lightX = preview !== null && preview.kind === 'light' && preview.index === light.index ? preview.x : light.x;
       const lightY = preview !== null && preview.kind === 'light' && preview.index === light.index ? preview.y : light.y;
 
+      const radiusPreview = lightRadiusPreview;
+      const effectiveStoredRadius = radiusPreview !== null && radiusPreview.index === light.index ? radiusPreview.radius : light.radius;
+      const effectiveDisplayedRadius = (Number.isFinite(effectiveStoredRadius) ? effectiveStoredRadius : 0) * LIGHT_RADIUS_DISPLAY_SCALE;
+
       const baseAlpha = 0.08;
       const intensityAlpha = clamp(light.intensity * 0.12, 0, 0.2);
       const radiusFillAlpha = clamp(baseAlpha + intensityAlpha, 0.05, 0.25);
@@ -2478,7 +2642,7 @@ export const MapEditorCanvas = React.forwardRef<
           key={`light-radius-${light.index}`}
           x={toRenderX(lightX)}
           y={toRenderY(lightY)}
-          radius={Math.max(0, light.radius)}
+          radius={Math.max(0, effectiveDisplayedRadius)}
           fill={radiusFill}
           stroke={radiusStroke}
           strokeWidth={1}
@@ -2497,6 +2661,27 @@ export const MapEditorCanvas = React.forwardRef<
           strokeScaleEnabled={false}
         />
       );
+
+      if (
+        mapSelection !== null
+        && mapSelection.kind === 'light'
+        && mapSelection.index === light.index
+        && (props.interactionMode === 'select' || props.interactionMode === 'move')
+      ) {
+        const handle = computeLightRadiusHandleWorldPoint({ center: { x: lightX, y: lightY }, radius: effectiveDisplayedRadius });
+        lightRadiusHandles.push(
+          <Circle
+            key={`light-radius-handle-${light.index}`}
+            x={toRenderX(handle.x)}
+            y={toRenderY(handle.y)}
+            radius={lightRadiusHandleRadiusWorld}
+            fill={Colors.WHITE}
+            stroke={Colors.BLUE4}
+            strokeWidth={2}
+            strokeScaleEnabled={false}
+          />
+        );
+      }
     }
 
     for (const particle of map.particles) {
@@ -2694,6 +2879,7 @@ export const MapEditorCanvas = React.forwardRef<
           {wallLines}
           {doorMarkers}
           {lightRadiusCircles}
+          {lightRadiusHandles}
           {lightMarkers}
           {particleMarkers}
           {entityMarkers}

@@ -2,75 +2,109 @@ phase:
   id: 0038
   slug: light-control-improvements
   title: Light Control Improvements
-  status: planned
+  status: review
 
 steps:
   - id: S001
     title: Confirm touchpoints and interaction rules
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Touchpoints: MapEditorCanvas light rendering at lightRadiusCircles/lightMarkers (MapEditorCanvas.tsx) and pointer handlers (onMouseDown/onMouseMove/onMouseUp) where move-preview + move-light commit occurs; add new helper module under src/renderer/ui/editor/map for handle geometry/hit testing; Light Object Properties is LightEditor in PropertiesEditor.tsx. Commit paths: radius/color edits use map-edit/update-fields via window.nomos.map.edit (already used in PropertiesEditor); canvas currently commits move-light (map-edit/move-light) and create-light. Interaction rules: handle shown only when selection.kind==='light'; enabled only when interactionMode is 'select' or 'move'; handle placed at (x + radius, y) in authored world space; drag updates local preview only and commits a single update-fields { radius } on mouse up; clamp radius to >= 0 and ignore non-finite values; if selection light missing or map decode fails, no-op."
+    touched:
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S002
     title: Add pure helpers for radius handle geometry + hit testing
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added pure helper module for selected-light radius handle position, hit-testing using viewScale + pixel hit radius, and radius computation from center→pointer distance (with non-finite guards and radius>=0 clamp)."
+    touched:
+      - src/renderer/ui/editor/map/lightRadiusHandle.ts
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S003
     title: Render the resize handle for the selected light
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Rendered a distinct, zoom-stable handle dot at (x+radius,y) for the selected light in select/move modes, using a pure helper for handle position."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/map/lightRadiusHandle.ts
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S004
     title: Implement drag interaction to resize radius
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added a dedicated selected-light radius drag state in MapEditorCanvas: pointer-down on handle enters resize-drag, pointer-move updates a local radius preview, and mouse-up commits a single map-edit/update-fields { radius } edit. Resize-drag takes priority over select/move/pan and is enabled only in select/move modes."
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - src/renderer/ui/editor/map/lightRadiusHandle.ts
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S005
     title: Unit tests for radius handle helpers
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added unit tests covering handle position clamping, hit-testing across view scales and guard branches, and radius computation including non-finite inputs."
+    touched:
+      - src/renderer/ui/editor/map/lightRadiusHandle.test.ts
+      - src/renderer/ui/editor/map/lightRadiusHandle.ts
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S006
     title: Create a reusable gradient Color Picker control (renderer)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added a reusable gradient-based ColorSelect control (hue slider + 2D SV gradient) plus pure RGB/HSV/hex conversion helpers for stable 0..255 output, without introducing new dependencies."
+    touched:
+      - src/renderer/ui/shared/controls/ColorSelect.tsx
+      - src/renderer/ui/shared/controls/colorUtils.ts
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S007
     title: Integrate Color Picker into Light Object Properties
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: Integrated ColorSelect into Light properties, replacing raw RGB inputs; commits map light color via map-edit/update-fields as #RRGGBB.
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S008
     title: Unit tests for color conversion helpers
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: Added unit tests for clamp/hex parsing and RGB↔HSV conversions including boundary and non-finite inputs.
+    touched:
+      - src/renderer/ui/shared/controls/colorUtils.ts
+      - src/renderer/ui/shared/controls/colorUtils.test.ts
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S009
     title: Update docs (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: Documented the selected-light radius handle interaction and the gradient color picker with #RRGGBB storage format.
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
 
   - id: S010
     title: Quality gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: Ran Jest, TypeScript typecheck, and ESLint; fixed an exactOptionalPropertyTypes mismatch for Blueprint disabled props.
+    touched:
+      - src/renderer/ui/shared/controls/ColorSelect.tsx
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml
+
+  - id: S011
+    title: Match editor light radius visuals to runtime
+    implemented: true
+    reviewed: false
+    notes: Scaled editor-rendered light radius circles/handle position to 0.5× stored radius; updated handle drag math to commit the correct stored radius and updated docs.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0038-light-control-improvements/progress.yaml

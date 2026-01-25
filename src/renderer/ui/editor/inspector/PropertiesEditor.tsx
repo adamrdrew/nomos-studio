@@ -31,6 +31,8 @@ import {
 import { parseEntityManifestFiles } from '../entities/entityManifestParser';
 import { getTextureFileNames } from '../../shared/assets/getTextureFileNames';
 import { TextureSelect } from '../../shared/controls/TextureSelect';
+import { ColorSelect } from '../../shared/controls/ColorSelect';
+import { clampRgb, rgbToHex, type RgbColor } from '../../shared/controls/colorUtils';
 
 const toaster = Toaster.create({ position: Position.TOP });
 
@@ -48,15 +50,6 @@ export type InspectorSelectionModel = EditableSelection;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
-}
-
-function toHexByte(value: number): string {
-  const rounded = Math.round(clamp(value, 0, 255));
-  return rounded.toString(16).padStart(2, '0');
-}
-
-function rgbToHex(color: Readonly<{ r: number; g: number; b: number }>): string {
-  return `#${toHexByte(color.r)}${toHexByte(color.g)}${toHexByte(color.b)}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -314,9 +307,7 @@ function LightEditor(props: {
 
   const [flicker, setFlicker] = React.useState<MapLight['flicker']>(props.light.flicker);
 
-  const [colorRText, setColorRText] = React.useState<string>(String(props.light.color.r));
-  const [colorGText, setColorGText] = React.useState<string>(String(props.light.color.g));
-  const [colorBText, setColorBText] = React.useState<string>(String(props.light.color.b));
+  const [color, setColor] = React.useState<RgbColor>(clampRgb(props.light.color));
 
   const [error, setError] = React.useState<string | null>(null);
 
@@ -325,9 +316,7 @@ function LightEditor(props: {
     setYText(String(props.light.y));
     setRadiusText(String(props.light.radius));
     setIntensityText(String(props.light.intensity));
-    setColorRText(String(props.light.color.r));
-    setColorGText(String(props.light.color.g));
-    setColorBText(String(props.light.color.b));
+    setColor(clampRgb(props.light.color));
     setFlicker(props.light.flicker);
     setError(null);
   }, [selectionKey, props.light]);
@@ -355,25 +344,8 @@ function LightEditor(props: {
     await commitUpdateFields(props.target, { [jsonKey]: parsed });
   };
 
-  const commitColor = async (): Promise<void> => {
-    const r = Number.parseFloat(colorRText);
-    const g = Number.parseFloat(colorGText);
-    const b = Number.parseFloat(colorBText);
-
-    if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) {
-      setError('color components must be finite numbers');
-      setColorRText(String(props.light.color.r));
-      setColorGText(String(props.light.color.g));
-      setColorBText(String(props.light.color.b));
-      return;
-    }
-
-    const clamped = {
-      r: Math.round(clamp(r, 0, 255)),
-      g: Math.round(clamp(g, 0, 255)),
-      b: Math.round(clamp(b, 0, 255))
-    };
-
+  const commitColor = async (next: RgbColor): Promise<void> => {
+    const clamped = clampRgb(next);
     const nextHex = rgbToHex(clamped);
     const currentHex = rgbToHex(props.light.color);
     if (nextHex.toLowerCase() === currentHex.toLowerCase()) {
@@ -382,9 +354,7 @@ function LightEditor(props: {
     }
 
     setError(null);
-    setColorRText(String(clamped.r));
-    setColorGText(String(clamped.g));
-    setColorBText(String(clamped.b));
+    setColor(clamped);
     await commitUpdateFields(props.target, { color: nextHex });
   };
 
@@ -453,42 +423,16 @@ function LightEditor(props: {
         </HTMLSelect>
       </FormGroup>
 
-      <FormGroup label="color (RGB 0–255)" helperText={error ?? undefined} intent={error ? Intent.DANGER : Intent.NONE}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <InputGroup
-            value={colorRText}
-            onChange={(event) => setColorRText(event.currentTarget.value)}
-            onBlur={() => void commitColor()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                void commitColor();
-              }
-            }}
-            style={{ backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
-          />
-          <InputGroup
-            value={colorGText}
-            onChange={(event) => setColorGText(event.currentTarget.value)}
-            onBlur={() => void commitColor()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                void commitColor();
-              }
-            }}
-            style={{ backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
-          />
-          <InputGroup
-            value={colorBText}
-            onChange={(event) => setColorBText(event.currentTarget.value)}
-            onBlur={() => void commitColor()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                void commitColor();
-              }
-            }}
-            style={{ backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
-          />
-        </div>
+      <FormGroup label="color" helperText={error ?? undefined} intent={error ? Intent.DANGER : Intent.NONE}>
+        <ColorSelect
+          value={color}
+          onChange={(next) => {
+            setColor(clampRgb(next));
+          }}
+          onCommit={(next) => {
+            void commitColor(next);
+          }}
+        />
       </FormGroup>
     </div>
   );
