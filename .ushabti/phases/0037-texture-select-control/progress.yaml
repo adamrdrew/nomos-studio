@@ -2,96 +2,123 @@ phase:
   id: 0037
   slug: texture-select-control
   title: Texture Select Control
-  status: planned
+  status: in_progress
 
 steps:
   - id: S001
     title: Inventory existing texture selects
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Checklist of current texture selects + semantics to preserve: (1) Settings defaults: src/renderer/renderer.tsx SettingsPanel -> Default wall/floor/ceil texture HTMLSelect; empty string UI maps to persisted null; buildSelectOptions adds '(missing)' when current not available; supports disabled state via defaultsDisabled. (2) Inspector Door texture: src/renderer/ui/editor/inspector/PropertiesEditor.tsx DoorEditor -> HTMLSelect with placeholder '(select texture)' value ''; selecting empty trims -> commitUpdateFields tex: MAP_EDIT_UNSET; shows 'No textures indexed' option when list empty. (3) Inspector Wall texture: PropertiesEditor.tsx WallEditor -> wall tex select commits immediately via map-edit/update-fields with wall tex string (no none placeholder). (4) Inspector Sector floor/ceil: PropertiesEditor.tsx SectorEditor -> floor_tex and ceil_tex selects commit immediately; ceil control hidden when Skybox is effectively on; Skybox toggle auto-assigns first available texture when turning off SKY; empty textures list shows 'No textures indexed'. (5) Inspector Sector 'Texture Walls' (paint all walls): PropertiesEditor.tsx SectorEditor -> local wallTex state select with options '(none)' value '', '(mixed)' value __nomos_mixed__, texture basenames, plus '(missing)' entry when current not in options; selection does not commit; Set button commits map-edit/set-sector-wall-tex and is disabled per existing rules.""
+    touched:
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S002
     title: Centralize texture option extraction (pure helper)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added shared renderer helper for texture file-name extraction with Images/Textures vs Assets/Images/Textures fallback, and updated both Settings panel and PropertiesEditor to use it (behavior preserved: first prefix with matches wins; filenames are the relative names under the texture dir; blanks filtered; sorted)."
+    touched:
+      - src/renderer/ui/shared/assets/getTextureFileNames.ts
+      - src/renderer/renderer.tsx
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S003
     title: Add unit tests for the new helper (L04)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added node-environment Jest tests covering prefix preference vs fallback, blank filtering, sorting, subdirectory preservation, and null-assetIndex handling."
+    touched:
+      - src/renderer/ui/shared/assets/getTextureFileNames.test.ts
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S004
     title: Implement texture thumbnail loader utility
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Implemented renderer-safe thumbnail utilities: path resolution (Images/Textures vs Assets/Images/Textures), MIME inference, bounded LRU object-URL cache with revocation on eviction/clear, and an async helper to load+cache URLs via injected readFileBytes; added unit tests covering cache hit/miss, eviction, and failure paths."
+    touched:
+      - src/renderer/ui/shared/textures/textureThumbnails.ts
+      - src/renderer/ui/shared/textures/textureThumbnails.test.ts
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S005
     title: Build the Texture Select control (grid dropdown)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Added reusable renderer TextureSelect control (Blueprint Popover + scrollable grid) with optional empty/special options, missing-value display, selected-state styling, and lazy thumbnail loading via IntersectionObserver using the bounded object-URL cache utilities." 
+    touched:
+      - src/renderer/ui/shared/controls/TextureSelect.tsx
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S006
     title: Integrate into Inspector: Door texture
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Replaced DoorEditor texture HTMLSelect with TextureSelect, preserving '(select texture)' empty value semantics, MAP_EDIT_UNSET clearing, and 'No textures indexed' messaging (plus missing-value display when current tex isn't in options)."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S007
     title: Integrate into Inspector: Wall texture
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Replaced WallEditor texture dropdown with TextureSelect; selecting a texture still commits immediately via map-edit/update-fields, and missing/no-textures states are handled without changing map semantics."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S008
     title: Integrate into Inspector: Sector floor/ceil textures
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Replaced SectorEditor floor/ceil texture dropdowns with TextureSelect; still commits immediately via update-fields and keeps Skybox toggle flow unchanged (ceil picker remains hidden when Skybox is on)."
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S009
     title: Integrate into Inspector: “Texture Walls” (paint all walls)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Replaced the 'Texture Walls' dropdown with TextureSelect while preserving the non-auto-commit workflow (local state only) and the existing Set button enable/disable rules, including '(none)', '(mixed)', and missing-value display." 
+    touched:
+      - src/renderer/ui/editor/inspector/PropertiesEditor.tsx
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S010
     title: Integrate into Settings: default wall/floor/ceiling texture
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Replaced SettingsPanel default texture dropdowns with TextureSelect while preserving empty string UI state (persisted as null on apply) and '(missing)' display for values not present in indexed textures; respects defaultsDisabled." 
+    touched:
+      - src/renderer/renderer.tsx
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S011
     title: Manual verification pass (UI)
     implemented: false
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Manual (in-app) verification required; checklist written to .ushabti/phases/0037-texture-select-control/verification/manual-ui-checklist.md." 
+    touched:
+      - .ushabti/phases/0037-texture-select-control/verification/manual-ui-checklist.md
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S012
     title: Documentation update (L09)
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Updated renderer UI docs to describe the shared Texture Select (thumbnail grid) control and its usage in Inspector texture fields and Settings defaults." 
+    touched:
+      - docs/renderer-ui-system.md
+      - .ushabti/phases/0037-texture-select-control/progress.yaml
 
   - id: S013
     title: Quality gates
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: ""
-    touched: []
+    notes: "Ran node-based tasks: jest (node) passed; eslint (node) passed (TypeScript version support warning only); tsc --noEmit passed. Note: tasks that invoke `npm` directly fail in this environment due to PATH, so verification used the provided absolute node tasks." 
+    touched:
+      - .ushabti/phases/0037-texture-select-control/progress.yaml

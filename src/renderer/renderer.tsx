@@ -5,6 +5,8 @@ import { Button, Callout, FormGroup, H1, HTMLSelect, InputGroup, Spinner } from 
 import { EditorShell } from './ui/editor/EditorShell';
 import { useNomosStore } from './store/nomosStore';
 import { FreshLaunchView } from './ui/launch/FreshLaunchView';
+import { getTextureFileNamesFromEntries } from './ui/shared/assets/getTextureFileNames';
+import { TextureSelect } from './ui/shared/controls/TextureSelect';
 
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
@@ -52,26 +54,6 @@ function extractAssetBasenames(assetIndexEntries: readonly string[], prefix: str
   }
 
   return [...basenames].sort((a, b) => a.localeCompare(b));
-}
-
-function getTextureFileNames(assetIndexEntries: readonly string[]): readonly string[] {
-  const prefixes = ['Images/Textures/', 'Assets/Images/Textures/'] as const;
-
-  let matches: string[] = [];
-  for (const prefix of prefixes) {
-    const candidate = assetIndexEntries
-      .filter((entry) => entry.startsWith(prefix))
-      .map((entry) => entry.slice(prefix.length))
-      .filter((fileName) => fileName.trim().length > 0);
-
-    if (candidate.length > 0) {
-      matches = candidate;
-      break;
-    }
-  }
-
-  matches.sort((a, b) => a.localeCompare(b));
-  return matches;
 }
 
 type SelectOption = Readonly<{ value: string; label: string }>;
@@ -239,7 +221,7 @@ function SettingsPanel(props: { onDone: () => void; onCancel: () => void }): JSX
     if (assetIndex === null) {
       return [];
     }
-    return getTextureFileNames(assetIndex.entries);
+    return getTextureFileNamesFromEntries(assetIndex.entries);
   }, [assetIndex]);
 
   return (
@@ -324,35 +306,41 @@ function SettingsPanel(props: { onDone: () => void; onCancel: () => void }): JSX
         </FormGroup>
 
         <FormGroup label="Default wall texture" helperText={defaultsHelperText}>
-          <HTMLSelect
+          <TextureSelect
+            assetIndex={assetIndex}
             value={defaultWallTex}
-            onChange={(event) => setDefaultWallTex(event.currentTarget.value)}
+            textureOptions={textureOptions}
+            allowEmpty={true}
+            emptyLabel="(none)"
+            includeMissingValue={true}
             disabled={defaultsDisabled}
-            options={buildSelectOptions(textureOptions, defaultWallTex.trim().length === 0 ? null : defaultWallTex)}
-            fill={true}
+            onChange={setDefaultWallTex}
           />
         </FormGroup>
 
         <FormGroup label="Default floor texture" helperText={defaultsHelperText}>
-          <HTMLSelect
+          <TextureSelect
+            assetIndex={assetIndex}
             value={defaultFloorTex}
-            onChange={(event) => setDefaultFloorTex(event.currentTarget.value)}
+            textureOptions={textureOptions}
+            allowEmpty={true}
+            emptyLabel="(none)"
+            includeMissingValue={true}
             disabled={defaultsDisabled}
-            options={buildSelectOptions(
-              textureOptions,
-              defaultFloorTex.trim().length === 0 ? null : defaultFloorTex
-            )}
-            fill={true}
+            onChange={setDefaultFloorTex}
           />
         </FormGroup>
 
         <FormGroup label="Default ceiling texture" helperText={defaultsHelperText}>
-          <HTMLSelect
+          <TextureSelect
+            assetIndex={assetIndex}
             value={defaultCeilTex}
-            onChange={(event) => setDefaultCeilTex(event.currentTarget.value)}
+            textureOptions={textureOptions}
+            allowEmpty={true}
+            emptyLabel="(none)"
+            includeMissingValue={true}
             disabled={defaultsDisabled}
-            options={buildSelectOptions(textureOptions, defaultCeilTex.trim().length === 0 ? null : defaultCeilTex)}
-            fill={true}
+            onChange={setDefaultCeilTex}
           />
         </FormGroup>
       </div>

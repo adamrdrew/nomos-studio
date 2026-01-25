@@ -216,6 +216,7 @@ The editor UI is organized like a traditional creative tool:
 	- Object Properties shows the selected map object and allows editing supported selection kinds.
 		- Edits are committed via `window.nomos.map.edit(...)` using the `map-edit/update-fields` atomic command.
 		- Walls, sectors, doors, entities, particles, and lights are editable via the Properties editor.
+			- Texture fields use a shared **Texture Select** control that opens a scrollable thumbnail grid (textures are loaded from assets via preload IPC).
 			- Door fields include `tex`, `starts_closed`, `required_item`, and `required_item_missing_message`.
 			- Light fields include `x`, `y`, `radius`, `intensity`, `color`, and `flicker`.
 			- Sector fields include `light`.
@@ -226,8 +227,8 @@ The editor UI is organized like a traditional creative tool:
 				- Off: shows the ceiling texture dropdown.
 				- When switching from SKY to Off, the UI immediately commits `ceil_tex` to the first available texture option (to keep the map valid) and does not add a synthetic SKY dropdown entry.
 				- If no textures are indexed under `Images/Textures/`, switching Off is blocked with an inline message.
-			- Sector fields include a **Texture Walls** control (dropdown + Set button).
-				- The dropdown is populated from textures indexed under `Images/Textures/` (fallback `Assets/Images/Textures/`) and uses basenames.
+			- Sector fields include a **Texture Walls** control (Texture Select + Set button).
+				- The selector is populated from textures indexed under `Images/Textures/` (fallback `Assets/Images/Textures/`) and uses basenames.
 				- Changing the dropdown does not commit; clicking **Set** commits a single `map-edit/set-sector-wall-tex` edit.
 				- “Surrounding walls” are defined as walls where `wall.front_sector === sectorId` (no cross-boundary painting).
 			- Wall fields include toggle authoring:
@@ -302,7 +303,8 @@ Default-asset fields (nullable; stored as basenames and sourced from `assetIndex
 	- The root UI renders only the Settings panel.
 	- “Apply” persists changes without closing the window.
 	- “Done” closes the window.
-	- If assets are configured but `assetIndex` is still null, the UI shows a spinner and “Indexing assets…” and keeps default-asset dropdowns disabled until the index arrives.
+	- If assets are configured but `assetIndex` is still null, the UI shows a spinner and “Indexing assets…” and keeps default-asset selectors disabled until the index arrives.
+	- Default wall/floor/ceiling textures are selected using the same Texture Select thumbnail grid control as the Inspector.
 
 ### State freshness
 - Renderer state is snapshot-based.

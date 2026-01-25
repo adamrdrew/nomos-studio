@@ -29,6 +29,8 @@ import {
 } from './toggleSectorIdPicker';
 
 import { parseEntityManifestFiles } from '../entities/entityManifestParser';
+import { getTextureFileNames } from '../../shared/assets/getTextureFileNames';
+import { TextureSelect } from '../../shared/controls/TextureSelect';
 
 const toaster = Toaster.create({ position: Position.TOP });
 
@@ -98,30 +100,6 @@ function buildEntityDefOptions(manifestFiles: readonly string[], currentValue: s
 
   options.sort((a, b) => a.label.localeCompare(b.label));
   return options;
-}
-
-function getTextureFileNames(assetIndex: AssetIndex | null): readonly string[] {
-  if (assetIndex === null) {
-    return [];
-  }
-
-  const prefixes = ['Images/Textures/', 'Assets/Images/Textures/'] as const;
-
-  let matches: string[] = [];
-  for (const prefix of prefixes) {
-    const candidate = assetIndex.entries
-      .filter((entry) => entry.startsWith(prefix))
-      .map((entry) => entry.slice(prefix.length))
-      .filter((fileName) => fileName.trim().length > 0);
-
-    if (candidate.length > 0) {
-      matches = candidate;
-      break;
-    }
-  }
-
-  matches.sort((a, b) => a.localeCompare(b));
-  return matches;
 }
 
 function getEffectsSoundFileNames(assetIndex: AssetIndex | null): readonly string[] {
@@ -624,10 +602,15 @@ function DoorEditor(props: {
       <ReadOnlyField label="wallIndex" value={String(props.door.wallIndex)} />
 
       <FormGroup label="texture" style={{ marginTop: 10, marginBottom: 10 }}>
-        <HTMLSelect
+        <TextureSelect
+          assetIndex={props.assetIndex}
           value={tex}
-          onChange={(event) => {
-            const next = event.currentTarget.value;
+          textureOptions={textureOptions}
+          allowEmpty={true}
+          emptyLabel="(select texture)"
+          emptyStateLabel="No textures indexed"
+          includeMissingValue={true}
+          onChange={(next) => {
             setTex(next);
             const current = props.door.tex ?? '';
             if (next === current) {
@@ -639,16 +622,7 @@ function DoorEditor(props: {
             }
             void commitUpdateFields(props.target, { tex: next });
           }}
-          style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
-        >
-          <option value="">(select texture)</option>
-          {textureOptions.length === 0 ? <option value={tex}>No textures indexed</option> : null}
-          {textureOptions.map((fileName) => (
-            <option key={fileName} value={fileName}>
-              {fileName}
-            </option>
-          ))}
-        </HTMLSelect>
+        />
       </FormGroup>
 
       <FormGroup label="startsClosed" style={{ marginBottom: 0 }}>
@@ -806,24 +780,20 @@ function WallEditor(props: {
       />
 
       <FormGroup label="texture" style={{ marginTop: 10, marginBottom: 10 }}>
-        <HTMLSelect
+        <TextureSelect
+          assetIndex={props.assetIndex}
           value={tex}
-          onChange={(event) => {
-            const next = event.currentTarget.value;
+          textureOptions={textureOptions}
+          emptyStateLabel="No textures indexed"
+          includeMissingValue={true}
+          disabled={textureOptions.length === 0}
+          onChange={(next) => {
             setTex(next);
             if (next !== props.wall.tex) {
               void commitUpdateFields(props.target, { tex: next });
             }
           }}
-          style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
-        >
-          {textureOptions.length === 0 ? <option value={tex}>No textures indexed</option> : null}
-          {textureOptions.map((fileName) => (
-            <option key={fileName} value={fileName}>
-              {fileName}
-            </option>
-          ))}
-        </HTMLSelect>
+        />
       </FormGroup>
 
       <FormGroup label="endLevel" style={{ marginBottom: 0 }}>
@@ -1204,24 +1174,20 @@ function SectorEditor(props: {
       />
 
       <FormGroup label="floor texture" style={{ marginTop: 10, marginBottom: 10 }}>
-        <HTMLSelect
+        <TextureSelect
+          assetIndex={props.assetIndex}
           value={floorTex}
-          onChange={(event) => {
-            const next = event.currentTarget.value;
+          textureOptions={textureOptions}
+          emptyStateLabel="No textures indexed"
+          includeMissingValue={true}
+          disabled={textureOptions.length === 0}
+          onChange={(next) => {
             setFloorTex(next);
             if (next !== props.sector.floorTex) {
               void commitUpdateFields(props.target, { floor_tex: next });
             }
           }}
-          style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
-        >
-          {textureOptions.length === 0 ? <option value={floorTex}>No textures indexed</option> : null}
-          {textureOptions.map((fileName) => (
-            <option key={fileName} value={fileName}>
-              {fileName}
-            </option>
-          ))}
-        </HTMLSelect>
+        />
       </FormGroup>
 
       <FormGroup label="Show Skybox" style={{ marginBottom: 10 }}>
@@ -1253,52 +1219,50 @@ function SectorEditor(props: {
 
       {!effectiveShowSkybox ? (
         <FormGroup label="ceil texture" style={{ marginBottom: 0 }}>
-          <HTMLSelect
+          <TextureSelect
+            assetIndex={props.assetIndex}
             value={ceilTex}
-            onChange={(event) => {
-              const next = event.currentTarget.value;
+            textureOptions={textureOptions}
+            emptyStateLabel="No textures indexed"
+            includeMissingValue={true}
+            disabled={textureOptions.length === 0}
+            onChange={(next) => {
               setCeilTex(next);
               if (next !== props.sector.ceilTex) {
                 void commitUpdateFields(props.target, { ceil_tex: next });
               }
             }}
-            style={{ width: '100%', backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
-          >
-            {textureOptions.length === 0 ? <option value={ceilTex}>No textures indexed</option> : null}
-            {textureOptions.map((fileName) => (
-              <option key={fileName} value={fileName}>
-                {fileName}
-              </option>
-            ))}
-          </HTMLSelect>
+          />
         </FormGroup>
       ) : null}
 
       <FormGroup label="Texture Walls" style={{ marginTop: 10, marginBottom: 0 }}>
         <div style={{ display: 'flex', gap: 8 }}>
-          <HTMLSelect
-            fill={true}
-            value={wallTex}
-            onChange={(event) => {
-              setWallTex(event.currentTarget.value);
-            }}
-            style={{ flex: 1, backgroundColor: Colors.DARK_GRAY1, color: Colors.LIGHT_GRAY5 }}
-          >
-            {textureOptions.length === 0 ? <option value="">No textures indexed</option> : null}
-
-            {textureOptions.length > 0 ? <option value="">(none)</option> : null}
-            {textureOptions.length > 0 ? <option value={SECTOR_WALL_TEX_MIXED_VALUE}>(mixed)</option> : null}
-
-            {textureOptions.map((fileName) => (
-              <option key={fileName} value={fileName}>
-                {fileName}
-              </option>
-            ))}
-
-            {wallTex.trim().length > 0 && wallTex !== SECTOR_WALL_TEX_MIXED_VALUE && !textureOptions.includes(wallTex.trim()) ? (
-              <option value={wallTex.trim()}>{wallTex.trim()} (missing)</option>
-            ) : null}
-          </HTMLSelect>
+          <div style={{ flex: 1 }}>
+            <TextureSelect
+              assetIndex={props.assetIndex}
+              value={wallTex}
+              textureOptions={textureOptions}
+              allowEmpty={textureOptions.length > 0}
+              emptyLabel="(none)"
+              specialOptions={
+                textureOptions.length > 0
+                  ? [
+                      {
+                        value: SECTOR_WALL_TEX_MIXED_VALUE,
+                        label: '(mixed)'
+                      }
+                    ]
+                  : []
+              }
+              includeMissingValue={true}
+              emptyStateLabel="No textures indexed"
+              disabled={textureOptions.length === 0}
+              onChange={(next) => {
+                setWallTex(next);
+              }}
+            />
+          </div>
 
           <Button
             text="Set"
