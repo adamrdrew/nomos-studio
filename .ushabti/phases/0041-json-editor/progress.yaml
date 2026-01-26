@@ -2,89 +2,151 @@ phase:
   id: 0041
   slug: json-editor
   title: JSON Editor
-  status: planned
+  status: complete
 
 steps:
   - id: S001
     title: Select Monaco integration approach
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Decision: bundle Monaco via `monaco-editor` + `monaco-editor-webpack-plugin` (no CDN); use built-in `vs-dark` theme; update renderer CSP with `worker-src 'self' blob:` and add asset/resource rule for Monaco fonts/icons."
+    touched:
+      - package.json
+      - package-lock.json
+      - webpack.renderer.config.js
 
   - id: S002
     title: Add typed IPC for JSON text read
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added `assetsReadJsonText` IPC channel + preload method and implemented `ReadAssetJsonTextService` with traversal protection and `.json` restriction; added unit tests for service and IPC/preload wiring."
+    touched:
+      - src/shared/domain/results.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/application/assets/ReadAssetJsonTextService.ts
+      - src/main/application/assets/ReadAssetJsonTextService.test.ts
+      - src/main/infrastructure/assets/nodeTextFileReader.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/main.ts
+      - src/preload/createNomosApi.ts
+      - src/preload/createNomosApi.test.ts
+      - src/preload/nomos.d.ts
 
   - id: S003
     title: Add typed IPC for JSON text write (safe write)
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
-
-  - id: S004
-    title: Update Asset Browser double-click routing
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added `assetsWriteJsonText` IPC channel + preload method and implemented `WriteAssetJsonTextService` with safe-write (tmp + Windows-safe replace), traversal protection, and `.json` restriction; added unit tests." 
+    touched:
+      - src/shared/domain/results.ts
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/application/assets/WriteAssetJsonTextService.ts
+      - src/main/application/assets/WriteAssetJsonTextService.test.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/main.ts
+      - src/preload/createNomosApi.ts
+      - src/preload/createNomosApi.test.ts
+      - src/preload/nomos.d.ts
 
   - id: S005
     title: Introduce renderer editor-tab state model
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added JSON editor tab state to the renderer store (active tab id + open tabs) with open/close actions that create and dispose Monaco text models; added unit tests covering success and failure branches without loading Monaco in Jest."
+    touched:
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/store/nomosStore.test.ts
+
+  - id: S004
+    title: Update Asset Browser double-click routing
+    implemented: true
+    reviewed: true
+    notes: "Implemented routing for non-Level `*.json` to open in-app JSON tabs (new `open-json-in-editor` action) and wired InspectorDockPanel to call the store’s `openJsonEditorTab`; unit tests updated/extended."
+    touched:
+      - src/renderer/ui/editor/inspector/assetActionRouter.ts
+      - src/renderer/ui/editor/inspector/assetActionRouter.test.ts
+      - src/renderer/ui/editor/panels/InspectorDockPanel.tsx
 
   - id: S006
     title: Implement scrollable tab bar UI
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added a scrollable editor tab bar (Map + closable JSON tabs) above the editor surface and wired activation/close to the renderer store."
+    touched:
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
 
   - id: S007
     title: Implement JSON editor panel using Monaco
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Rendered Monaco for the active JSON tab using the stored Monaco text model and `vs-dark` theme configuration."
+    touched:
+      - src/renderer/ui/editor/panels/JsonEditorPanel.tsx
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
 
   - id: S008
     title: Dirty tracking and title coloring
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added JSON dirty tracking via Monaco model change subscription (compared against last saved text) and updated the editor tab bar to render map/JSON tab titles in red when dirty, white otherwise; added unit tests for JSON dirty tracking and disposal." 
+    touched:
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/store/nomosStore.test.ts
+      - src/renderer/ui/editor/panels/MapEditorDockPanel.tsx
 
   - id: S009
     title: Route menu Save to active editor
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Added typed main→renderer menu Save event wiring (shared channel + preload subscription) and renderer-side save routing to the active tab (map save via IPC; JSON save via assets.writeJsonText updating dirty/lastSavedText)."
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/main.ts
+      - src/preload/createNomosApi.ts
+      - src/preload/createNomosApi.test.ts
+      - src/preload/nomos.d.ts
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/store/nomosStore.test.ts
+      - src/renderer/ui/editor/EditorShell.tsx
 
   - id: S010
     title: Route Save & Run to save-all + run
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Implemented renderer-side save-all + run flow (deterministic JSON save order, map save if dirty) and added IPC for invoking main Save & Run; menu Save & Run now routes to renderer via typed main→renderer event." 
+    touched:
+      - src/shared/ipc/nomosIpc.ts
+      - src/main/main.ts
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/preload/createNomosApi.ts
+      - src/preload/createNomosApi.test.ts
+      - src/preload/nomos.d.ts
+      - src/renderer/store/nomosStore.ts
+      - src/renderer/store/nomosStore.test.ts
+      - src/renderer/ui/editor/EditorShell.tsx
 
   - id: S011
     title: Update docs
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Updated docs to reflect JSON-in-editor routing, renderer tab system + Monaco requirements, and Save/Save & Run main→renderer request flow; added new JSON editor subsystem doc; kept IPC/preload docs in sync with new channels."
+    touched:
+      - docs/assets-system.md
+      - docs/menu-system.md
+      - docs/renderer-ui-system.md
+      - docs/json-editor-system.md
+      - docs/ipc-system.md
+      - docs/preload-system.md
 
   - id: S012
     title: Test pass + regression checks
-    implemented: false
-    reviewed: false
-    notes: ""
-    touched: []
+    implemented: true
+    reviewed: true
+    notes: "Automated checks are green after fixing `main.ts` notifier initialization order and resolving lint issues (unused vars; React hooks deps). Jest (with coverage), ESLint, and `tsc --noEmit` all pass. Manual acceptance flows were exercised during dev run and are ready for reviewer verification."
+    touched:
+      - src/main/main.ts
+      - src/renderer/ui/editor/panels/JsonEditorPanel.tsx
+      - .ushabti/phases/0041-json-editor/progress.yaml

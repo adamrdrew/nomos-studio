@@ -27,11 +27,15 @@ The preload exposes a minimal, namespaced API:
 - `window.nomos.dialogs.*`
 - `window.nomos.assets.*`
 - `window.nomos.map.*`
+- `window.nomos.menu.*`
 - `window.nomos.state.*`
 
 Implementation pattern:
 - invoke-style calls: `ipcRenderer.invoke(channel, payload)`
-- one narrow event stream: `ipcRenderer.on(NOMOS_IPC_CHANNELS.stateChanged, ...)`
+- narrow event streams:
+	- `ipcRenderer.on(NOMOS_IPC_CHANNELS.stateChanged, ...)`
+	- `ipcRenderer.on(NOMOS_IPC_CHANNELS.menuSaveRequested, ...)`
+	- `ipcRenderer.on(NOMOS_IPC_CHANNELS.menuSaveAndRunRequested, ...)`
 
 ### Typed contract
 - Channel constants: `NOMOS_IPC_CHANNELS` in `src/shared/ipc/nomosIpc.ts`
@@ -43,6 +47,13 @@ Implementation pattern:
 
 - The payload is optional.
 - Today the only defined payload field is `selectionEffect?: MapEditSelectionEffect`, which is used to reconcile renderer selection for main-triggered operations (e.g., menu Undo/Redo).
+
+### Menu request events
+The preload also exposes menu request subscriptions:
+- `window.nomos.menu.onSaveRequested(listener)`
+- `window.nomos.menu.onSaveAndRunRequested(listener)`
+
+These are used when the renderer must decide how to handle a menu command based on renderer-local UI state (e.g., which editor tab is active).
 
 ## Boundaries & invariants
 

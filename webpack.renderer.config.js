@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const path = require('node:path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 function rendererContentSecurityPolicy(isDev) {
   if (isDev) {
@@ -9,6 +10,7 @@ function rendererContentSecurityPolicy(isDev) {
       "script-src 'self' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
+      "worker-src 'self' blob:",
       "font-src 'self' data:",
       "connect-src 'self' http: https: ws:"
     ].join('; ');
@@ -19,6 +21,7 @@ function rendererContentSecurityPolicy(isDev) {
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
+    "worker-src 'self' blob:",
     "font-src 'self' data:"
   ].join('; ');
 }
@@ -40,6 +43,10 @@ module.exports = {
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.(ttf|woff2?|eot|svg)$/,
+        type: 'asset/resource'
       }
     ]
   },
@@ -50,6 +57,9 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './src/renderer/index.html',
       csp: rendererContentSecurityPolicy(process.env.NODE_ENV !== 'production')
+    }),
+    new MonacoWebpackPlugin({
+      languages: ['json']
     })
   ],
   output: {

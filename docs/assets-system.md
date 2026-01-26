@@ -11,6 +11,7 @@ The assets index currently represents:
 
 In the editor UI, the Asset Browser uses a small double-click routing rule:
 - `Levels/*.json` is treated as a map and opened in-editor.
+- other `*.json` files open in the in-app JSON editor.
 - All other assets open via the OS default handler.
 
 ## Architecture
@@ -30,6 +31,7 @@ The assets system is split across the standard boundaries:
 	- `nodePathService` is a small adapter over Node `path` utilities used for absolute/relative path checks.
 	- `nodeShellOpener` is an adapter over Electron shell integration used to open files in the OS.
 	- `nodeBinaryFileReader` is an adapter used to read file bytes from disk (for textures and other binary assets).
+	- `nodeTextFileReader` is an adapter used to read and write UTF-8 text files from disk (for JSON editor tabs).
 
 - **IPC / preload surface**
 	- The renderer can call `window.nomos.assets.refreshIndex()`.
@@ -38,6 +40,10 @@ The assets system is split across the standard boundaries:
 	- The main process handles that via the `nomos:assets:open` channel, which delegates to `OpenAssetService.openAsset(relativePath)`.
 	- The renderer can call `window.nomos.assets.readFileBytes({ relativePath })` to read asset bytes (e.g., for rendering textures).
 	- The main process handles that via the `nomos:assets:read-file-bytes` channel, which delegates to `ReadAssetFileBytesService.readFileBytes(relativePath)`.
+	- The renderer can call `window.nomos.assets.readJsonText({ relativePath })` to read JSON text for in-app editing.
+	- The main process handles that via the `nomos:assets:read-json-text` channel, which delegates to `ReadAssetJsonTextService.readJsonText(relativePath)`.
+	- The renderer can call `window.nomos.assets.writeJsonText({ relativePath, text })` to save JSON text back to disk.
+	- The main process handles that via the `nomos:assets:write-json-text` channel, which delegates to `WriteAssetJsonTextService.writeJsonText(relativePath, text)`.
 
 ## Public API / entrypoints
 
@@ -51,6 +57,12 @@ The assets system is split across the standard boundaries:
 - `ReadAssetFileBytesService`
 	- `readFileBytes(relativePath: string): Promise<Result<Uint8Array, ReadAssetError>>`
 
+- `ReadAssetJsonTextService`
+	- `readJsonText(relativePath: string): Promise<Result<string, ReadAssetError>>`
+
+- `WriteAssetJsonTextService`
+	- `writeJsonText(relativePath: string, text: string): Promise<Result<null, WriteAssetError>>`
+
 ### Infrastructure API (main)
 - `AssetIndexer`
 	- `buildIndex(baseDir: string): Promise<Result<AssetIndex, AssetIndexError>>`
@@ -63,6 +75,8 @@ The assets system is split across the standard boundaries:
 - `window.nomos.assets.refreshIndex(): Promise<RefreshAssetIndexResponse>`
 - `window.nomos.assets.open(request: { relativePath: string }): Promise<OpenAssetResponse>`
 - `window.nomos.assets.readFileBytes(request: { relativePath: string }): Promise<ReadAssetFileBytesResponse>`
+- `window.nomos.assets.readJsonText(request: { relativePath: string }): Promise<ReadAssetJsonTextResponse>`
+- `window.nomos.assets.writeJsonText(request: { relativePath: string; text: string }): Promise<WriteAssetJsonTextResponse>`
 
 Editor-only map open:
 - `window.nomos.map.openFromAssets(request: { relativePath: string }): Promise<OpenMapFromAssetsResponse>`
@@ -81,6 +95,16 @@ Read file bytes:
 - Channel: `nomos:assets:read-file-bytes`
 - Request type: `ReadAssetFileBytesRequest = Readonly<{ relativePath: string }>`
 - Response type: `ReadAssetFileBytesResponse = Result<Uint8Array, ReadAssetError>`
+
+Read JSON text:
+- Channel: `nomos:assets:read-json-text`
+- Request type: `ReadAssetJsonTextRequest = Readonly<{ relativePath: string }>`
+- Response type: `ReadAssetJsonTextResponse = Result<string, ReadAssetError>`
+
+Write JSON text:
+- Channel: `nomos:assets:write-json-text`
+- Request type: `WriteAssetJsonTextRequest = Readonly<{ relativePath: string; text: string }>`
+- Response type: `WriteAssetJsonTextResponse = Result<null, WriteAssetError>`
 
 ## Data shapes
 
@@ -129,6 +153,11 @@ type AssetIndexError = Readonly<{
 	- absolute paths
 	- null bytes
 	- paths that resolve outside the configured assets directory
+
+### System safety for JSON text read/write (L06)
+- JSON text operations use the same traversal protection rules as read-file-bytes.
+- JSON text operations additionally reject non-`.json` paths.
+- JSON text writes use a safe-write strategy (temp + replace) to avoid partially-written files.
 
 ### Settings dependency
 - Indexing depends on `EditorSettings.assetsDirPath`.

@@ -24,15 +24,6 @@
   - Ensure traversal protection and `.json` restriction.
 - **Done when:** A unit test suite covers write success and each validation failure branch.
 
-## S004 — Update Asset Browser double-click routing
-- **Intent:** Make JSON open in-app instead of external.
-- **Work:**
-  - Update the Asset Browser’s double-click handler so:
-    - `Levels/*.json` continues to open the map.
-    - other `*.json` opens a JSON editor tab.
-    - non-JSON continues to use OS open.
-- **Done when:** Manual verification confirms the routing, and any existing tests are updated or extended accordingly.
-
 ## S005 — Introduce renderer editor-tab state model
 - **Intent:** Create a renderer-local model for an arbitrary number of JSON tabs.
 - **Work:**
@@ -42,13 +33,22 @@
   - Ensure tab close disposes Monaco resources.
 - **Done when:** Opening and closing tabs is possible with deterministic cleanup and no console errors.
 
+## S004 — Update Asset Browser double-click routing
+- **Intent:** Make JSON open in-app instead of external.
+- **Work:**
+  - Update the Asset Browser’s double-click handler so:
+    - `Levels/*.json` continues to open the map.
+    - other `*.json` opens a JSON editor tab.
+    - non-JSON continues to use OS open.
+- **Done when:** Routing logic + wiring are implemented and unit tests are updated/extended accordingly. Manual verification of the routing is performed as part of S012.
+
 ## S006 — Implement scrollable tab bar UI
 - **Intent:** Support many tabs without layout breakage.
 - **Work:**
   - Add a tab strip UI above the editor surface.
   - Ensure horizontal scroll on overflow (`overflow-x: auto`, non-wrapping labels).
   - Implement Map tab as fixed, non-closable; JSON tabs show left-side X.
-- **Done when:** Opening many JSON tabs demonstrates scrolling and close behavior.
+- **Done when:** Tab strip UI is implemented (including close behavior). Manual verification of overflow scrolling and close behavior is performed as part of S012.
 
 ## S007 — Implement JSON editor panel using Monaco
 - **Intent:** Provide a first-class JSON editing experience.
@@ -56,7 +56,7 @@
   - Render Monaco in a JSON tab.
   - Configure JSON language mode and diagnostics for malformed JSON.
   - Ensure a dark theme is applied.
-- **Done when:** Malformed JSON produces Monaco markers and syntax highlighting is visible.
+- **Done when:** Monaco panel renders for JSON tabs, uses the JSON language model and a dark theme configuration. Visual verification of markers/syntax highlighting is performed as part of S012.
 
 ## S008 — Dirty tracking and title coloring
 - **Intent:** Provide accurate save state feedback.
@@ -64,7 +64,7 @@
   - Mark JSON tab dirty on editor changes (compare against last saved text).
   - Apply title color rules (red unsaved, white saved).
   - Apply the same rule to the Map tab title using `mapDocument.dirty` from snapshot.
-- **Done when:** Dirty indicators behave as specified for both map and JSON.
+- **Done when:** Dirty tracking logic and title coloring rules are implemented (map tab from `mapDocument.dirty`, JSON tabs from Monaco model changes vs last saved text). Visual verification is performed as part of S012.
 
 ## S009 — Route menu Save to active editor
 - **Intent:** Save command affects the currently focused editor.
@@ -74,7 +74,7 @@
     - if active is Map tab: call existing map save IPC
     - if active is JSON tab: call JSON write IPC with current text
   - Define failure UX (error dialog via existing notifier patterns).
-- **Done when:** Save works correctly for both editor types via menu.
+- **Done when:** Menu Save is routed to the renderer and implemented to save the active editor tab (map vs JSON). Manual verification via the running app is performed as part of S012.
 
 ## S010 — Route Save & Run to save-all + run
 - **Intent:** Save & Run saves all open editors (map + JSON) before running.
@@ -84,7 +84,7 @@
     - the map (if dirty)
   - Add an IPC entrypoint to invoke the existing main-process Save & Run service from the renderer.
   - Ensure Save & Run menu item triggers this renderer flow.
-- **Done when:** Save & Run performs save-all then validate/run; failures prevent run.
+- **Done when:** Renderer implements save-all + run flow (save dirty JSON tabs, save map if dirty, then invoke main Save & Run via IPC) and menu Save & Run routes to that renderer flow. Manual verification is performed as part of S012.
 
 ## S011 — Update docs
 - **Intent:** Keep subsystem documentation current (L09).

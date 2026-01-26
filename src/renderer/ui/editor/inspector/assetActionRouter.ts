@@ -1,5 +1,6 @@
 export type AssetDoubleClickAction =
   | Readonly<{ kind: 'open-map-in-editor'; relativePath: string }>
+  | Readonly<{ kind: 'open-json-in-editor'; relativePath: string }>
   | Readonly<{ kind: 'open-via-os'; relativePath: string }>;
 
 function normalizePathSeparators(value: string): string {
@@ -13,6 +14,11 @@ export function routeAssetDoubleClick(relativePath: string): AssetDoubleClickAct
   const isMapUnderLevels = lower.startsWith('levels/') && lower.endsWith('.json');
   if (isMapUnderLevels) {
     return { kind: 'open-map-in-editor', relativePath: normalized };
+  }
+
+  const isJson = lower.endsWith('.json');
+  if (isJson) {
+    return { kind: 'open-json-in-editor', relativePath: normalized };
   }
 
   return { kind: 'open-via-os', relativePath: normalized };

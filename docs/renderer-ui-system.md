@@ -6,6 +6,8 @@ The renderer UI subsystem contains the React UI that runs in Electron renderer p
 Current responsibilities:
 - Render the main “editor shell” UI (DockView layout) including the Map Editor surface and Inspector panels.
 - Render the currently-open map (wireframe or textured) in the Map Editor canvas.
+- Render in-app JSON editor tabs (Monaco) for non-level `*.json` assets.
+- Track editor dirty state (map + JSON tabs) and reflect it in the tab UI.
 - Support Select-tool hit-testing and Properties display/editing.
 - Render Settings UI in two contexts:
 	- As a dedicated Settings window when launched in “settings mode”.
@@ -17,6 +19,7 @@ Current responsibilities:
 - `src/renderer/index.html`
 	- Defines the root element and sets a CSP meta tag from Webpack configuration.
 	- **CSP note (textures):** textured rendering currently loads images from in-memory bytes using `URL.createObjectURL(...)`, which produces `blob:` image URLs. The effective CSP must therefore include `img-src 'self' data: blob:`.
+	- **CSP note (Monaco):** Monaco uses web workers for language services. The effective CSP must include `worker-src 'self' blob:`.
 
 - `src/renderer/renderer.tsx`
 	- React entrypoint.
@@ -34,6 +37,7 @@ Current responsibilities:
 		- Entities (right, tabbed with Inspector)
 	- Focuses editor-only behaviors (DockView lifecycle, keyboard undo/redo, etc).
 	- Core panels are non-closable and are re-created if removed.
+	- Subscribes to main→renderer menu requests (Save, Save & Run) via the preload API and routes them to renderer-owned save flows.
 
 - `src/renderer/ui/launch/FreshLaunchView.tsx`
 	- Dedicated first-run / no-document UI surface.
@@ -95,6 +99,9 @@ Renderer state is intentionally small:
 		- `mapSelection` (selected map object identity)
 		- `isPickingPlayerStart` (temporary “pick player start” interaction mode)
 		- `roomCloneBuffer` (optional buffered room stamp used by Room Clone; cleared when the map `filePath` changes)
+		- editor tab state:
+			- `activeEditorTabId` (`'map'` or `json:<relativePath>`)
+			- `jsonEditorTabs` (open JSON tabs, each backed by a Monaco text model)
 	- Includes snapshot fields used by UI enablement and rendering:
 		- `mapGridSettings`
 		- `mapHighlightPortals`
@@ -109,10 +116,18 @@ Renderer code calls the typed preload surface `window.nomos.*` for privileged op
 - File/directory dialogs: `window.nomos.dialogs.*`
 - Open asset in OS: `window.nomos.assets.open({ relativePath })`
 - Read asset bytes (for textures): `window.nomos.assets.readFileBytes({ relativePath })`
+- Read/write JSON text (for JSON editor tabs):
+	- `window.nomos.assets.readJsonText({ relativePath })`
+	- `window.nomos.assets.writeJsonText({ relativePath, text })`
 - Map operations: `window.nomos.map.*`
+- Run operation (after save-all): `window.nomos.map.saveAndRun()`
 - State snapshot: `window.nomos.state.getSnapshot()`
 - State change subscription: `window.nomos.state.onChanged(listener)`
 	- The listener may receive an optional payload (currently `selectionEffect?: MapEditSelectionEffect`) for deterministic selection reconciliation.
+
+Menu requests (main→renderer):
+- `window.nomos.menu.onSaveRequested(listener)`
+- `window.nomos.menu.onSaveAndRunRequested(listener)`
 
 ## Editor UI (normal mode)
 
@@ -230,6 +245,7 @@ The editor UI is organized like a traditional creative tool:
 - **Inspector** panel (right): contains collapsible sections, currently Asset Browser, Object Properties, and Map Properties.
 	- Asset Browser renders the current asset index entries and supports opening files via a small double-click router:
 		- `Levels/*.json` opens the map in-editor via `window.nomos.map.openFromAssets({ relativePath })`.
+		- other `*.json` opens a JSON editor tab in-app (renderer-local tab state; persisted only for the current session).
 		- all other assets open via `window.nomos.assets.open({ relativePath })`.
 		- Asset icons are color-coded by file type for readability on the dark surface.
 	- Object Properties shows the selected map object and allows editing supported selection kinds.

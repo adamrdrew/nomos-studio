@@ -18,11 +18,14 @@ import type {
   OpenAssetError,
   OpenMapFromAssetsError,
   ReadAssetError,
+  WriteAssetError,
   Result,
   SettingsError
 } from '../domain/results';
 
 export const NOMOS_IPC_CHANNELS = {
+  menuSaveRequested: 'nomos:menu:save-requested',
+  menuSaveAndRunRequested: 'nomos:menu:save-and-run-requested',
   settingsGet: 'nomos:settings:get',
   settingsUpdate: 'nomos:settings:update',
   dialogsPickDirectory: 'nomos:dialogs:pick-directory',
@@ -31,11 +34,14 @@ export const NOMOS_IPC_CHANNELS = {
   assetsRefreshIndex: 'nomos:assets:refresh-index',
   assetsOpen: 'nomos:assets:open',
   assetsReadFileBytes: 'nomos:assets:read-file-bytes',
+  assetsReadJsonText: 'nomos:assets:read-json-text',
+  assetsWriteJsonText: 'nomos:assets:write-json-text',
   mapValidate: 'nomos:map:validate',
   mapNew: 'nomos:map:new',
   mapOpen: 'nomos:map:open',
   mapOpenFromAssets: 'nomos:map:open-from-assets',
   mapSave: 'nomos:map:save',
+  mapSaveAndRun: 'nomos:map:save-and-run',
   mapEdit: 'nomos:map:edit',
   mapUndo: 'nomos:map:undo',
   mapRedo: 'nomos:map:redo',
@@ -73,6 +79,12 @@ export type OpenAssetResponse = Result<null, OpenAssetError>;
 export type ReadAssetFileBytesRequest = Readonly<{ relativePath: string }>;
 export type ReadAssetFileBytesResponse = Result<Uint8Array, ReadAssetError>;
 
+export type ReadAssetJsonTextRequest = Readonly<{ relativePath: string }>;
+export type ReadAssetJsonTextResponse = Result<string, ReadAssetError>;
+
+export type WriteAssetJsonTextRequest = Readonly<{ relativePath: string; text: string }>;
+export type WriteAssetJsonTextResponse = Result<null, WriteAssetError>;
+
 export type ValidateMapRequest = Readonly<{ mapPath: string }>;
 export type ValidateMapResponse = Result<null, MapValidationError>;
 
@@ -88,6 +100,8 @@ export type OpenMapFromAssetsResponse = Result<
 >;
 
 export type SaveMapResponse = Result<MapDocument, MapIoError>;
+
+export type SaveAndRunMapResponse = Result<null, { message: string }>;
 
 export type MapEditTargetRef =
   | Readonly<{ kind: 'map' }>

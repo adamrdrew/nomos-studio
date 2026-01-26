@@ -7,7 +7,13 @@ describe('routeAssetDoubleClick', () => {
     expect(action).toEqual({ kind: 'open-map-in-editor', relativePath: 'Levels/MyLevel.JSON' });
   });
 
-  it('routes non-Levels assets to open-via-os', () => {
+  it('routes non-Level *.json to open-json-in-editor', () => {
+    const action = routeAssetDoubleClick('Config/settings.json');
+
+    expect(action).toEqual({ kind: 'open-json-in-editor', relativePath: 'Config/settings.json' });
+  });
+
+  it('routes non-JSON assets to open-via-os', () => {
     const action = routeAssetDoubleClick('Textures/wall.png');
 
     expect(action).toEqual({ kind: 'open-via-os', relativePath: 'Textures/wall.png' });

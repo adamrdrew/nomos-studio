@@ -11,6 +11,8 @@ Key goals:
 In addition to invoke-style calls, Nomos Studio also uses a single narrow main→renderer event (`nomos:state:changed`) to notify the renderer that it should refresh its snapshot.
 This event may include a small typed payload for selection reconciliation.
 
+The menu subsystem also uses narrow main→renderer events to request actions that are renderer-routed (e.g., Save affects the active tab).
+
 ## Architecture
 
 ### Contract definition (shared)
@@ -44,13 +46,20 @@ The renderer must only use the preload API:
 - `window.nomos.assets.refreshIndex()`
 - `window.nomos.assets.open({ relativePath })`
 - `window.nomos.assets.readFileBytes({ relativePath })`
+- `window.nomos.assets.readJsonText({ relativePath })`
+- `window.nomos.assets.writeJsonText({ relativePath, text })`
 - `window.nomos.map.new()`
 - `window.nomos.map.validate({ mapPath })` / `open({ mapPath })` / `save()`
 - `window.nomos.map.openFromAssets({ relativePath })`
+- `window.nomos.map.saveAndRun()`
 - `window.nomos.map.edit({ baseRevision, command })`
 - `window.nomos.map.undo({ baseRevision, steps? })` / `window.nomos.map.redo({ baseRevision, steps? })`
 - `window.nomos.state.getSnapshot()`
 - `window.nomos.state.onChanged(listener)`
+
+Menu request events:
+- `window.nomos.menu.onSaveRequested(listener)`
+- `window.nomos.menu.onSaveAndRunRequested(listener)`
 
 ### IPC channels
 Channels (canonical):
@@ -62,16 +71,23 @@ Channels (canonical):
 - `nomos:assets:refresh-index`
 - `nomos:assets:open`
 - `nomos:assets:read-file-bytes`
+- `nomos:assets:read-json-text`
+- `nomos:assets:write-json-text`
 - `nomos:map:validate`
 - `nomos:map:new`
 - `nomos:map:open`
 - `nomos:map:open-from-assets`
 - `nomos:map:save`
+- `nomos:map:save-and-run`
 - `nomos:map:edit`
 - `nomos:map:undo`
 - `nomos:map:redo`
 - `nomos:state:get`
 - `nomos:state:changed` (event)
+
+Menu request events:
+- `nomos:menu:save-requested` (event)
+- `nomos:menu:save-and-run-requested` (event)
 
 ## Data shapes
 
@@ -104,6 +120,14 @@ Read file bytes:
 - `ReadAssetFileBytesRequest = Readonly<{ relativePath: string }>`
 - `ReadAssetFileBytesResponse = Result<Uint8Array, ReadAssetError>`
 
+Read JSON text:
+- `ReadAssetJsonTextRequest = Readonly<{ relativePath: string }>`
+- `ReadAssetJsonTextResponse = Result<string, ReadAssetError>`
+
+Write JSON text:
+- `WriteAssetJsonTextRequest = Readonly<{ relativePath: string; text: string }>`
+- `WriteAssetJsonTextResponse = Result<null, WriteAssetError>`
+
 ### Maps
 - `ValidateMapRequest = Readonly<{ mapPath: string }>`
 - `ValidateMapResponse = Result<null, MapValidationError>`
@@ -113,6 +137,9 @@ Read file bytes:
 - `OpenMapFromAssetsRequest = Readonly<{ relativePath: string }>`
 - `OpenMapFromAssetsResponse = Result<MapDocument, OpenMapFromAssetsError | MapIoError | MapValidationError>`
 - `SaveMapResponse = Result<MapDocument, MapIoError>`
+
+Save & Run:
+- `SaveAndRunMapResponse = Result<null, { message: string }>`
 
 For details of the transactional edit command model and selection reconciliation semantics carried over IPC, see:
 - `docs/map-edit-command-system.md`

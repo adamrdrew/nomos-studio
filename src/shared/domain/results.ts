@@ -112,7 +112,19 @@ export type ReadAssetError = Readonly<{
   code:
     | 'read-asset/missing-settings'
     | 'read-asset/invalid-relative-path'
+    | 'read-asset/unsupported-file-type'
     | 'read-asset/outside-base-dir'
     | 'read-asset/read-failed';
+  message: string;
+}>;
+
+export type WriteAssetError = Readonly<{
+  kind: 'write-asset-error';
+  code:
+    | 'write-asset/missing-settings'
+    | 'write-asset/invalid-relative-path'
+    | 'write-asset/unsupported-file-type'
+    | 'write-asset/outside-base-dir'
+    | 'write-asset/write-failed';
   message: string;
 }>;

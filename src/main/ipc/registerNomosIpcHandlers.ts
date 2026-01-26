@@ -16,6 +16,10 @@ import type {
   OpenMapFromAssetsResponse,
   ReadAssetFileBytesRequest,
   ReadAssetFileBytesResponse,
+  ReadAssetJsonTextRequest,
+  ReadAssetJsonTextResponse,
+  WriteAssetJsonTextRequest,
+  WriteAssetJsonTextResponse,
   OpenMapDialogResponse,
   OpenMapRequest,
   OpenMapResponse,
@@ -23,6 +27,7 @@ import type {
   PickFileResponse,
   RefreshAssetIndexResponse,
   SaveMapResponse,
+  SaveAndRunMapResponse,
   SettingsGetResponse,
   SettingsUpdateRequest,
   SettingsUpdateResponse,
@@ -49,12 +54,15 @@ export type NomosIpcHandlers = Readonly<{
   refreshAssetIndex: () => Promise<RefreshAssetIndexResponse>;
   openAsset: (request: OpenAssetRequest) => Promise<OpenAssetResponse>;
   readAssetFileBytes: (request: ReadAssetFileBytesRequest) => Promise<ReadAssetFileBytesResponse>;
+  readAssetJsonText: (request: ReadAssetJsonTextRequest) => Promise<ReadAssetJsonTextResponse>;
+  writeAssetJsonText: (request: WriteAssetJsonTextRequest) => Promise<WriteAssetJsonTextResponse>;
 
   validateMap: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
   newMap: () => Promise<NewMapResponse>;
   openMap: (request: OpenMapRequest) => Promise<OpenMapResponse>;
   openMapFromAssets: (request: OpenMapFromAssetsRequest) => Promise<OpenMapFromAssetsResponse>;
   saveMap: () => Promise<SaveMapResponse>;
+  saveAndRunMap: () => Promise<SaveAndRunMapResponse>;
   editMap: (request: MapEditRequest) => Promise<MapEditResponse>;
   undoMap: (request: MapUndoRequest) => Promise<MapUndoResponse>;
   redoMap: (request: MapRedoRequest) => Promise<MapRedoResponse>;
@@ -102,6 +110,12 @@ export function registerNomosIpcHandlers(
   ipcMain.handle(channels.assetsReadFileBytes, async (_event, request: unknown) =>
     handlers.readAssetFileBytes(request as ReadAssetFileBytesRequest)
   );
+  ipcMain.handle(channels.assetsReadJsonText, async (_event, request: unknown) =>
+    handlers.readAssetJsonText(request as ReadAssetJsonTextRequest)
+  );
+  ipcMain.handle(channels.assetsWriteJsonText, async (_event, request: unknown) =>
+    handlers.writeAssetJsonText(request as WriteAssetJsonTextRequest)
+  );
 
   ipcMain.handle(channels.mapValidate, async (_event, request: unknown) =>
     handlers.validateMap(request as ValidateMapRequest)
@@ -114,6 +128,7 @@ export function registerNomosIpcHandlers(
     handlers.openMapFromAssets(request as OpenMapFromAssetsRequest)
   );
   ipcMain.handle(channels.mapSave, async () => handlers.saveMap());
+  ipcMain.handle(channels.mapSaveAndRun, async () => handlers.saveAndRunMap());
   ipcMain.handle(channels.mapEdit, async (_event, request: unknown) =>
     isRecord(request) && isFiniteNumber(request['baseRevision']) && isRecord(request['command'])
       ? handlers.editMap(request as MapEditRequest)

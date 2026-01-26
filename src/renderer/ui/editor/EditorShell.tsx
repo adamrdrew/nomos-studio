@@ -20,7 +20,7 @@ function ensureCorePanelsPresent(event: DockviewReadyEvent): void {
   if (event.api.getPanel('map-editor') === undefined) {
     event.api.addPanel({
       id: 'map-editor',
-      title: 'Map Editor',
+      title: 'Nomos Studio',
       component: 'mapEditor',
       tabComponent: 'nonClosable'
     });
@@ -63,6 +63,21 @@ function ensureCorePanelsPresent(event: DockviewReadyEvent): void {
 export function EditorShell(): JSX.Element {
   const dockDisposablesRef = React.useRef<readonly { dispose(): void }[]>([]);
   const dockApiRef = React.useRef<DockviewReadyEvent['api'] | null>(null);
+
+  const saveActiveEditorTab = useNomosStore((state) => state.saveActiveEditorTab);
+  const saveAllEditorsAndRun = useNomosStore((state) => state.saveAllEditorsAndRun);
+
+  React.useEffect(() => {
+    return window.nomos.menu.onSaveRequested(() => {
+      void saveActiveEditorTab();
+    });
+  }, [saveActiveEditorTab]);
+
+  React.useEffect(() => {
+    return window.nomos.menu.onSaveAndRunRequested(() => {
+      void saveAllEditorsAndRun();
+    });
+  }, [saveAllEditorsAndRun]);
 
   React.useEffect(() => {
     const handler = (): void => {

@@ -52,6 +52,22 @@ describe('registerNomosIpcHandlers', () => {
             message: 'nope'
           }
         }),
+        readAssetJsonText: async () => ({
+          ok: false,
+          error: {
+            kind: 'read-asset-error',
+            code: 'read-asset/read-failed',
+            message: 'nope'
+          }
+        }),
+        writeAssetJsonText: async () => ({
+          ok: false,
+          error: {
+            kind: 'write-asset-error',
+            code: 'write-asset/write-failed',
+            message: 'nope'
+          }
+        }),
         validateMap: async () => ({
           ok: false,
           error: { kind: 'map-validation-error', code: 'map-validation/runner-failed', message: 'nope' }
@@ -70,6 +86,7 @@ describe('registerNomosIpcHandlers', () => {
           }
         }),
         saveMap: async () => ({ ok: false, error: { kind: 'map-io-error', code: 'map-io/no-document', message: 'nope' } }),
+        saveAndRunMap: async () => ({ ok: true, value: null }),
         editMap: async () => ({
           ok: false,
           error: { kind: 'map-edit-error', code: 'map-edit/no-document', message: 'nope' }
@@ -119,11 +136,14 @@ describe('registerNomosIpcHandlers', () => {
       channels.assetsRefreshIndex,
       channels.assetsOpen,
       channels.assetsReadFileBytes,
+      channels.assetsReadJsonText,
+      channels.assetsWriteJsonText,
       channels.mapValidate,
       channels.mapNew,
       channels.mapOpen,
       channels.mapOpenFromAssets,
       channels.mapSave,
+      channels.mapSaveAndRun,
       channels.mapEdit,
       channels.mapUndo,
       channels.mapRedo,

@@ -12,6 +12,10 @@ import type {
   OpenAssetResponse,
   ReadAssetFileBytesRequest,
   ReadAssetFileBytesResponse,
+  ReadAssetJsonTextRequest,
+  ReadAssetJsonTextResponse,
+  WriteAssetJsonTextRequest,
+  WriteAssetJsonTextResponse,
   OpenMapDialogResponse,
   OpenMapFromAssetsRequest,
   OpenMapFromAssetsResponse,
@@ -20,6 +24,7 @@ import type {
   PickFileResponse,
   RefreshAssetIndexResponse,
   SaveMapResponse,
+  SaveAndRunMapResponse,
   SettingsGetResponse,
   SettingsUpdateRequest,
   SettingsUpdateResponse,
@@ -33,6 +38,10 @@ declare global {
   interface Window {
     nomos: {
       version: string;
+      menu: {
+        onSaveRequested: (listener: () => void) => () => void;
+        onSaveAndRunRequested: (listener: () => void) => () => void;
+      };
       settings: {
         get: () => Promise<SettingsGetResponse>;
         update: (updates: SettingsUpdateRequest) => Promise<SettingsUpdateResponse>;
@@ -46,6 +55,8 @@ declare global {
         refreshIndex: () => Promise<RefreshAssetIndexResponse>;
         open: (request: OpenAssetRequest) => Promise<OpenAssetResponse>;
         readFileBytes: (request: ReadAssetFileBytesRequest) => Promise<ReadAssetFileBytesResponse>;
+        readJsonText: (request: ReadAssetJsonTextRequest) => Promise<ReadAssetJsonTextResponse>;
+        writeJsonText: (request: WriteAssetJsonTextRequest) => Promise<WriteAssetJsonTextResponse>;
       };
       map: {
         validate: (request: ValidateMapRequest) => Promise<ValidateMapResponse>;
@@ -53,6 +64,7 @@ declare global {
         open: (request: { mapPath: string }) => Promise<OpenMapResponse>;
         openFromAssets: (request: OpenMapFromAssetsRequest) => Promise<OpenMapFromAssetsResponse>;
         save: () => Promise<SaveMapResponse>;
+        saveAndRun: () => Promise<SaveAndRunMapResponse>;
         edit: (request: MapEditRequest) => Promise<MapEditResponse>;
         undo: (request: MapUndoRequest) => Promise<MapUndoResponse>;
         redo: (request: MapRedoRequest) => Promise<MapRedoResponse>;

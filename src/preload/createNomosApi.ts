@@ -17,8 +17,13 @@ import {
   type PickFileResponse,
   type ReadAssetFileBytesRequest,
   type ReadAssetFileBytesResponse,
+  type ReadAssetJsonTextRequest,
+  type ReadAssetJsonTextResponse,
+  type WriteAssetJsonTextRequest,
+  type WriteAssetJsonTextResponse,
   type RefreshAssetIndexResponse,
   type SaveMapResponse,
+  type SaveAndRunMapResponse,
   type SettingsGetResponse,
   type SettingsUpdateRequest,
   type SettingsUpdateResponse,
@@ -37,6 +42,30 @@ export type IpcRendererLike = Readonly<{
 export function createNomosApi(ipcRenderer: IpcRendererLike) {
   return {
     version: '0.0.0',
+    menu: {
+      onSaveRequested: (listener: () => void): (() => void) => {
+        const handler = (): void => {
+          listener();
+        };
+
+        ipcRenderer.on(NOMOS_IPC_CHANNELS.menuSaveRequested, handler);
+
+        return () => {
+          ipcRenderer.removeListener(NOMOS_IPC_CHANNELS.menuSaveRequested, handler);
+        };
+      },
+      onSaveAndRunRequested: (listener: () => void): (() => void) => {
+        const handler = (): void => {
+          listener();
+        };
+
+        ipcRenderer.on(NOMOS_IPC_CHANNELS.menuSaveAndRunRequested, handler);
+
+        return () => {
+          ipcRenderer.removeListener(NOMOS_IPC_CHANNELS.menuSaveAndRunRequested, handler);
+        };
+      }
+    },
     settings: {
       get: async (): Promise<SettingsGetResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.settingsGet) as never,
       update: async (updates: SettingsUpdateRequest): Promise<SettingsUpdateResponse> =>
@@ -54,7 +83,11 @@ export function createNomosApi(ipcRenderer: IpcRendererLike) {
       open: async (request: OpenAssetRequest): Promise<OpenAssetResponse> =>
         ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsOpen, request) as never,
       readFileBytes: async (request: ReadAssetFileBytesRequest): Promise<ReadAssetFileBytesResponse> =>
-        ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsReadFileBytes, request) as never
+        ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsReadFileBytes, request) as never,
+      readJsonText: async (request: ReadAssetJsonTextRequest): Promise<ReadAssetJsonTextResponse> =>
+        ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsReadJsonText, request) as never,
+      writeJsonText: async (request: WriteAssetJsonTextRequest): Promise<WriteAssetJsonTextResponse> =>
+        ipcRenderer.invoke(NOMOS_IPC_CHANNELS.assetsWriteJsonText, request) as never
     },
     map: {
       validate: async (request: ValidateMapRequest): Promise<ValidateMapResponse> =>
@@ -65,6 +98,7 @@ export function createNomosApi(ipcRenderer: IpcRendererLike) {
       openFromAssets: async (request: OpenMapFromAssetsRequest): Promise<OpenMapFromAssetsResponse> =>
         ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapOpenFromAssets, request) as never,
       save: async (): Promise<SaveMapResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapSave) as never,
+      saveAndRun: async (): Promise<SaveAndRunMapResponse> => ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapSaveAndRun) as never,
       edit: async (request: MapEditRequest): Promise<MapEditResponse> =>
         ipcRenderer.invoke(NOMOS_IPC_CHANNELS.mapEdit, request) as never,
       undo: async (request: MapUndoRequest): Promise<MapUndoResponse> =>

@@ -14,6 +14,7 @@ import {
   parseToolIndexFromKeyboardEvent
 } from '../tools/mapEditorToolHotkeys';
 import { useNomosStore } from '../../../store/nomosStore';
+import { JsonEditorPanel } from './JsonEditorPanel';
 import type { MapSelection } from '../map/mapSelection';
 import type { MapEditTargetRef } from '../../../../shared/ipc/nomosIpc';
 import type { RoomTemplate } from '../../../../shared/domain/mapRoomCreation';
@@ -115,6 +116,11 @@ export function MapEditorDockPanel(): JSX.Element {
   const applyMapSelectionEffect = useNomosStore((state) => state.applyMapSelectionEffect);
   const setRoomCloneBuffer = useNomosStore((state) => state.setRoomCloneBuffer);
   const clearRoomCloneBuffer = useNomosStore((state) => state.clearRoomCloneBuffer);
+
+  const activeEditorTabId = useNomosStore((state) => state.activeEditorTabId);
+  const jsonEditorTabs = useNomosStore((state) => state.jsonEditorTabs);
+  const closeJsonEditorTab = useNomosStore((state) => state.closeJsonEditorTab);
+  const setActiveEditorTabId = useNomosStore((state) => state.setActiveEditorTabId);
 
   const viewportRef = React.useRef<MapEditorViewportApi | null>(null);
 
@@ -374,8 +380,101 @@ export function MapEditorDockPanel(): JSX.Element {
     );
   }, [toolId]);
 
-  return (
-    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+  const activeJsonTab = React.useMemo(() => {
+    if (activeEditorTabId === 'map') {
+      return null;
+    }
+    return jsonEditorTabs.find((tab) => tab.id === activeEditorTabId) ?? null;
+  }, [activeEditorTabId, jsonEditorTabs]);
+
+  const tabBar = (
+    <div
+      style={{
+        flex: '0 0 auto',
+        display: 'flex',
+        alignItems: 'stretch',
+        gap: 2,
+        padding: '6px 6px',
+        background: Colors.DARK_GRAY1,
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        whiteSpace: 'nowrap',
+        boxSizing: 'border-box',
+        borderBottom: `1px solid ${Colors.DARK_GRAY4}`
+      }}
+    >
+      <div
+        role="button"
+        tabIndex={0}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 10px',
+          borderRadius: 4,
+          cursor: 'pointer',
+          userSelect: 'none',
+          background: activeEditorTabId === 'map' ? Colors.DARK_GRAY3 : 'transparent',
+          color: Colors.WHITE,
+          flex: '0 0 auto'
+        }}
+        onClick={() => setActiveEditorTabId('map')}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setActiveEditorTabId('map');
+          }
+        }}
+      >
+        <span style={{ color: mapDocument?.dirty === true ? Colors.RED3 : Colors.WHITE }}>Map</span>
+      </div>
+
+      {jsonEditorTabs.map((tab) => {
+        const isActive = activeEditorTabId === tab.id;
+
+        return (
+          <div
+            key={tab.id}
+            role="button"
+            tabIndex={0}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 10px',
+              borderRadius: 4,
+              cursor: 'pointer',
+              userSelect: 'none',
+              background: isActive ? Colors.DARK_GRAY3 : 'transparent',
+              color: Colors.WHITE,
+              flex: '0 0 auto'
+            }}
+            onClick={() => setActiveEditorTabId(tab.id)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setActiveEditorTabId(tab.id);
+              }
+            }}
+          >
+            <Button
+              minimal={true}
+              icon={<Icon icon="small-cross" color={Colors.GRAY3} />}
+              style={{ padding: 0, minHeight: 0, minWidth: 0 }}
+              onClick={(event) => {
+                event.stopPropagation();
+                closeJsonEditorTab(tab.id);
+              }}
+            />
+            <span style={{ color: tab.isDirty ? Colors.RED3 : Colors.WHITE }}>{tab.fileName}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const mapEditorContent = (
+    <>
       <MapEditorToolBar
         activeTool={tool}
         onCommand={onToolBarCommand}
@@ -460,6 +559,23 @@ export function MapEditorDockPanel(): JSX.Element {
           })}
         </div>
       </div>
+    </>
+  );
+
+  const jsonEditorContent = (
+    <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
+      {activeJsonTab ? (
+        <JsonEditorPanel model={activeJsonTab.model} />
+      ) : (
+        <div style={{ padding: 16, color: Colors.GRAY2 }}>No JSON tab selected.</div>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {tabBar}
+      {activeEditorTabId === 'map' ? mapEditorContent : jsonEditorContent}
     </div>
   );
 }

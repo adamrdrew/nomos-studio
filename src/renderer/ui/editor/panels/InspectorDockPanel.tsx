@@ -45,6 +45,8 @@ function CollapsibleSection(props: {
 }
 
 export function InspectorDockPanel(): JSX.Element {
+  const openJsonEditorTab = useNomosStore((state) => state.openJsonEditorTab);
+
   const openAsset = React.useCallback((relativePath: string) => {
     void (async () => {
       const action = routeAssetDoubleClick(relativePath);
@@ -57,13 +59,18 @@ export function InspectorDockPanel(): JSX.Element {
         return;
       }
 
+      if (action.kind === 'open-json-in-editor') {
+        await openJsonEditorTab(action.relativePath);
+        return;
+      }
+
       const result = await window.nomos.assets.open({ relativePath: action.relativePath });
       if (!result.ok) {
         // eslint-disable-next-line no-console
         console.error('[nomos] open asset failed', result.error);
       }
     })();
-  }, []);
+  }, [openJsonEditorTab]);
 
   const mapDocument = useNomosStore((state) => state.mapDocument);
   const selection = useNomosStore((state) => state.mapSelection);

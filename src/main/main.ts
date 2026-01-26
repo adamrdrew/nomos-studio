@@ -6,6 +6,8 @@ import { SettingsService } from './application/settings/SettingsService';
 import { AssetIndexService } from './application/assets/AssetIndexService';
 import { OpenAssetService } from './application/assets/OpenAssetService';
 import { ReadAssetFileBytesService } from './application/assets/ReadAssetFileBytesService';
+import { ReadAssetJsonTextService } from './application/assets/ReadAssetJsonTextService';
+import { WriteAssetJsonTextService } from './application/assets/WriteAssetJsonTextService';
 import { AppStore } from './application/store/AppStore';
 import { JsonFileSettingsRepository } from './infrastructure/settings/JsonFileSettingsRepository';
 import { nodeFileSystem } from './infrastructure/settings/nodeFileSystem';
@@ -14,6 +16,7 @@ import { NOMOS_IPC_CHANNELS } from '../shared/ipc/nomosIpc';
 import { AssetIndexer } from './infrastructure/assets/AssetIndexer';
 import { nodeDirectoryReader } from './infrastructure/assets/nodeDirectoryReader';
 import { nodeBinaryFileReader } from './infrastructure/assets/nodeBinaryFileReader';
+import { nodeTextFileReader } from './infrastructure/assets/nodeTextFileReader';
 import { nodePathService } from './infrastructure/path/nodePathService';
 import { nodeProcessRunner } from './infrastructure/process/NodeProcessRunner';
 import { nodeShellOpener } from './infrastructure/shell/nodeShellOpener';
@@ -66,7 +69,7 @@ const setApplicationMenu = (
     onDecreaseMapGridOpacity: () => void;
   }>
 ): void => {
-  const canSave = options.store.getState().mapDocument !== null;
+  const canSave = options.store.getState().mapDocument !== null || options.store.getState().settings.assetsDirPath !== null;
   const canUndo = options.canUndo;
   const canRedo = options.canRedo;
   const mapRenderMode = options.store.getState().mapRenderMode;
@@ -175,16 +178,6 @@ app.on('ready', () => {
   });
   const settingsService = new SettingsService(settingsRepository);
 
-  const assetIndexer = new AssetIndexer({
-    directoryReader: nodeDirectoryReader,
-    nowIso: () => new Date().toISOString()
-  });
-  const assetIndexService = new AssetIndexService(store, assetIndexer);
-  const openAssetService = new OpenAssetService(store, nodePathService, nodeShellOpener);
-  const readAssetFileBytesService = new ReadAssetFileBytesService(store, nodePathService, nodeBinaryFileReader);
-
-  const mapValidationService = new MapValidationService(store, nodeProcessRunner, () => new Date().toISOString());
-
   const notifier: UserNotifier = {
     showError: async (title, message, detail) => {
       if (mainWindow === null) {
@@ -211,6 +204,18 @@ app.on('ready', () => {
       await dialog.showMessageBox(mainWindow, detail === undefined ? options : { ...options, detail });
     }
   };
+
+  const assetIndexer = new AssetIndexer({
+    directoryReader: nodeDirectoryReader,
+    nowIso: () => new Date().toISOString()
+  });
+  const assetIndexService = new AssetIndexService(store, assetIndexer);
+  const openAssetService = new OpenAssetService(store, nodePathService, nodeShellOpener);
+  const readAssetFileBytesService = new ReadAssetFileBytesService(store, nodePathService, nodeBinaryFileReader);
+  const readAssetJsonTextService = new ReadAssetJsonTextService(store, nodePathService, nodeTextFileReader);
+  const writeAssetJsonTextService = new WriteAssetJsonTextService(store, nodePathService, nodeFileSystem, notifier);
+
+  const mapValidationService = new MapValidationService(store, nodeProcessRunner, () => new Date().toISOString());
 
   const mapEditHistory = new MapEditHistory(100);
   const mapCommandEngine = new MapCommandEngine();
@@ -367,6 +372,8 @@ app.on('ready', () => {
     refreshAssetIndex: async () => assetIndexService.refreshIndex(),
     openAsset: async (request) => openAssetService.openAsset(request.relativePath),
     readAssetFileBytes: async (request) => readAssetFileBytesService.readFileBytes(request.relativePath),
+    readAssetJsonText: async (request) => readAssetJsonTextService.readJsonText(request.relativePath),
+    writeAssetJsonText: async (request) => writeAssetJsonTextService.writeJsonText(request.relativePath, request.text),
 
     validateMap: async (request) => {
       const result = await mapValidationService.validateMap(request.mapPath);
@@ -418,6 +425,10 @@ app.on('ready', () => {
       return openResult;
     },
     saveMap: async () => saveMapService.saveCurrentDocument(),
+    saveAndRunMap: async () => {
+      await saveAndRunMapService.saveAndRunCurrentMap();
+      return { ok: true as const, value: null };
+    },
     editMap: async (request) => mapEditService.edit(request),
     undoMap: async (request) => mapEditService.undo(request),
     redoMap: async (request) => mapEditService.redo(request),
@@ -480,9 +491,19 @@ app.on('ready', () => {
       onNewMap: newMap,
       onOpenMap: openMap,
       onOpenRecentMap: openRecentMap,
-      onSave: save,
+      onSave: async () => {
+        if (mainWindow === null) {
+          return;
+        }
+        mainWindow.webContents.send(NOMOS_IPC_CHANNELS.menuSaveRequested);
+      },
       onSaveAs: saveAs,
-      onSaveAndRun: saveAndRun,
+      onSaveAndRun: async () => {
+        if (mainWindow === null) {
+          return;
+        }
+        mainWindow.webContents.send(NOMOS_IPC_CHANNELS.menuSaveAndRunRequested);
+      },
       canUndo: mapEditHistory.getInfo().canUndo,
       canRedo: mapEditHistory.getInfo().canRedo,
       onUndo: async () => {
@@ -556,17 +577,6 @@ app.on('ready', () => {
         installMenu();
       }
     });
-  };
-
-  const save = async (): Promise<void> => {
-    if (mainWindow === null) {
-      return;
-    }
-    await nomosHandlers.saveMap();
-  };
-
-  const saveAndRun = async (): Promise<void> => {
-    await saveAndRunMapService.saveAndRunCurrentMap();
   };
 
   const saveAs = async (): Promise<void> => {
