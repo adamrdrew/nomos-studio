@@ -194,6 +194,98 @@ describe('createApplicationMenuTemplate', () => {
     expect(saveItem?.enabled).toBe(false);
   });
 
+  it('enables Save As… when canSave is true', () => {
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: true,
+      canUndo: false,
+      canRedo: false,
+      recentMapPaths: [],
+      mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
+      mapGridSettings: DEFAULT_MAP_GRID_SETTINGS,
+      mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onNewMap: () => {},
+      onOpenMap: () => {},
+      onOpenRecentMap: () => {},
+      onSave: () => {},
+      onSaveAs: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onToggleMapSnapToGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const fileMenu = template.find((item) => item.label === 'File');
+    if (fileMenu === undefined || fileMenu.submenu === undefined || !Array.isArray(fileMenu.submenu)) {
+      throw new Error('Expected File menu submenu');
+    }
+
+    const saveAsItem = fileMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Save As…'
+    ) as { enabled?: boolean } | undefined;
+
+    expect(saveAsItem?.enabled).toBe(true);
+  });
+
+  it('disables Save As… when canSave is false', () => {
+    const template = createApplicationMenuTemplate({
+      appName: 'Nomos Studio',
+      platform: 'darwin',
+      canSave: false,
+      canUndo: false,
+      canRedo: false,
+      recentMapPaths: [],
+      mapRenderMode: 'wireframe',
+      mapSectorSurface: 'floor',
+      mapGridSettings: DEFAULT_MAP_GRID_SETTINGS,
+      mapHighlightPortals: false,
+      mapHighlightToggleWalls: false,
+      mapDoorVisibility: 'visible',
+      onOpenSettings: () => {},
+      onNewMap: () => {},
+      onOpenMap: () => {},
+      onOpenRecentMap: () => {},
+      onSave: () => {},
+      onSaveAs: () => {},
+      onUndo: () => {},
+      onRedo: () => {},
+      onRefreshAssetsIndex: () => {},
+      onSetMapRenderMode: () => {},
+      onSetMapSectorSurface: () => {},
+      onToggleMapHighlightPortals: () => {},
+      onToggleMapHighlightToggleWalls: () => {},
+      onToggleMapDoorVisibility: () => {},
+      onToggleMapGrid: () => {},
+      onToggleMapSnapToGrid: () => {},
+      onIncreaseMapGridOpacity: () => {},
+      onDecreaseMapGridOpacity: () => {}
+    });
+
+    const fileMenu = template.find((item) => item.label === 'File');
+    if (fileMenu === undefined || fileMenu.submenu === undefined || !Array.isArray(fileMenu.submenu)) {
+      throw new Error('Expected File menu submenu');
+    }
+
+    const saveAsItem = fileMenu.submenu.find(
+      (item) => typeof item === 'object' && item !== null && 'label' in item && (item as { label?: string }).label === 'Save As…'
+    ) as { enabled?: boolean } | undefined;
+
+    expect(saveAsItem?.enabled).toBe(false);
+  });
+
   it('includes Run → Save & Run (F5)', () => {
     const onSaveAndRun = jest.fn();
 

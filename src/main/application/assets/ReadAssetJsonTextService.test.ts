@@ -54,6 +54,25 @@ describe('ReadAssetJsonTextService', () => {
     });
   });
 
+  it('rejects when assetsDirPath is whitespace-only', async () => {
+    const service = new ReadAssetJsonTextService(
+      createStore('   '),
+      {} as PathService,
+      {} as TextFileReader
+    );
+
+    const result = await service.readJsonText('file.json');
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: 'read-asset-error',
+        code: 'read-asset/missing-settings',
+        message: 'Assets directory is not configured'
+      }
+    });
+  });
+
   it('rejects when relative path is empty', async () => {
     const service = new ReadAssetJsonTextService(
       createStore('/assets'),
@@ -167,6 +186,32 @@ describe('ReadAssetJsonTextService', () => {
     });
   });
 
+  it('rejects when the resolved path is not under the base dir (relativeToBase is absolute)', async () => {
+    const isAbsolute = jest
+      .fn()
+      .mockReturnValueOnce(false) // trimmed input is relative
+      .mockReturnValueOnce(true); // relativeToBase is absolute
+
+    const pathService: PathService = {
+      isAbsolute,
+      resolve: () => '/assets/file.json',
+      relative: () => '/absolute/escape'
+    };
+
+    const service = new ReadAssetJsonTextService(createStore('/assets'), pathService, {} as TextFileReader);
+
+    const result = await service.readJsonText('file.json');
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: 'read-asset-error',
+        code: 'read-asset/outside-base-dir',
+        message: 'Asset path is outside the configured assets directory'
+      }
+    });
+  });
+
   it('returns read-failed when file reader throws', async () => {
     const pathService: PathService = {
       isAbsolute: () => false,
@@ -194,6 +239,34 @@ describe('ReadAssetJsonTextService', () => {
         kind: 'read-asset-error',
         code: 'read-asset/read-failed',
         message: 'nope'
+      }
+    });
+  });
+
+  it('returns read-failed with default message when file reader throws a non-Error value', async () => {
+    const pathService: PathService = {
+      isAbsolute: () => false,
+      resolve: () => '/assets/file.json',
+      relative: () => 'file.json'
+    };
+
+    const fileReader: TextFileReader = {
+      readFileText: async () => {
+        // eslint-disable-next-line no-throw-literal
+        throw 'nope';
+      }
+    };
+
+    const service = new ReadAssetJsonTextService(createStore('/assets'), pathService, fileReader);
+
+    const result = await service.readJsonText('file.json');
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: 'read-asset-error',
+        code: 'read-asset/read-failed',
+        message: 'Failed to read asset file'
       }
     });
   });

@@ -71,6 +71,28 @@ describe('WriteAssetJsonTextService', () => {
     });
   });
 
+  it('rejects when assetsDirPath is whitespace-only', async () => {
+    const { notifier } = createNotifier();
+
+    const service = new WriteAssetJsonTextService(
+      createStore('   '),
+      {} as PathService,
+      {} as FileSystem,
+      notifier
+    );
+
+    const result = await service.writeJsonText('file.json', '{"x":1}');
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: 'write-asset-error',
+        code: 'write-asset/missing-settings',
+        message: 'Assets directory is not configured'
+      }
+    });
+  });
+
   it('rejects when relative path is empty', async () => {
     const { notifier } = createNotifier();
 
@@ -199,6 +221,154 @@ describe('WriteAssetJsonTextService', () => {
     });
   });
 
+  it('rejects when the resolved path is not under the base dir (relativeToBase is absolute)', async () => {
+    const isAbsolute = jest
+      .fn()
+      .mockReturnValueOnce(false) // trimmed input is relative
+      .mockReturnValueOnce(true); // relativeToBase is absolute
+
+    const pathService: PathService = {
+      isAbsolute,
+      resolve: () => '/assets/file.json',
+      relative: () => '/absolute/escape'
+    };
+
+    const { notifier } = createNotifier();
+
+    const service = new WriteAssetJsonTextService(createStore('/assets'), pathService, {} as FileSystem, notifier);
+
+    const result = await service.writeJsonText('file.json', '{"x":1}');
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: 'write-asset-error',
+        code: 'write-asset/outside-base-dir',
+        message: 'Asset path is outside the configured assets directory'
+      }
+    });
+  });
+
+  it('uses a backup + replace flow when rename fails with EEXIST', async () => {
+    const calls: string[] = [];
+
+    const pathService: PathService = {
+      isAbsolute: () => false,
+      resolve: () => '/assets/file.json',
+      relative: () => 'file.json'
+    };
+
+    let renameTmpToDestAttempts = 0;
+
+    const fs: FileSystem = {
+      readFile: async () => {
+        throw new Error('unexpected');
+      },
+      mkdir: async () => {
+        calls.push('mkdir');
+      },
+      writeFile: async () => {
+        calls.push('writeFile');
+      },
+      rename: async (oldPath, newPath) => {
+        calls.push(`rename:${oldPath}->${newPath}`);
+
+        if (oldPath === '/assets/file.json.tmp' && newPath === '/assets/file.json') {
+          renameTmpToDestAttempts += 1;
+          if (renameTmpToDestAttempts === 1) {
+            const error = new Error('exists') as NodeJS.ErrnoException;
+            error.code = 'EEXIST';
+            throw error;
+          }
+        }
+      },
+      unlink: async (filePath) => {
+        calls.push(`unlink:${filePath}`);
+      }
+    };
+
+    const { notifier } = createNotifier();
+
+    const service = new WriteAssetJsonTextService(createStore('/assets'), pathService, fs, notifier);
+
+    const result = await service.writeJsonText('file.json', '{"x":1}');
+
+    expect(result).toEqual({ ok: true, value: null });
+    expect(calls).toEqual([
+      'mkdir',
+      'writeFile',
+      'rename:/assets/file.json.tmp->/assets/file.json',
+      'rename:/assets/file.json->/assets/file.json.bak',
+      'rename:/assets/file.json.tmp->/assets/file.json',
+      'unlink:/assets/file.json.bak'
+    ]);
+  });
+
+  it('restores the backup if the replace fails after creating the backup', async () => {
+    const calls: string[] = [];
+
+    const pathService: PathService = {
+      isAbsolute: () => false,
+      resolve: () => '/assets/file.json',
+      relative: () => 'file.json'
+    };
+
+    let renameTmpToDestAttempts = 0;
+
+    const fs: FileSystem = {
+      readFile: async () => {
+        throw new Error('unexpected');
+      },
+      mkdir: async () => {
+        calls.push('mkdir');
+      },
+      writeFile: async () => {
+        calls.push('writeFile');
+      },
+      rename: async (oldPath, newPath) => {
+        calls.push(`rename:${oldPath}->${newPath}`);
+
+        if (oldPath === '/assets/file.json.tmp' && newPath === '/assets/file.json') {
+          renameTmpToDestAttempts += 1;
+          const error = new Error('perm') as NodeJS.ErrnoException;
+          error.code = renameTmpToDestAttempts === 1 ? 'EPERM' : 'EPERM';
+          throw error;
+        }
+      },
+      unlink: async (filePath) => {
+        calls.push(`unlink:${filePath}`);
+      }
+    };
+
+    const { notifier, calls: notifierCalls } = createNotifier();
+
+    const service = new WriteAssetJsonTextService(createStore('/assets'), pathService, fs, notifier);
+
+    const result = await service.writeJsonText('file.json', '{"x":1}');
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: 'write-asset-error',
+        code: 'write-asset/write-failed',
+        message: 'perm'
+      }
+    });
+
+    expect(notifierCalls.at(-1)).toEqual({ title: 'Save Failed', message: 'Failed to write JSON file.' });
+
+    // Should attempt backup/restore, then cleanup tmp.
+    expect(calls).toEqual([
+      'mkdir',
+      'writeFile',
+      'rename:/assets/file.json.tmp->/assets/file.json',
+      'rename:/assets/file.json->/assets/file.json.bak',
+      'rename:/assets/file.json.tmp->/assets/file.json',
+      'rename:/assets/file.json.bak->/assets/file.json',
+      'unlink:/assets/file.json.tmp'
+    ]);
+  });
+
   it('returns write-failed when write throws', async () => {
     const pathService: PathService = {
       isAbsolute: () => false,
@@ -230,6 +400,42 @@ describe('WriteAssetJsonTextService', () => {
         kind: 'write-asset-error',
         code: 'write-asset/write-failed',
         message: 'nope'
+      }
+    });
+  });
+
+  it('returns write-failed with default message when write throws a non-Error value', async () => {
+    const pathService: PathService = {
+      isAbsolute: () => false,
+      resolve: () => '/assets/file.json',
+      relative: () => 'file.json'
+    };
+
+    const fs: FileSystem = {
+      readFile: async () => {
+        throw new Error('unexpected');
+      },
+      mkdir: async () => {},
+      writeFile: async () => {
+        // eslint-disable-next-line no-throw-literal
+        throw 'nope';
+      },
+      rename: async () => {},
+      unlink: async () => {}
+    };
+
+    const { notifier } = createNotifier();
+
+    const service = new WriteAssetJsonTextService(createStore('/assets'), pathService, fs, notifier);
+
+    const result = await service.writeJsonText('file.json', '{"x":1}');
+
+    expect(result).toEqual({
+      ok: false,
+      error: {
+        kind: 'write-asset-error',
+        code: 'write-asset/write-failed',
+        message: 'Failed to write asset file'
       }
     });
   });

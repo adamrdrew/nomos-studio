@@ -26,22 +26,19 @@ Laws and style
 - L09 docs: docs updated and new JSON editor subsystem doc added (docs/json-editor-system.md plus updates in docs/assets-system.md, docs/menu-system.md, docs/renderer-ui-system.md, docs/ipc-system.md, docs/preload-system.md).
 
 Automated verification
-- Jest (node task) passes: 58/58 suites, 670/670 tests.
+- Jest (node task) passes: 58/58 suites, 682/682 tests.
 - ESLint (node task) passes (TypeScript version warning from @typescript-eslint noted).
 - Typecheck (node tsc) passes.
 
 ## Issues
 
 - VS Code task `shell: jest (runInBand)` fails in this environment due to `npm` not being on PATH, but node-based tasks succeed. This is a tooling/configuration issue, not a product defect.
-- Potential regression/UX: menu Save enablement is now gated by `assetsDirPath !== null` even when the editor shell is not mounted (e.g., no map open). This can surface Save/Save & Run as enabled without an actionable target.
-- Safety/hardening gap: JSON read/write IPC handlers do not validate request shape before dereferencing `request.relativePath` / `request.text`, which can crash main on malformed payloads.
 
 ## Required follow-ups
 
-- S013: Harden JSON IPC request validation (avoid main-process crash on malformed IPC payloads).
-- S014: Tighten Save enablement gate so menu state reflects actionable save capability.
+None.
 
 ## Decision
 
-Not green yet. Phase reopened as building pending S013/S014.
+Green. Acceptance criteria verified, laws/style satisfied, and automated checks are passing.
 

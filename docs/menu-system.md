@@ -8,7 +8,7 @@ Current responsibilities:
 - Bind menu items to main-process callbacks (new/open/save/save-as, recent maps, refresh assets index, open settings).
 - Bind Run menu items to main-process callbacks (Save & Run requested).
 - Route File → Save and Run → Save & Run to the renderer as *requests* so the renderer can decide what the “active editor” is (map vs JSON tab).
-- Enable/disable Save based on whether saving is possible in the current app state (map loaded or assets configured).
+- Enable/disable Save based on whether saving is possible in the current app state (a map document is loaded).
 - Enable/disable Save & Run using the same coarse enablement gate as Save.
 - Enable/disable Undo/Redo based on main-owned edit history state.
 - Provide a View menu to switch map render mode and control map grid display.
@@ -26,9 +26,7 @@ Current responsibilities:
 
 ### Wiring (main)
 - `src/main/main.ts`
-	- Computes `canSave` from whether either:
-		- a map document is loaded (`store.getState().mapDocument !== null`), or
-		- assets are configured (`store.getState().settings.assetsDirPath !== null`).
+	- Computes `canSave` from whether a map document is loaded (`store.getState().mapDocument !== null`).
 	- Computes `canUndo` / `canRedo` from `MapEditHistory.getInfo()`.
 	- Reads `recentMapPaths` from `store.getState().recentMapPaths`.
 	- Calls `Menu.setApplicationMenu(Menu.buildFromTemplate(template))`.
@@ -123,7 +121,7 @@ type CreateApplicationMenuTemplateOptions = Readonly<{
 	- Settings… lives under a Settings menu.
 
 ### Save enablement depends on store state
-- `canSave` is derived from whether `AppStore` currently has either a loaded `mapDocument` or a configured `settings.assetsDirPath`.
+- `canSave` is derived from whether `AppStore` currently has a loaded `mapDocument`.
 - The main process re-installs the menu on store changes so Save enablement stays accurate.
 
 ### Save routing is renderer-owned

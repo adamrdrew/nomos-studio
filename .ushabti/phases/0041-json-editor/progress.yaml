@@ -2,7 +2,7 @@ phase:
   id: 0041
   slug: json-editor
   title: JSON Editor
-  status: building
+  status: complete
 
 steps:
   - id: S001
@@ -154,7 +154,7 @@ steps:
   - id: S013
     title: Harden JSON IPC request validation
     implemented: true
-    reviewed: false
+    reviewed: true
     notes: "Added request-shape guards for JSON read/write IPC handlers (validate object + string fields before dereference) and return typed failures for invalid payloads; extended IPC handler unit tests to cover malformed request shapes."
     touched:
       - src/main/ipc/registerNomosIpcHandlers.ts
@@ -162,9 +162,35 @@ steps:
 
   - id: S014
     title: Tighten Save enablement gate
-    implemented: false
-    reviewed: false
-    notes: "Follow-up: refine `canSave` enablement to avoid enabling Save/Save & Run when there is no actionable save target (and ensure `assetsDirPath` is effectively configured); update menu tests."
+    implemented: true
+    reviewed: true
+    notes: "Tightened main-process `canSave` gating to require an open map document (avoids enabling Save/Save & Run on FreshLaunchView due to `assetsDirPath` alone); extended menu template tests to cover Save As enablement rules. Jest/lint/typecheck are green."
     touched:
       - src/main/main.ts
       - src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts
+
+  - id: S015
+    title: Close L04 coverage gaps in JSON asset text services
+    implemented: true
+    reviewed: true
+    notes: "Added unit tests covering whitespace-only `assetsDirPath`, `relativeToBase` absolute-case, and safe-replace Windows fallback/restore branches for JSON asset read/write services. Jest is green."
+    touched:
+      - src/main/application/assets/ReadAssetJsonTextService.test.ts
+      - src/main/application/assets/WriteAssetJsonTextService.test.ts
+
+  - id: S016
+    title: Fix menu docs to match Save enablement behavior
+    implemented: true
+    reviewed: true
+    notes: "Updated `docs/menu-system.md` to match the tightened `canSave` gate (Save/Save & Run enabled only when `mapDocument !== null`)."
+    touched:
+      - docs/menu-system.md
+
+  - id: S017
+    title: Close remaining L04 coverage gaps in JSON asset text services (non-Error throw)
+    implemented: true
+    reviewed: true
+    notes: "Added unit tests forcing non-Error throws from dependencies to exercise default-message branches in read/write JSON asset services; Jest is green."
+    touched:
+      - src/main/application/assets/ReadAssetJsonTextService.test.ts
+      - src/main/application/assets/WriteAssetJsonTextService.test.ts

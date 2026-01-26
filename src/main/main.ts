@@ -69,7 +69,7 @@ const setApplicationMenu = (
     onDecreaseMapGridOpacity: () => void;
   }>
 ): void => {
-  const canSave = options.store.getState().mapDocument !== null || options.store.getState().settings.assetsDirPath !== null;
+  const canSave = options.store.getState().mapDocument !== null;
   const canUndo = options.canUndo;
   const canRedo = options.canRedo;
   const mapRenderMode = options.store.getState().mapRenderMode;

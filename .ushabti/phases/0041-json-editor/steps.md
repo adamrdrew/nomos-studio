@@ -122,3 +122,29 @@
   - Revisit the `canSave` computation in main so it reflects actionable save capability (and trims/validates `assetsDirPath`).
   - Add/update menu template tests to cover the corrected enablement behavior.
 - **Done when:** Save/Save & Run are not enabled in states where no save target exists, and menu tests cover the updated gate.
+
+## S015 — Close L04 coverage gaps in JSON asset text services
+- **Intent:** Ensure public JSON read/write services have unit tests covering all conditional paths (L04), including edge cases introduced by trimming and safe-replace fallback behavior.
+- **Work:**
+  - Extend `ReadAssetJsonTextService.test.ts` to cover:
+    - `assetsDirPath` set to whitespace-only (treated as missing)
+    - traversal rejection via `pathService.isAbsolute(relativeToBase) === true`
+  - Extend `WriteAssetJsonTextService.test.ts` to cover:
+    - `assetsDirPath` set to whitespace-only (treated as missing)
+    - traversal rejection via `pathService.isAbsolute(relativeToBase) === true`
+    - Windows-style rename fallback path in safe-replace (`EEXIST` / `EPERM`) and backup restore on failure
+- **Done when:** Jest passes and these added tests exercise the previously-uncovered branches.
+
+## S016 — Fix menu docs to match Save enablement behavior
+- **Intent:** Keep documentation accurate after tightening `canSave` gating (L09).
+- **Work:**
+  - Update `docs/menu-system.md` to reflect that main computes `canSave` from `store.getState().mapDocument !== null` (not `assetsDirPath`).
+  - Ensure any other references to the old rule (“map loaded or assets configured”) are corrected.
+- **Done when:** Docs match implementation and menu tests remain green.
+
+## S017 — Close remaining L04 coverage gaps in JSON asset text services (non-Error throw)
+- **Intent:** Ensure JSON asset read/write public methods have unit tests covering the `error instanceof Error ? ... : ...` branches when dependencies throw non-Error values.
+- **Work:**
+  - Extend `ReadAssetJsonTextService.test.ts` to cover `fileReader.readFileText` throwing a non-`Error` value and assert the default message branch (`Failed to read asset file`).
+  - Extend `WriteAssetJsonTextService.test.ts` to cover a non-`Error` throw from a dependency during the write flow and assert the default message branch (`Failed to write asset file`).
+- **Done when:** Jest passes and the new tests exercise the non-Error throw branches.
