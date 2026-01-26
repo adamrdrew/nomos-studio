@@ -2,7 +2,7 @@ phase:
   id: 0041
   slug: json-editor
   title: JSON Editor
-  status: complete
+  status: building
 
 steps:
   - id: S001
@@ -150,3 +150,22 @@ steps:
       - src/main/main.ts
       - src/renderer/ui/editor/panels/JsonEditorPanel.tsx
       - .ushabti/phases/0041-json-editor/progress.yaml
+
+  - id: S013
+    title: Harden JSON IPC request validation
+    implemented: false
+    reviewed: false
+    notes: "Follow-up: validate JSON IPC request shapes before dereferencing fields to prevent main-process crashes on malformed payloads; add unit tests."
+    touched:
+      - src/main/ipc/registerNomosIpcHandlers.ts
+      - src/main/ipc/registerNomosIpcHandlers.test.ts
+      - src/main/main.ts
+
+  - id: S014
+    title: Tighten Save enablement gate
+    implemented: false
+    reviewed: false
+    notes: "Follow-up: refine `canSave` enablement to avoid enabling Save/Save & Run when there is no actionable save target (and ensure `assetsDirPath` is effectively configured); update menu tests."
+    touched:
+      - src/main/main.ts
+      - src/main/infrastructure/menu/createApplicationMenuTemplate.test.ts

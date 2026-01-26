@@ -33,12 +33,15 @@ Automated verification
 ## Issues
 
 - VS Code task `shell: jest (runInBand)` fails in this environment due to `npm` not being on PATH, but node-based tasks succeed. This is a tooling/configuration issue, not a product defect.
+- Potential regression/UX: menu Save enablement is now gated by `assetsDirPath !== null` even when the editor shell is not mounted (e.g., no map open). This can surface Save/Save & Run as enabled without an actionable target.
+- Safety/hardening gap: JSON read/write IPC handlers do not validate request shape before dereferencing `request.relativePath` / `request.text`, which can crash main on malformed payloads.
 
 ## Required follow-ups
 
-None required for Phase 0041 scope.
+- S013: Harden JSON IPC request validation (avoid main-process crash on malformed IPC payloads).
+- S014: Tighten Save enablement gate so menu state reflects actionable save capability.
 
 ## Decision
 
-Green. The work has been weighed and found complete.
+Not green yet. Phase reopened as building pending S013/S014.
 

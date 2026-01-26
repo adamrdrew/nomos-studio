@@ -107,3 +107,18 @@
     - Save on map
     - Save & Run saves all then runs
 - **Done when:** All automated checks pass and manual acceptance flows succeed.
+
+## S013 — Harden JSON IPC request validation
+- **Intent:** Prevent malformed/hostile renderer payloads from crashing main by dereferencing missing fields.
+- **Work:**
+  - Add request-shape validation for `assetsReadJsonText` and `assetsWriteJsonText` handlers before accessing `request.relativePath` / `request.text`.
+  - Ensure invalid payloads return a typed failure result (no throw).
+  - Update/add unit tests to cover invalid payload shapes.
+- **Done when:** Invalid IPC payloads for JSON read/write are rejected safely and unit tests cover those branches.
+
+## S014 — Tighten Save enablement gate
+- **Intent:** Avoid enabling File → Save / Save & Run when the renderer cannot actually handle it (e.g., no editor shell mounted) or when settings are effectively empty.
+- **Work:**
+  - Revisit the `canSave` computation in main so it reflects actionable save capability (and trims/validates `assetsDirPath`).
+  - Add/update menu template tests to cover the corrected enablement behavior.
+- **Done when:** Save/Save & Run are not enabled in states where no save target exists, and menu tests cover the updated gate.
