@@ -153,13 +153,12 @@ steps:
 
   - id: S013
     title: Harden JSON IPC request validation
-    implemented: false
+    implemented: true
     reviewed: false
-    notes: "Follow-up: validate JSON IPC request shapes before dereferencing fields to prevent main-process crashes on malformed payloads; add unit tests."
+    notes: "Added request-shape guards for JSON read/write IPC handlers (validate object + string fields before dereference) and return typed failures for invalid payloads; extended IPC handler unit tests to cover malformed request shapes."
     touched:
       - src/main/ipc/registerNomosIpcHandlers.ts
       - src/main/ipc/registerNomosIpcHandlers.test.ts
-      - src/main/main.ts
 
   - id: S014
     title: Tighten Save enablement gate

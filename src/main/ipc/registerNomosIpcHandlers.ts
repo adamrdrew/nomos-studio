@@ -81,8 +81,34 @@ function badMapEditRequest(message: string): Readonly<{ ok: false; error: MapEdi
   };
 }
 
+function badReadAssetJsonTextRequest(message: string): ReadAssetJsonTextResponse {
+  return {
+    ok: false,
+    error: {
+      kind: 'read-asset-error',
+      code: 'read-asset/invalid-relative-path',
+      message
+    }
+  };
+}
+
+function badWriteAssetJsonTextRequest(message: string): WriteAssetJsonTextResponse {
+  return {
+    ok: false,
+    error: {
+      kind: 'write-asset-error',
+      code: 'write-asset/invalid-relative-path',
+      message
+    }
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -111,10 +137,14 @@ export function registerNomosIpcHandlers(
     handlers.readAssetFileBytes(request as ReadAssetFileBytesRequest)
   );
   ipcMain.handle(channels.assetsReadJsonText, async (_event, request: unknown) =>
-    handlers.readAssetJsonText(request as ReadAssetJsonTextRequest)
+    isRecord(request) && isString(request['relativePath'])
+      ? handlers.readAssetJsonText(request as ReadAssetJsonTextRequest)
+      : badReadAssetJsonTextRequest('Invalid read JSON request.')
   );
   ipcMain.handle(channels.assetsWriteJsonText, async (_event, request: unknown) =>
-    handlers.writeAssetJsonText(request as WriteAssetJsonTextRequest)
+    isRecord(request) && isString(request['relativePath']) && isString(request['text'])
+      ? handlers.writeAssetJsonText(request as WriteAssetJsonTextRequest)
+      : badWriteAssetJsonTextRequest('Invalid write JSON request.')
   );
 
   ipcMain.handle(channels.mapValidate, async (_event, request: unknown) =>
