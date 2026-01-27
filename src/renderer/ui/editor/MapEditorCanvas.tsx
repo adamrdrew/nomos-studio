@@ -379,7 +379,8 @@ export const MapEditorCanvas = React.forwardRef<
     return computeTexturedWallStripPolygons(decodedMap.value, TEXTURED_WALL_THICKNESS_WORLD);
   }, [decodedMap, mapRenderMode]);
 
-  const mapOrigin = React.useMemo<Point>(() => {
+  // Compute the origin based on current content. This is used to initialize the stable origin.
+  const computedMapOrigin = React.useMemo<Point>(() => {
     if (decodedMap === null || !decodedMap.ok) {
       return { x: 0, y: 0 };
     }
@@ -394,6 +395,21 @@ export const MapEditorCanvas = React.forwardRef<
       y: (bounds.minY + bounds.maxY) / 2
     };
   }, [decodedMap]);
+
+  // Use a stable origin that only updates when the map file changes, not when content is edited.
+  // This prevents the view from jumping when geometry is added/modified.
+  const stableMapOriginRef = React.useRef<{ mapFilePath: string | null; origin: Point }>({
+    mapFilePath: null,
+    origin: { x: 0, y: 0 }
+  });
+
+  const mapOrigin = React.useMemo<Point>(() => {
+    if (mapFilePath !== stableMapOriginRef.current.mapFilePath) {
+      // Map changed - update stable origin to current computed origin.
+      stableMapOriginRef.current = { mapFilePath, origin: computedMapOrigin };
+    }
+    return stableMapOriginRef.current.origin;
+  }, [mapFilePath, computedMapOrigin]);
 
   const mapBounds = React.useMemo<Bounds | null>(() => {
     if (decodedMap === null || !decodedMap.ok) {
@@ -706,6 +722,9 @@ export const MapEditorCanvas = React.forwardRef<
     }
 
     if (mapBounds === null) {
+      // Mark blank maps as having had their initial framing applied, so adding geometry
+      // doesn't trigger an unexpected auto-zoom.
+      lastInitialScaleMapRef.current = mapFilePath;
       return;
     }
 

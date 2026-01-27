@@ -1,0 +1,58 @@
+phase:
+  id: "0042"
+  slug: fix-map-recenter-on-room-placement
+  title: Fix Map Recenter on Room Placement
+  status: complete
+
+steps:
+  - id: S001
+    title: Investigate and confirm root cause
+    implemented: true
+    reviewed: true
+    notes: |
+      Initial diagnosis (guard ref only) was incomplete. Deeper investigation revealed two interacting issues:
+      1. mapOrigin was recalculated on every decodedMap change, shifting render coordinates
+      2. Initial scale guard was not set for blank maps, causing auto-zoom on first geometry
+      Both issues needed to be fixed together.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+
+  - id: S002
+    title: Fix the mapOrigin stability
+    implemented: true
+    reviewed: true
+    notes: |
+      Made mapOrigin stable within a map session:
+      - Renamed original memo to computedMapOrigin
+      - Added stableMapOriginRef to store origin when map is opened
+      - New mapOrigin memo only updates ref when mapFilePath changes
+      This prevents coordinate system shifts when geometry is added/modified.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+
+  - id: S003
+    title: Fix the initial scale guard for blank maps
+    implemented: true
+    reviewed: true
+    notes: |
+      When mapBounds === null, now sets lastInitialScaleMapRef.current = mapFilePath before returning.
+      This marks blank maps as "framed" immediately, preventing auto-zoom when first geometry is added.
+    touched:
+      - src/renderer/ui/editor/MapEditorCanvas.tsx
+
+  - id: S004
+    title: Test the fix manually
+    implemented: true
+    reviewed: true
+    notes: |
+      User confirmed the fix works:
+      - Blank map first room placement: viewport does not move
+      - Subsequent room placements: no jumping
+    touched: []
+
+  - id: S005
+    title: Run test suite
+    implemented: true
+    reviewed: true
+    notes: "All 682 tests pass."
+    touched: []
