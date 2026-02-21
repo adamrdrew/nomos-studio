@@ -1,6 +1,36 @@
+# Dependencies
 node_modules/
+
+# Build output
 out/
 dist/
 .webpack/
+
+# macOS
 .DS_Store
+
+# Pharaoh job runner state
+.pharaoh/
+
+# Claude Code local settings
+.claude/settings.json
+.claude/settings.local.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# Editor temp files
+*.swp
+*~
+
+# Logs
+*.log
+
+# Test coverage
 coverage/
